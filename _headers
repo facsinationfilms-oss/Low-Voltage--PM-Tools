@@ -1,0 +1,16 @@
+/sw.js
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/markup.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+/quote.html
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex
+  Referrer-Policy: no-referrer
+/*.mjs
+  Content-Type: text/javascript
