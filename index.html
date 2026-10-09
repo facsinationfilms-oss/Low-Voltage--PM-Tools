@@ -2646,7 +2646,7 @@ body.fv-full{overflow:hidden}
           el.querySelector('.auth-card').innerHTML = `<div class="auth-logo">${mark}</div><h1>Check your email</h1><p class="auth-sub">We sent a confirmation link to <b>${escH(email)}</b>. Tap it, then come back here and sign in.</p><button class="btn primary auth-go" type="button" id="auth-back">Sign in</button>`;
           $('#auth-back').addEventListener('click', () => { mode = 'in'; draw(); $('#auth-email').value = email; });
         } catch (ex) {
-          err.textContent = netErr(ex) ? 'Can’t reach the server. Check your connection and try again.' : /registered|exists/i.test(ex.message || '') ? 'There’s already an account with that email — sign in instead.' : (ex.message || 'Couldn’t create the account.');
+          err.textContent = netErr(ex) ? 'Can’t reach the server. Check your connection and try again.' : /registered|exists/i.test(ex.message || '') ? 'There’s already an account with that email — sign in instead.' : /database error|sign-ups are closed/i.test(ex.message || '') ? 'This invite link doesn’t work any more. Ask your admin for a new one.' : (ex.message || 'Couldn’t create the account.');
           if (/registered|exists/i.test(ex.message || '')) { mode = 'in'; draw(); $('#auth-email').value = email; $('#auth-err').textContent = 'You already have an account — sign in and you’ll join the team.'; }
         } finally { const b2 = $('#auth-go'); if (b2) { b2.disabled = false; b2.textContent = mode === 'up' ? 'Create account' : 'Sign in'; } }
         return;
