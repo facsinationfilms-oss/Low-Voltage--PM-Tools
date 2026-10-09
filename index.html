@@ -2467,6 +2467,63 @@ body.fv-full{overflow:hidden}
 @media (max-width:760px){ .tm-row,.tm-row.pend{grid-template-columns:1fr 1fr;row-gap:8px}.tm-who{grid-column:1/-1}.tm-acts{grid-column:1/-1;justify-content:flex-start} }
 .tm-row.pend .tm-who{align-items:flex-start}
 
+/* ---------- task people & groups (fm-assign.js) ---------- */
+.as-box{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.as-chip{display:inline-flex;align-items:center;gap:7px;padding:4px 4px 4px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);max-width:100%;min-width:0}
+.as-chip .av.sm{width:22px;height:22px;font-size:9px}
+.as-chip.me{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.as-t{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.as-t b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.as-t b em{font-style:normal;font-weight:500;color:var(--muted)}
+.as-t small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.as-x{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex:none}
+.as-x:hover{background:var(--hover);color:var(--danger)}
+.as-x svg.i{width:12px;height:12px}
+.as-gic{width:22px;height:22px;border-radius:7px;display:inline-grid;place-items:center;flex:none;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
+.as-gic svg.i{width:14px;height:14px}
+.as-ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.as-ic svg.i{width:12px;height:12px}
+.as-leave{font-size:13px;margin-left:4px}
+.as-hint{margin-top:4px}
+.tf.from .tf-ic{background:var(--ok-soft);color:var(--ok)}
+.tf.from small{color:var(--muted)}
+.as-pop-wrap{width:min(340px,calc(100vw - 16px));padding:0!important}
+.as-pop{display:flex;flex-direction:column;max-height:min(460px,70vh)}
+.as-q{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted)}
+.as-q input{border:0;background:none;padding:2px 0;flex:1;font-size:15px;outline:none;color:var(--ink)}
+.as-list{overflow:auto;padding:4px 6px 8px}
+.as-list .pop-label{padding:10px 8px 4px}
+.as-o{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border-radius:9px;text-align:left}
+.as-o:hover,.as-o:focus-visible{background:var(--hover)}
+.as-o .av.sm{width:26px;height:26px;font-size:10px}
+.as-o .as-gic{width:26px;height:26px}
+.as-ot{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.2}
+.as-ot b{font-weight:600;font-size:14px}
+.as-ot small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.as-ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line-2);display:grid;place-items:center;color:transparent;flex:none}
+.as-ck svg.i{width:13px;height:13px}
+.as-o.on .as-ck{background:var(--accent);border-color:var(--accent);color:#fff}
+.as-empty{padding:6px 8px 8px;color:var(--muted);font-size:13px}
+.as-foot{padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.ip-person.as-g{display:inline-flex;align-items:center;gap:7px}
+/* Groups page */
+.gr-add{display:flex;gap:8px;flex-wrap:wrap}
+.gr-add input{flex:1;min-width:180px;font-size:15px;padding:8px 10px}
+.gr-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.gr-head .as-gic{width:30px;height:30px;border-radius:9px}
+.gr-name{font:650 17px/1.2 var(--f-body);border-color:transparent;background:none;padding:5px 7px;flex:1;min-width:160px}
+.gr-name:hover:not(:disabled),.gr-name:focus{border-color:var(--line-2);background:var(--surface)}
+.gr-name:disabled{color:var(--ink)}
+.gr-n{color:var(--muted);font-size:13px}
+.gr-people{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.gr-p{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--surface)}
+.gr-p.on{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));background:var(--accent-soft)}
+.gr-p input{margin:0}
+.gr-p .av.sm{width:24px;height:24px;font-size:9.5px}
+.gr-p span{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.gr-p small{color:var(--muted);font-size:11.5px}
+@media (max-width:600px){.gr-people{grid-template-columns:1fr 1fr}.as-t small{max-width:140px}}
+
 </style>
 </head>
 <body>
@@ -2524,6 +2581,10 @@ body.fv-full{overflow:hidden}
 
   let sb = null, hooks = null, user = null, started = false, org = null, orgs = [];
   const ORG = () => (org ? org.org_id : user.id);
+  const ORG_REC = () => org;
+  const reloaders = {}, liveRows = {};
+  let noTaskRpc = false;
+  const taskRpc = () => !noTaskRpc && org && !org.legacy;
   const lsG = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsS = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
   { const j = new URLSearchParams(location.search).get('join'); if (j && /^[\w-]{6,64}$/.test(j)) lsS('bs-hub.join', j); }
@@ -2550,6 +2611,7 @@ body.fv-full{overflow:hidden}
         return {
           onSnapshot(cb, onErr) {
             const rows = new Map();
+            liveRows[kind] = rows;
             let alive = true, chan = null;
             const emit = () => alive && cb(snapDocs([...rows.values()]));
             const load = async () => {
@@ -2570,8 +2632,10 @@ body.fv-full{overflow:hidden}
             load().catch(e => onErr && onErr({ code: codeOf(e) }));
             // a full refresh now and then: phones drop the live connection while asleep
             const reload = () => load().catch(() => {});
+            reloaders[kind] = reload;
             const onVis = () => { if (document.visibilityState === 'visible') reload(); };
-            const tick = setInterval(reload, 5 * 60 * 1000);
+            // tasks: someone taking you off a task doesn't reach you live (you can't see it any more), so check often
+            const tick = setInterval(reload, (kind === 'tasks' && !(ORG_REC() || {}).legacy ? 60 : 5 * 60) * 1000);
             window.addEventListener('online', reload);
             document.addEventListener('visibilitychange', onVis);
             return () => { alive = false; clearInterval(tick); window.removeEventListener('online', reload); document.removeEventListener('visibilitychange', onVis); try { sb.removeChannel(chan); } catch (e) {} };
@@ -2583,6 +2647,11 @@ body.fv-full{overflow:hidden}
         return {
           async set(obj) {
             let r;
+            if (kind === 'tasks' && taskRpc()) {
+              try { r = await sb.rpc('save_task', { p_org: ORG(), p_id: id, p_data: obj }); } catch (e) { fail(e); }
+              if (!(r.error && /save_task|PGRST202/.test(r.error.message + r.error.code))) { if (r.error) fail(r.error); return; }
+              noTaskRpc = true;
+            }
             try { r = await sb.from(kind).upsert({ user_id: ORG(), id, data: obj }, { onConflict: 'user_id,id' }); } catch (e) { fail(e); }
             if (r.error) fail(r.error);
           },
@@ -2590,6 +2659,12 @@ body.fv-full{overflow:hidden}
             let r;
             try { r = await sb.from(kind).delete().eq('user_id', ORG()).eq('id', id); } catch (e) { fail(e); }
             if (r.error) fail(r.error);
+            // row security skips rows you may not delete without an error: if a task is still there, say so
+            if (kind === 'tasks' && taskRpc()) {
+              let c; try { c = await sb.from(kind).select('id').eq('user_id', ORG()).eq('id', id); } catch (e) { c = null; }
+              if (c && !c.error && c.data && c.data.length) fail({ code: '42501', message: 'Only the person who made this task or a manager can delete it' });
+            }
+            liveRows[kind] && liveRows[kind].delete(id);
           },
         };
       },
@@ -2829,6 +2904,8 @@ body.fv-full{overflow:hidden}
     signOut,
     get org() { return org; },
     get role() { return org ? org.role : null; },
+    /* pull a fresh copy from the server (after it refused a change, or after leaving a task) */
+    refresh(kind) { for (const [k, f] of Object.entries(reloaders)) if (!kind || k === kind) f(); },
     inviteLink() { return org && org.join_code ? location.origin + location.pathname + '?join=' + encodeURIComponent(org.join_code) : ''; },
     team: {
       async list() { let r; try { r = await sb.from('members').select('*').eq('org_id', ORG()); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data || []; },
@@ -3985,8 +4062,8 @@ function renderDetail(){
         <div class="d-fields">
           <div class="d-label">${icon('folder')}List</div><div class="d-val">${listFieldBtn(t.folderId,'Inbox (no list)')}</div>
           <div class="d-label">${icon('board')}Status</div><div class="d-val"><div class="seg" id="d-status" role="group" aria-label="Status">${STATUS.map(([v,l])=>`<button type="button" data-status="${v}" aria-pressed="${!t.done&&t.status===v}">${l}</button>`).join('')}<button type="button" data-status="done" aria-pressed="${t.done}">Done</button></div></div>
-          <div class="d-label">${icon('user')}Assigned to</div><div class="d-val"><select id="d-assignee" aria-label="Assigned to">${personOptions(t.assignee,'Nobody')}<option value="__new">+ Add a person…</option></select>${t.assignee&&S.people[t.assignee]?`<button type="button" class="btn sm ghost" data-d="open-person">View</button>`:''}</div>
-          <div class="d-label">${icon('clock')}Added</div><div class="d-val"><span class="d-static" id="d-added">${esc(fmtStamp(t.createdAt))}</span><span class="d-rel" data-added="${t.id}">${esc(addedText(t.createdAt))}</span></div>
+          ${taskPeopleField(t)}
+          <div class="d-label">${icon('clock')}Added</div><div class="d-val"><span class="d-static" id="d-added">${esc(fmtStamp(t.createdAt))}${taskByText(t)}</span><span class="d-rel" data-added="${t.id}">${esc(addedText(t.createdAt))}</span></div>
           <div class="d-label">${icon('timeline')}Start date</div><div class="d-val"><input type="date" id="d-start" value="${t.start}" aria-label="Start date"><span class="view-sub">Optional — for jobs that run over several days (shows on the Timeline)</span></div>
           <div class="d-label">${icon('cal')}Due date</div><div class="d-val">${dueFields(t.due,t.time,'task')}${cdHTML(t,'d-cd')}</div>
           ${taskLinkFields(t)}
@@ -4040,7 +4117,7 @@ function bindDetail(){
     const bindText=(sel,key)=>{ const el=$(sel,root); if(!el) return; el.addEventListener('input',()=>{ patch(kind,id,{[key]:el.value.slice(0,200)}); if(key==='location'){ const m=$('#d-map',root); m.hidden=!el.value.trim(); m.href=mapUrl(el.value); } }); };
     bindTaskLinks(root,id);
     $$('[data-status]',root).forEach(b=>b.addEventListener('click',()=>{ const v=b.dataset.status; if(v==='done'){ if(!cur().done) toggleDone(id); else refreshDetail(); } else applyTaskSet(id,{status:v,done:false}); }));
-    $('#d-assignee').addEventListener('change',e=>{ const v=e.target.value; if(v==='__new'){ e.target.value=cur().assignee; quickPerson(pid=>{ patch(kind,id,{assignee:pid}); refreshDetail(); }); return; } patch(kind,id,{assignee:v}); refreshDetail(); });
+    bindTaskPeople(root,id);
     $('#d-start').addEventListener('change',e=>{ patch(kind,id,{start:isDate(e.target.value)?e.target.value:''}); refreshDetail(); });
   }
   $('#d-folder').addEventListener('click',e=>{ pickFolder(e.currentTarget,cur().folderId,fid=>{ patch(kind,id,{folderId:fid}); refreshDetail(); const b=$('#d-folder'); b&&b.focus({preventScroll:true}); },{noneLabel:kind==='tasks'?'Inbox (no list)':'No list',title:kind==='tasks'?'Put this task in…':'Put this note in…'}); });
@@ -4285,7 +4362,7 @@ function taskMenu(anchor,id,fromDetail){
   items.push({label:t.starred?'Unstar':'Star',icon:'star',act:()=>{ patch('tasks',id,{starred:!t.starred}); refreshDetail(); }});
   items.push({label:'Priority',row:[3,2,1,0].map(p=>({label:p?PRI_NAMES[p]:'None',on:t.priority===p,act:()=>{ patch('tasks',id,{priority:p}); refreshDetail(); }}))});
   if(!t.done) items.push({label:'Status',row:STATUS.map(([v,l])=>({label:l,on:t.status===v,act:()=>applyTaskSet(id,{status:v,done:false})}))});
-  items.push({label:'Assign to…',icon:'user',hint:t.assignee?personName(t.assignee):'',act:r=>menu(r,[...peopleList().map(p=>({label:p.name,icon:'user',hint:t.assignee===p.id?'✓':'',act:()=>{ patch('tasks',id,{assignee:p.id}); refreshDetail(); toast(`Assigned to ${p.name}`); }})),...(t.assignee?[{label:'Nobody',icon:'close',act:()=>{ patch('tasks',id,{assignee:''}); refreshDetail(); }}]:[]),{sep:true},{label:'Add a person…',icon:'plus',act:()=>quickPerson(pid=>{ patch('tasks',id,{assignee:pid}); refreshDetail(); })}])});
+  items.push({label:'Assign to…',icon:'user',hint:t.assignee?personName(t.assignee):'',act:r=>menu(r,[...peopleList().map(p=>({label:p.name,icon:'user',hint:taskHas(t,p.id)?'✓':'',act:()=>{ patch('tasks',id,{assignee:p.id}); refreshDetail(); toast(`Assigned to ${p.name}`); }})),...(t.assignee?[{label:'Nobody',icon:'close',act:()=>{ patch('tasks',id,{assignee:''}); refreshDetail(); }}]:[]),{sep:true},{label:'Add a person…',icon:'plus',act:()=>quickPerson(pid=>{ patch('tasks',id,{assignee:pid}); refreshDetail(); })}])});
   items.push({sep:true});
   items.push({label:'Set date…',icon:'cal',hint:t.due?fmtDay(t.due):'',act:r=>pickDate(r,t.due,d=>{ patch('tasks',id,{due:d,...(d?{}:{time:''})}); refreshDetail(); })});
   items.push({label:'Color…',icon:'drop',hint:t.color?colorName(t.color):'',act:r=>pickColor(r,t.color,c=>{ patch('tasks',id,{color:c}); refreshDetail(); })});
@@ -5008,7 +5085,7 @@ function ruleMatch(t,r){
         case 'set': return !!d;
       } return true;
     }
-    case 'person': return r.op==='isnt'?t.assignee!==r.v:r.op==='empty'?!t.assignee:r.op==='set'?!!t.assignee:t.assignee===r.v;
+    case 'person': return r.op==='isnt'?!taskHas(t,r.v):r.op==='empty'?!taskPeopleCount(t):r.op==='set'?!!taskPeopleCount(t):taskHas(t,r.v);
     case 'list': { if(r.op==='empty') return !t.folderId||!S.folders[t.folderId]; const inside=!!t.folderId&&(t.folderId===r.v||descendants(r.v).includes(t.folderId)); return r.op==='isnt'?!inside:inside; }
     case 'tag': return r.op==='isnt'?!t.tags.includes(v):t.tags.includes(v);
     case 'bool': { const b=r.f==='done'?t.done:t.starred; return r.op==='no'?!b:b; }
@@ -5693,7 +5770,7 @@ function crewBoard(days){
   const head=days.map(d=>{ const dt=toDate(d), wk=dt.getDay()===0||dt.getDay()===6; return `<div class="cb-dh ${d===t0?'today':''} ${wk?'wk':''}"><span>${DOW[dt.getDay()]}</span><b>${dt.getDate()}</b></div>`; }).join('');
   const body=rows.map(({pid,p})=>{
     const mine=occ.filter(o=>occForPerson(o,pid)).map(o=>({o,a:Math.max(0,diffDays(o.date,from)),b:Math.min(N-1,diffDays(o.endDate,from)),s:toMin(o.e.start)??-1})).sort((x,y)=>x.a-y.a||x.s-y.s||(y.b-y.a)-(x.b-x.a));
-    const tasks=UI.schedTasks&&pid!=='__none'?Object.values(S.tasks).filter(t=>!t.done&&t.assignee===pid&&t.due>=from&&t.due<=to).map(t=>({t,a:diffDays(t.due,from),b:diffDays(t.due,from)})):[];
+    const tasks=UI.schedTasks&&pid!=='__none'?Object.values(S.tasks).filter(t=>!t.done&&taskHas(t,pid)&&t.due>=from&&t.due<=to).map(t=>({t,a:diffDays(t.due,from),b:diffDays(t.due,from)})):[];
     const lanes=[]; const place=x=>{ let l=lanes.findIndex(end=>end<x.a); if(l<0){ l=lanes.length; lanes.push(x.b); } else lanes[l]=x.b; x.lane=l; };
     mine.forEach(place); tasks.forEach(place);
     const L=Math.max(1,lanes.length);
@@ -5727,7 +5804,7 @@ function schedWeek(days){
   const warn=conflictsIn(from,to);
   const cols=days.map(d=>{ const dt=toDate(d); return {date:d,head:`<span class="tg-dow">${DOW[dt.getDay()]}</span><button type="button" class="tg-dnum" data-act="sched-day" data-date="${d}">${dt.getDate()}</button>`}; });
   const items=tgItemsFor(occ,(o,d)=>{ const i=days.indexOf(d); return i<0?[]:[i]; },{warn,pidOf:()=>people.length===1?people[0].id:''});
-  if(UI.schedTasks) for(const t of Object.values(S.tasks)) if(!t.done&&t.assignee&&ids.has(t.assignee)&&days.includes(t.due)) items.push({col:days.indexOf(t.due),allDay:true,html:`<button type="button" class="cb-task" data-act="open-task" data-id="${t.id}">${icon('check')}<span>${esc(t.title||'Untitled task')}</span></button>`});
+  if(UI.schedTasks) for(const t of Object.values(S.tasks)) if(!t.done&&taskAnyIn(t,ids)&&days.includes(t.due)) items.push({col:days.indexOf(t.due),allDay:true,html:`<button type="button" class="cb-task" data-act="open-task" data-id="${t.id}">${icon('check')}<span>${esc(t.title||'Untitled task')}</span></button>`});
   const one=people.length===1?people[0].id:'';
   return `<div class="tg-wrap">${timeGridHTML({cols,items,startH:UI.schedStartH,endH:UI.schedEndH,slotAct:'sched-add',slotKind:'sched',addSet:one?{person:one}:null})}</div>`;
 }
@@ -5738,7 +5815,7 @@ function schedDay(d){
   if(!colsP.length) return `<div class="group-empty">No one matches the people filter.</div>`;
   const cols=colsP.map(({pid,p})=>({date:d,person:pid==='__none'?'':pid,head:p?`<button type="button" class="tg-person" data-act="open-person" data-id="${pid}">${av(p)}<span>${esc(p.name)}</span></button><span class="tg-hrs">${UI.schedHours?(hm(hoursFor(pid,[d]))||''):''}</span>`:`<span class="tg-person">${'<span class="av" style="--c:var(--faint)">?</span>'}<span>Unassigned</span></span>`}));
   const items=tgItemsFor(occ,(o,day)=>day!==d?[]:colsP.map((c,i)=>occForPerson(o,c.pid)?i:-1).filter(i=>i>=0),{warn,pidOf:ci=>colsP[ci].pid});
-  if(UI.schedTasks) colsP.forEach((c,ci)=>{ for(const t of Object.values(S.tasks)) if(!t.done&&t.assignee===c.pid&&t.due===d){ if(t.time){ const s=toMin(t.time); items.push({col:ci,start:s,end:s+30,cls:'tg-task',attrs:`data-act="open-task" data-id="${t.id}"`,html:`${icon('check')} ${esc(t.title)}`}); } else items.push({col:ci,allDay:true,html:`<button type="button" class="cb-task" data-act="open-task" data-id="${t.id}">${icon('check')}<span>${esc(t.title||'Untitled task')}</span></button>`}); } });
+  if(UI.schedTasks) colsP.forEach((c,ci)=>{ for(const t of Object.values(S.tasks)) if(!t.done&&taskHas(t,c.pid)&&t.due===d){ if(t.time){ const s=toMin(t.time); items.push({col:ci,start:s,end:s+30,cls:'tg-task',attrs:`data-act="open-task" data-id="${t.id}"`,html:`${icon('check')} ${esc(t.title)}`}); } else items.push({col:ci,allDay:true,html:`<button type="button" class="cb-task" data-act="open-task" data-id="${t.id}">${icon('check')}<span>${esc(t.title||'Untitled task')}</span></button>`}); } });
   return `<div class="tg-wrap tg-people">${timeGridHTML({cols,items,startH:UI.schedStartH,endH:UI.schedEndH,slotAct:'sched-add',slotKind:'sched'})}</div>`;
 }
 function schedList(days){
@@ -5748,7 +5825,7 @@ function schedList(days){
   const warn=conflictsIn(from,to); let out='';
   for(const d of days){
     const today_=occ.filter(o=>o.date<=d&&o.endDate>=d).sort((a,b)=>(a.e.allDay||!a.e.start?-1:0)-(b.e.allDay||!b.e.start?-1:0)||(a.e.start||'').localeCompare(b.e.start||''));
-    const tasks=UI.schedTasks?Object.values(S.tasks).filter(t=>!t.done&&t.assignee&&ids.has(t.assignee)&&t.due===d):[];
+    const tasks=UI.schedTasks?Object.values(S.tasks).filter(t=>!t.done&&taskAnyIn(t,ids)&&t.due===d):[];
     if(!today_.length&&!tasks.length) continue;
     const rows=today_.map(o=>{ const e=o.e, w=warn.get(o.oid), ti=typeInfo(e.type); const ppl=e.people.filter(id=>S.people[id]).map(id=>S.people[id]);
       return `<div class="sl-row ${w?'warn':''}" style="--c:${entryColor(e)}" data-act="open-sched" data-id="${e.id}"><span class="sl-time">${esc(timeRange(e))}${o.endDate>o.date?`<small>day ${diffDays(d,o.date)+1} of ${diffDays(o.endDate,o.date)+1}</small>`:''}</span><span class="sl-type">${icon(ti[3])}${ti[1]}</span><div class="sl-main"><b>${esc(entryLabel(e))}</b>${e.title&&e.job?`<span class="chip job">${icon('job')}${esc(e.job)}</span>`:''}${e.location?`<span class="sl-loc">${icon('place')}${esc(e.location)}</span>`:''}${w?`<span class="sl-warn">${icon('warn')}${esc(w[0])}</span>`:''}</div><div class="sl-ppl">${ppl.map(p=>`<span class="chip person" style="--c:${p.color}">${av(p,'sm')}${esc(p.name)}</span>`).join('')||'<span class="view-sub">Unassigned</span>'}</div></div>`; }).join('');
@@ -5762,7 +5839,7 @@ function teamView(days){
   if(!all.length) return schedEmpty();
   const wk=Array.from({length:7},(_,i)=>addDays(weekStartOf(today()),i));
   const card=p=>{ const next=occurrences(today(),addDays(today(),30)).filter(o=>o.e.people.includes(p.id)).sort((a,b)=>a.date.localeCompare(b.date)||(a.e.start||'').localeCompare(b.e.start||'')).slice(0,3);
-    const open=Object.values(S.tasks).filter(t=>!t.done&&t.assignee===p.id).length;
+    const open=Object.values(S.tasks).filter(t=>!t.done&&taskHas(t,p.id)).length;
     return `<article class="pc ${p.active?'':'inactive'}" data-act="open-person" data-id="${p.id}" tabindex="0"><div class="pc-top">${av(p,'lg')}<div class="pc-nm"><b>${esc(p.name)}${p.isMe?' <em>(me)</em>':''}</b><small>${esc(p.role||'No role set')}</small></div><span class="pc-acc acc-${p.access}">${{admin:'Admin',edit:'Can edit',view:'View only'}[p.access]}</span></div>
       <div class="pc-contact">${p.phone?`<a href="tel:${esc(p.phone.replace(/[^\d+]/g,''))}" class="chip" data-stop="1">${icon('phone')}${esc(p.phone)}</a>`:''}${p.email?`<a href="mailto:${esc(p.email)}" class="chip" data-stop="1">${icon('mail')}${esc(p.email)}</a>`:''}</div>
       <div class="pc-stats"><span><b>${hm(hoursFor(p.id,wk))||'0h'}</b> this week</span><span><b>${open}</b> open task${open===1?'':'s'}</span><span>Usual ${esc(shortTime(p.dayStart))}–${esc(shortTime(p.dayEnd))}</span></div>
@@ -5972,7 +6049,7 @@ function quickPerson(then){
 function renderPersonDetail(el,p){
   const wk=Array.from({length:7},(_,i)=>addDays(weekStartOf(today()),i));
   const next=occurrences(today(),addDays(today(),45)).filter(o=>o.e.people.includes(p.id)).sort((a,b)=>a.date.localeCompare(b.date)||(a.e.start||'').localeCompare(b.e.start||'')).slice(0,8);
-  const tasks=sortTasks(Object.values(S.tasks).filter(t=>!t.done&&t.assignee===p.id),'due').slice(0,8);
+  const tasks=sortTasks(Object.values(S.tasks).filter(t=>!t.done&&taskHas(t,p.id)),'due').slice(0,8);
   el.innerHTML=`<div class="detail-inner" data-kind="people">
     <div class="detail-head"><span class="crumb">${icon('team')}Team</span><span class="spacer"></span>
       <button class="icon-btn" data-pd="menu" aria-label="More actions" aria-haspopup="menu" title="More">${icon('more')}</button>
@@ -6017,12 +6094,12 @@ function renderPersonDetail(el,p){
 }
 function deletePerson(id){
   const p=S.people[id]; if(!p) return;
-  const ents=Object.values(S.sched).filter(e=>e.people.includes(id)); const tks=Object.values(S.tasks).filter(t=>t.assignee===id);
+  const ents=Object.values(S.sched).filter(e=>e.people.includes(id)); const tks=Object.values(S.tasks).filter(t=>taskHas(t,id,true));
   openModal({title:`Delete ${p.name}?`,body:`<p>${ents.length?`They’re on ${ents.length} schedule entr${ents.length===1?'y':'ies'}; they’ll be taken off ${ents.length===1?'it':'them'}. `:''}${tks.length?`${tks.length} task${tks.length===1?' is':'s are'} assigned to them and will become unassigned. `:''}Tip: to keep their history, untick <b>Active</b> instead.</p>`,
     actions:[{label:'Cancel'},{label:'Delete',kind:'danger',act:()=>{
       const bE=ents.map(clone), bT=tks.map(clone);
       for(const e of ents) patch('sched',e.id,{people:e.people.filter(x=>x!==id)});
-      for(const t of tks) patch('tasks',t.id,{assignee:''});
+      for(const t of tks) taskDropPerson(t.id,id);
       closeDetail(true); Store.del('people',id); UI.schedPeople=(UI.schedPeople||[]).filter(x=>x!==id); savePrefs(); scheduleRender();
       toast(`Deleted ${p.name}`,{action:()=>{ Store.put('people',p); bE.forEach(e=>Store.put('sched',e)); bT.forEach(t=>Store.put('tasks',t)); scheduleRender(); }});
     }}]});
@@ -6144,8 +6221,7 @@ function itemTask(t){
   const F=[], unset=[];
   if(t.due){ const sub=[t.time?'at '+fmtTime(t.time):'',relDay(t.due)].filter(Boolean).join(' · '); F.push(ipField('cal','Due',esc(fmtLong(t.due)),{sub:esc(sub)})); } else unset.push('Due date');
   if(t.start) F.push(ipField('timeline','Starts',esc(fmtLong(t.start)),{sub:esc(relDay(t.start))}));
-  const p=t.assignee&&S.people[t.assignee];
-  if(p) F.push(ipField('user','Assigned to',`<button type="button" class="ip-link" data-act="open-person" data-id="${p.id}">${av(p,'sm')}${esc(p.name)}</button>`,{sub:p.role?esc(p.role):''})); else unset.push('Assigned to');
+  { const af=itemAssignField(t); if(af) F.push(af); else unset.push('People'); }
   if(t.project) F.push(itemProjectField(t));
   if(t.job) F.push(ipField('job','Job',`<button type="button" class="ip-link" data-act="search-for" data-q="${esc(t.job)}" title="Show everything for ${esc(t.job)}">${esc(t.job)}</button>`)); else unset.push('Job');
   if(t.location) F.push(ipField('place','Location',esc(t.location),{sub:`<a class="ip-a" href="${mapUrl(t.location)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`})); else unset.push('Location');
@@ -6204,7 +6280,7 @@ function itemSched(e){
 function itemPerson(p){
   const wk=Array.from({length:7},(_,i)=>addDays(weekStartOf(today()),i));
   const next=occurrences(today(),addDays(today(),45)).filter(o=>o.e.people.includes(p.id)).sort((a,b)=>a.date.localeCompare(b.date)||(a.e.start||'').localeCompare(b.e.start||'')).slice(0,8);
-  const tasks=sortTasks(Object.values(S.tasks).filter(t=>!t.done&&t.assignee===p.id),'due');
+  const tasks=sortTasks(Object.values(S.tasks).filter(t=>!t.done&&taskHas(t,p.id)),'due');
   const acc={admin:'Admin',edit:'Can edit',view:'View only'}[p.access];
   const badges=[`<span class="chip">${icon('user')}${esc(acc)}</span>`];
   if(p.isMe) badges.unshift(`<span class="chip star-on">${icon('star')}This is me</span>`);
@@ -9732,7 +9808,7 @@ taskRow=function(t,o={}){
   if(t.location&&F('loc')&&!(job&&job.address===t.location&&!o.showLoc)) fields.push(tf('place','Location',H(t.location)));
   const c=t.contactId&&S.contacts[t.contactId];
   if((c||t.contact)&&F('contact')&&!(t.contact&&jobKey(t.contact)===jobKey(t.job))) fields.push(tf('user','Contact',H(c?c.name:t.contact)+(c&&c.role?` <small>${esc(c.role)}</small>`:'')));
-  if(t.assignee&&F('assignee')&&S.people[t.assignee]){ const p=S.people[t.assignee]; fields.push(`<span class="tf"><span class="tf-ic av-ic">${av(p,'xs')}</span><span class="tf-t"><span class="tf-l">Assigned</span><span class="tf-v">${esc(p.name)}</span></span></span>`); }
+  fields.push(...taskCardPeople(t,F));
   if(f&&o.hideFolder!==f.id&&F('list')) fields.push(tf('folder','List',`<span class="dot" style="--c:${f.color}"></span>${esc(f.name)}`,{title:pathName(f.id)}));
   const extra=[];
   if(t.repeat&&F('repeat')) extra.push(`<span class="tx">${icon('repeat')}${REPEAT_SHORT[t.repeat]}</span>`);
@@ -10413,6 +10489,231 @@ async function teamAction(act,a){
 /* the dashboard tells admins when someone is waiting */
 { const base=VIEWS.home; VIEWS.home=()=>{ const h=base(); const n=Role.admin()?Team.pending().length:0; if(!n) return h; return h.replace('<div class="content-inner','<div class="content-inner').replace(/(<div class="content-inner[^>]*>)/,`$1<div class="tm-banner">${icon('user')}<span><b>${n} ${n===1?'person is':'people are'} waiting for approval</b> — ${Team.pending().slice(0,3).map(m=>esc(m.name||m.email)).join(', ')}</span><button class="btn sm primary" data-act="nav" data-view="team">Review</button></div>`); }; }
 
+/* ---- fm-assign.js ---- */
+/* =========================================================
+   Tasks belong to the people on them.
+   You see a task if you made it, or you're on it — yourself, or through a group (LV Department, Door Department…).
+   Anyone can put people and groups on a task; each one shows who added them. Cards say who a task is from.
+   The database enforces the same rule (hub_task_privacy.sql).
+   ========================================================= */
+const Who={
+  uid(){ return (window.BSCloud&&window.BSCloud.user&&window.BSCloud.user.id)||''; },
+  pid(){ return Me.id()||''; },
+  name(){ const p=this.pid()&&S.people[this.pid()]; const o=Role.org(); const em=(window.BSCloud&&window.BSCloud.user&&window.BSCloud.user.email)||'';
+    return (p&&p.name)||(o&&o.member_name)||em.split('@')[0]||'Someone'; },
+};
+
+/* ---------- groups (kept in settings, managers edit them) ---------- */
+const Groups={
+  list(){ const g=S.settings.groups; return g&&Array.isArray(g.list)?g.list.filter(x=>x&&validId(x.id)):[]; },
+  get(id){ return this.list().find(g=>g.id===id)||null; },
+  members(id){ const g=this.get(id); return g&&Array.isArray(g.members)?g.members.filter(p=>S.people[p]):[]; },
+  of(pid){ return this.list().filter(g=>Array.isArray(g.members)&&g.members.includes(pid)); },
+  canEdit(){ return !Role.team()||Role.mgr(); },
+  save(list){ Store.put('settings',NORM.settings({...(S.settings.groups||{}),id:'groups',type:'groups',list,updatedAt:Date.now()})); scheduleRender(); },
+  add(name){ const g={id:uid('g'),name:String(name).trim().slice(0,80),color:PALETTE[(this.list().length*3+7)%PALETTE.length][1],members:[]}; this.save([...this.list(),g]); return g; },
+  update(id,p){ this.save(this.list().map(g=>g.id===id?{...g,...p}:g)); },
+  remove(id){ this.save(this.list().filter(g=>g.id!==id)); },
+};
+
+/* ---------- the task's people ---------- */
+{ const nt=NORM.tasks; NORM.tasks=o=>{
+  const t=nt(o);
+  let as=Array.isArray(o.assign)?o.assign.filter(a=>a&&(a.k==='p'||a.k==='g')&&validId(a.id)).map(a=>({k:a.k,id:a.id,by:str(a.by).slice(0,64),byName:str(a.byName).slice(0,120),byPid:validId(a.byPid)?a.byPid:'',at:num(a.at)})):[];
+  as=as.filter((a,i)=>as.findIndex(b=>b.k===a.k&&b.id===a.id)===i).slice(0,60);
+  if(!as.length&&t.assignee) as=[{k:'p',id:t.assignee,by:'',byName:'',byPid:'',at:0}];
+  const first=as.find(a=>a.k==='p');
+  return {...t,assignee:first?first.id:'',assign:as,createdBy:str(o.createdBy).slice(0,64),createdByName:str(o.createdByName).slice(0,120),createdByPid:validId(o.createdByPid)?o.createdByPid:''};
+}; }
+const asList=t=>t&&Array.isArray(t.assign)?t.assign:[];
+const stampA=a=>({...a,by:Who.uid(),byName:Who.name(),byPid:Who.pid(),at:Date.now()});
+function taskPeopleIds(t){ const s=new Set(); for(const a of asList(t)){ if(a.k==='p') s.add(a.id); else Groups.members(a.id).forEach(p=>s.add(p)); } if(t&&t.assignee) s.add(t.assignee); return s; }
+function taskHas(t,pid,direct){ if(!t||!pid) return false; if(direct) return t.assignee===pid||asList(t).some(a=>a.k==='p'&&a.id===pid); return taskPeopleIds(t).has(pid); }
+function taskAnyIn(t,ids){ for(const p of taskPeopleIds(t)) if(ids.has(p)) return true; return false; }
+function taskPeopleCount(t){ return asList(t).length||(t&&t.assignee?1:0); }
+function taskDropPerson(id,pid){ const t=S.tasks[id]; if(t) patch('tasks',id,{assign:asList(t).filter(a=>!(a.k==='p'&&a.id===pid))}); }
+/* did I make it? (tasks from before accounts belong to the owner) */
+function taskMine(t){ if(!Role.team()) return true; if(t.createdBy) return t.createdBy===Who.uid(); const o=Role.org(); return !!(o&&o.owner); }
+function taskCanDelete(t){ return !Role.team()||taskMine(t)||Role.mgr(); }
+function taskVisibleHere(t){ return !Role.team()||taskMine(t)||taskHas(t,Who.pid()); }
+/* how I ended up on someone else's task: {byName, via} */
+function taskFrom(t){
+  if(!Role.team()||taskMine(t)) return null;
+  const pid=Who.pid(); const as=asList(t);
+  const direct=as.find(a=>a.k==='p'&&a.id===pid);
+  const grp=!direct&&as.find(a=>a.k==='g'&&Groups.members(a.id).includes(pid));
+  const e=direct||grp; if(!e&&!t.createdByName) return null;
+  return {byName:(e&&e.byName)||t.createdByName||'',at:e&&e.at||t.createdAt,via:grp?(Groups.get(grp.id)||{}).name:''};
+}
+function entryName(a){ if(a.k==='g'){ const g=Groups.get(a.id); return g?g.name:'(a removed group)'; } const p=S.people[a.id]; return p?p.name:'(someone removed)'; }
+
+/* keep the old single "assignee" (first person) in step with the list */
+{ const base=patch; patch=function(kind,id,p,...r){
+  if(kind==='tasks'&&p&&S.tasks[id]){
+    const t=S.tasks[id];
+    if(('assignee' in p)&&!('assign' in p)){ let as=asList(t).filter(a=>!(a.k==='p'&&a.id===t.assignee)); if(p.assignee&&!as.some(a=>a.k==='p'&&a.id===p.assignee)) as=[stampA({k:'p',id:p.assignee}),...as]; p={...p,assign:as}; }
+    if('assign' in p){ const f=p.assign.find(a=>a.k==='p'); p={...p,assignee:f?f.id:''}; }
+  }
+  const n=base.call(this,kind,id,p,...r);
+  if(kind==='tasks'&&n&&!taskVisibleHere(n)) afterLeaving(id,n);
+  return n;
+}; }
+/* a task I'm no longer on drops off my list once the change has saved */
+function afterLeaving(id,t){
+  if(UI.detail&&UI.detail.id===id) closeDetail(true);
+  toast(`“${trunc(t.title||'Untitled task',40)}” is off your list now`,{ms:5000});
+  let n=0; const tick=()=>{ if(Store.dirty('tasks',id)&&n++<60) return setTimeout(tick,300); window.BSCloud&&window.BSCloud.refresh&&window.BSCloud.refresh('tasks'); };
+  setTimeout(tick,200);
+}
+/* new tasks remember who made them */
+{ const base=createTask; createTask=function(p={},opts={}){ const q={...p};
+  if(q.createdBy===undefined||q.createdBy===null){ q.createdBy=Who.uid(); q.createdByName=Who.name(); q.createdByPid=Who.pid(); }
+  if(!q.assign&&q.assignee) q.assign=[stampA({k:'p',id:q.assignee})];
+  return base(q,opts); }; }
+duplicateTask=function(id){ const t=S.tasks[id]; if(!t) return; const c=createTask({...clone(t),id:uid('t'),createdBy:null,title:(t.title||'Untitled task')+' (copy)',subtasks:t.subtasks.map(s=>({...s,id:uid('s')})),order:t.order+0.0005,createdAt:Date.now(),done:false,doneAt:0}); toast('Task duplicated',{label:'Open',action:()=>openDetail('tasks',c.id)}); };
+/* deleting someone else's task: offer to take yourself off instead */
+{ const base=deleteTask; deleteTask=function(id){ const t=S.tasks[id]; if(!t) return; if(taskCanDelete(t)) return base(id);
+  const by=t.createdByName||'the person who made it'; const on=taskHas(t,Who.pid(),true);
+  openModal({title:'You can’t delete this task',body:`<p>Only <b>${esc(by)}</b> or a manager can delete it.${on?' You can take yourself off it instead — it leaves your list but stays with everyone else.':''}</p>`,
+    actions:[{label:'Close'},...(on?[{label:'Take me off it',kind:'primary',act:()=>leaveTask(id)}]:[])]}); }; }
+function leaveTask(id){
+  const t=S.tasks[id]; if(!t) return; const pid=Who.pid();
+  if(!taskHas(t,pid,true)){ const g=asList(t).find(a=>a.k==='g'&&Groups.members(a.id).includes(pid)); toast(g?`You’re on it through ${entryName(g)} — ask ${t.createdByName||'whoever made it'} to change that`:'You’re not on this task'); return; }
+  patch('tasks',id,{assign:asList(t).filter(a=>!(a.k==='p'&&a.id===pid))});
+  if(taskVisibleHere(S.tasks[id])) toast('Taken off');
+}
+/* the server refusing one change shouldn't switch sync off — put it back and say why */
+{ const base=Store.onError.bind(Store); Store.onError=function(e,key,w){
+  if(Role.team()&&e&&e.code==='not_granted'&&Store.mode==='db'){
+    const m=String(e.message||''); toast(/delete|isn’t yours|only add|not on this team/i.test(m)?m:'You don’t have permission to change that, so it was put back.',{ms:7000});
+    setTimeout(()=>window.BSCloud&&window.BSCloud.refresh&&window.BSCloud.refresh(w.kind),300); return; }
+  return base(e,key,w); }; }
+/* a heads-up when someone puts you on a task */
+{ const base=applySnapshot; let seen=null; applySnapshot=function(kind,snap,seenBefore){
+  base(kind,snap,seenBefore);
+  if(kind!=='tasks'||!Role.team()) return;
+  const pid=Who.pid(); if(!pid) return;
+  const now=new Set(Object.values(S.tasks).filter(t=>!t.done&&!taskMine(t)&&taskHas(t,pid)).map(t=>t.id));
+  if(seen&&Store.ready){ const fresh=[...now].filter(i=>!seen.has(i));
+    if(fresh.length===1){ const t=S.tasks[fresh[0]]; const f=taskFrom(t)||{}; toast(`${f.byName||'Someone'} added you to “${trunc(t.title||'Untitled task',40)}”${f.via?` (${f.via})`:''}`,{label:'Open',action:()=>openDetail('tasks',t.id),ms:10000}); }
+    else if(fresh.length>1) toast(`You’ve been added to ${fresh.length} tasks`,{label:'Show',action:()=>go('today'),ms:10000}); }
+  seen=now;
+}; }
+
+/* ---------- on the cards ---------- */
+function taskCardPeople(t,F){
+  const out=[]; const as=asList(t);
+  if(as.length&&F('assignee')){
+    const names=as.map(entryName); const shown=names.slice(0,3).join(', ')+(names.length>3?` +${names.length-3}`:'');
+    const p1=as.find(a=>a.k==='p'&&S.people[a.id]); const g1=as.find(a=>a.k==='g');
+    const ic=p1&&as.length===1?av(S.people[p1.id],'xs'):`<span class="as-ic">${icon(g1?'team':'user')}</span>`;
+    out.push(`<span class="tf"><span class="tf-ic av-ic">${ic}</span><span class="tf-t"><span class="tf-l">${as.length>1?'People':g1&&as.length===1?'Group':'Assigned'}</span><span class="tf-v">${esc(shown)}</span></span></span>`);
+  }
+  const f=taskFrom(t); const shown=as.length&&F('assignee');
+  if(f&&f.byName) out.push(`<span class="tf from"><span class="tf-ic">${icon('user')}</span><span class="tf-t"><span class="tf-l">Added by</span><span class="tf-v">${esc(f.byName)}${f.via&&!shown?` <small>· ${esc(f.via)}</small>`:''}</span></span></span>`);
+  return out;
+}
+function taskByText(t){ if(!Role.team()&&!t.createdByName) return ''; if(taskMine(t)&&t.createdBy===Who.uid()) return ' · by you'; return t.createdByName?' · by '+esc(t.createdByName):''; }
+
+/* "me" everywhere (greeting, who paid, who an invoice is from) is the signed-in person, not the owner's card */
+{ const base=meName; meName=function(){ if(Role.team()){ const p=Who.pid()&&S.people[Who.pid()]; const o=Role.org(); return (p&&p.name)||(o&&o.member_name)||''; } return base(); }; }
+
+/* ---------- in the editor ---------- */
+function asChip(t,a){
+  const isG=a.k==='g', g=isG&&Groups.get(a.id), p=!isG&&S.people[a.id];
+  const me=!isG&&a.id===Who.pid();
+  const canRm=taskCanDelete(t)||a.by===Who.uid()||me;
+  const who=a.byName?(a.by===Who.uid()?'you':a.byName):'';
+  const sub=[isG?`${Groups.members(a.id).length} ${Groups.members(a.id).length===1?'person':'people'}`:'',who?`added by ${who}`:'',a.at?shortStamp(a.at).replace(/ \d+:\d+\w*$/,''):''].filter(Boolean).join(' · ');
+  const face=isG?`<span class="as-gic" style="--c:${(g&&g.color)||'var(--faint)'}">${icon('team')}</span>`:p?av(p,'sm'):`<span class="av sm" style="--c:var(--faint)">?</span>`;
+  return `<span class="as-chip ${isG?'grp':''} ${me?'me':''}" data-k="${a.k}" data-id="${esc(a.id)}">${face}<span class="as-t"><b>${esc(entryName(a))}${me?' <em>(you)</em>':''}</b>${sub?`<small>${esc(sub)}</small>`:''}</span>${canRm?`<button type="button" class="as-x" data-as="rm" data-k="${a.k}" data-id="${esc(a.id)}" aria-label="Take ${esc(entryName(a))} off this task" title="Take off this task">${icon('close')}</button>`:''}</span>`;
+}
+function taskPeopleField(t){
+  const as=asList(t); const pid=Who.pid();
+  const leave=Role.team()&&!taskMine(t)&&taskHas(t,pid,true);
+  return `<div class="d-label">${icon('team')}People</div><div class="d-val"><div class="as-box" id="d-people">${as.map(a=>asChip(t,a)).join('')}
+    <button type="button" class="btn sm as-add" data-as="add" aria-haspopup="dialog">${icon('plus')}${as.length?'Add':'Add people or a group'}</button>
+    ${leave?`<button type="button" class="linkish as-leave" data-as="leave">Take me off</button>`:''}</div>
+    ${!as.length&&Role.team()?`<div class="view-sub as-hint">Only you can see this task until you add someone.</div>`:''}</div>`;
+}
+function bindTaskPeople(root,id){
+  const box=$('#d-people',root); if(!box) return;
+  box.addEventListener('click',e=>{ const b=e.target.closest('[data-as]'); if(!b) return; const t=S.tasks[id]; if(!t) return;
+    const a=b.dataset.as;
+    if(a==='add') pickAssign(b,id);
+    else if(a==='leave') leaveTask(id);
+    else if(a==='rm'){ const k=b.dataset.k, x=b.dataset.id; const before=clone(asList(t)); patch('tasks',id,{assign:asList(t).filter(e=>!(e.k===k&&e.id===x))}); if(S.tasks[id]&&taskVisibleHere(S.tasks[id])){ refreshDetail(); toast(`Took ${entryName({k,id:x})} off`,{action:()=>{ if(S.tasks[id]){ patch('tasks',id,{assign:before}); refreshDetail(); } }}); } }
+  });
+}
+function pickAssign(anchor,id){
+  let q='';
+  const rows=()=>{ const t=S.tasks[id]; if(!t) return ''; const has=(k,i)=>asList(t).some(a=>a.k===k&&a.id===i); const m=s=>!q||String(s||'').toLowerCase().includes(q.toLowerCase());
+    const gs=Groups.list().filter(g=>m(g.name)); const ps=peopleList().filter(p=>m([p.name,p.role].join(' ')));
+    const row=(k,i,face,name,sub)=>`<button type="button" class="as-o ${has(k,i)?'on':''}" data-pk="${k}" data-pid="${esc(i)}" role="menuitemcheckbox" aria-checked="${has(k,i)}">${face}<span class="as-ot"><b>${esc(name)}</b>${sub?`<small>${esc(sub)}</small>`:''}</span><span class="as-ck">${icon('check')}</span></button>`;
+    return `${gs.length||!q?`<div class="pop-label">Groups</div>`:''}${gs.map(g=>row('g',g.id,`<span class="as-gic" style="--c:${g.color}">${icon('team')}</span>`,g.name,`${Groups.members(g.id).length} people — everyone in it gets the task`)).join('')}
+      ${!Groups.list().length&&!q?`<div class="as-empty">${Groups.canEdit()?`No groups yet. <button type="button" class="linkish" data-go-groups="1">Make one</button> (like LV Department) to give a task to a whole crew.`:'No groups yet — a manager can make them.'}</div>`:''}
+      <div class="pop-label">People</div>${ps.map(p=>row('p',p.id,av(p,'sm'),p.name+(p.id===Who.pid()?' (you)':''),[p.role,Groups.of(p.id).map(g=>g.name).join(', ')].filter(Boolean).join(' · '))).join('')||`<div class="as-empty">Nobody called “${esc(q)}”</div>`}`; };
+  openPop(anchor,`<div class="as-pop"><label class="as-q">${icon('search')}<input id="as-q" placeholder="Find a person or group" autocomplete="off" aria-label="Find a person or group"></label><div class="as-list" id="as-list">${rows()}</div><div class="as-foot">Each person sees the task on their own list, with your name on it.</div></div>`,el=>{
+    const inp=el.querySelector('#as-q'), list=el.querySelector('#as-list');
+    setTimeout(()=>inp.focus(),30);
+    inp.addEventListener('input',()=>{ q=inp.value.trim(); list.innerHTML=rows(); });
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ const f=list.querySelector('.as-o:not(.on)'); if(f){ e.preventDefault(); f.click(); } } });
+    list.addEventListener('click',e=>{
+      if(e.target.closest('[data-go-groups]')){ closePop(); go('groups'); return; }
+      const b=e.target.closest('.as-o'); if(!b) return; const t=S.tasks[id]; if(!t) return; const k=b.dataset.pk, i=b.dataset.pid;
+      const on=asList(t).find(a=>a.k===k&&a.id===i);
+      if(on){ if(!(taskCanDelete(t)||on.by===Who.uid()||(k==='p'&&i===Who.pid()))){ toast(`Only ${t.createdByName||'whoever made it'} or a manager can take ${entryName(on)} off`); return; } patch('tasks',id,{assign:asList(t).filter(a=>a!==on)}); }
+      else{ patch('tasks',id,{assign:[...asList(t),stampA({k,id:i})]}); }
+      if(!S.tasks[id]) { closePop(); return; }
+      list.innerHTML=rows(); if(D&&D.kind==='tasks'&&D.id===id){ const keep=inp.value; refreshDetail(); inp.value=keep; }
+    });
+  },{role:'dialog',cls:'as-pop-wrap',alignLeft:true});
+}
+
+/* ---------- on the task page ---------- */
+function itemAssignField(t){
+  const as=asList(t); const f=taskFrom(t);
+  const by=t.createdByName?(taskMine(t)&&t.createdBy===Who.uid()?'Made by you':`Made by ${esc(t.createdByName)}`):'';
+  if(!as.length) return by?ipField('team','People','<span class="ip-empty">Just the person who made it</span>',{sub:by}):'';
+  const val=`<span class="ip-people">${as.map(a=>a.k==='g'?`<span class="ip-person as-g"><span class="as-gic" style="--c:${(Groups.get(a.id)||{}).color||'var(--faint)'}">${icon('team')}</span>${esc(entryName(a))}</span>`:S.people[a.id]?`<button type="button" class="ip-person" data-act="open-person" data-id="${a.id}">${av(S.people[a.id])}${esc(S.people[a.id].name)}</button>`:`<span class="ip-person">${esc(entryName(a))}</span>`).join('')}</span>`;
+  const sub=[by,f&&f.byName?`you were added by ${esc(f.byName)}${f.via?' through '+esc(f.via):''}`:''].filter(Boolean).join(' · ');
+  return ipField('team','People',val,{sub,wide:true});
+}
+
+/* ---------- Groups page (Settings › Groups) ---------- */
+NAV.push(['groups','Groups','team']);
+{ const base=navArea; navArea=function(){ return UI.view==='groups'&&!UI.item&&!HUB.tool?'settings':base(); }; }
+VIEWS.groups=()=>{
+  const can=Groups.canEdit(); const list=Groups.list();
+  const open=gid=>Object.values(S.tasks).filter(t=>!t.done&&asList(t).some(a=>a.k==='g'&&a.id===gid)).length;
+  const add=can?`<section class="scard gr-new"><h2>${icon('plus')}New group</h2><p class="s-p">One for each crew or department. Add a group to a task and everyone in it sees the task on their own list.</p><div class="gr-add"><input id="gr-new" placeholder="e.g. LV Department" autocomplete="off" aria-label="Group name"><button class="btn primary" data-act="gr-add">${icon('plus')}Add group</button></div></section>`:'';
+  const cards=list.map(g=>{ const mem=Array.isArray(g.members)?g.members:[]; const n=mem.filter(p=>S.people[p]).length; const o=open(g.id);
+    return `<section class="scard gr-card" data-gid="${g.id}"><div class="gr-head"><span class="as-gic" style="--c:${g.color}">${icon('team')}</span><input class="gr-name" data-gr-name="${g.id}" value="${esc(g.name)}" ${can?'':'disabled'} aria-label="Group name"><span class="gr-n">${n} ${n===1?'person':'people'}${o?` · ${o} open task${o===1?'':'s'}`:''}</span>${can?`<button class="btn sm ghost danger-t" data-act="gr-del" data-id="${g.id}">${icon('trash')}Delete</button>`:''}</div>
+      <div class="gr-people">${peopleList().map(p=>{ const on=mem.includes(p.id); return `<label class="gr-p ${on?'on':''}"><input type="checkbox" data-gr-mem="${g.id}" value="${p.id}" ${on?'checked':''} ${can?'':'disabled'}>${av(p,'sm')}<span>${esc(p.name)}${p.role?`<small>${esc(p.role)}</small>`:''}</span></label>`; }).join('')||'<span class="view-sub">Add crew on the Schedule page first.</span>'}</div></section>`; }).join('');
+  return `<div class="content-inner settings groups-view">${viewHead('Groups',{sub:list.length?`${list.length} group${list.length===1?'':'s'} · a task given to a group shows up for everyone in it`:'Give a task to a whole crew at once',tools:`<button class="btn" data-act="nav" data-view="settings">${icon('gear')}Settings</button>`})}
+    ${add}${cards||(can?'':emptyState('No groups yet','A manager can make groups like LV Department or Door Department.'))}</div>`;
+};
+document.addEventListener('change',e=>{ const t=e.target; if(!t.dataset) return;
+  if(t.dataset.grMem){ const g=Groups.get(t.dataset.grMem); if(!g) return; const mem=new Set(g.members||[]); t.checked?mem.add(t.value):mem.delete(t.value); Groups.update(g.id,{members:[...mem]}); }
+  else if(t.dataset.grName){ const v=t.value.trim(); if(v) Groups.update(t.dataset.grName,{name:v.slice(0,80)}); else t.value=(Groups.get(t.dataset.grName)||{}).name||''; }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target&&e.target.id==='gr-new'){ e.preventDefault(); const b=$('[data-act="gr-add"]'); b&&b.click(); } });
+function groupsAction(act,a){
+  switch(act){
+    case 'gr-add': { const i=$('#gr-new'); const v=i&&i.value.trim(); if(!v){ toast('Type a name for the group'); i&&i.focus(); return true; } if(Groups.list().some(g=>g.name.toLowerCase()===v.toLowerCase())){ toast(`There’s already a group called ${v}`); return true; } Groups.add(v); toast(`${v} added — tick who’s in it`); return true; }
+    case 'gr-del': { const g=Groups.get(a.dataset.id); if(!g) return true; const n=Object.values(S.tasks).filter(t=>asList(t).some(x=>x.k==='g'&&x.id===g.id)).length;
+      openModal({title:`Delete ${esc(g.name)}?`,body:`<p>${n?`It’s on ${n} task${n===1?'':'s'}. People who were only on ${n===1?'it':'them'} through this group won’t see ${n===1?'it':'them'} any more.`:'Nobody’s tasks use it.'}</p>`,actions:[{label:'Cancel'},{label:'Delete',kind:'danger',act:()=>{ for(const t of Object.values(S.tasks)) if(asList(t).some(x=>x.k==='g'&&x.id===g.id)) patch('tasks',t.id,{assign:asList(t).filter(x=>!(x.k==='g'&&x.id===g.id))}); Groups.remove(g.id); toast(`Deleted ${g.name}`); }}]}); return true; }
+  }
+  return false;
+}
+{ const base=visitsAction; visitsAction=function(act,a,e){ if(/^gr-/.test(act)){ groupsAction(act,a); return true; } return base(act,a,e); }; }
+/* a Groups card on Settings */
+{ const base=VIEWS.settings; VIEWS.settings=()=>{ let h=base();
+  const n=Groups.list().length;
+  if(Groups.canEdit()) return h.replace('<section class="scard">',`<section class="scard gr-scard"><h2>${icon('team')}Groups</h2><p class="s-p">${n?`${n} group${n===1?'':'s'}: ${esc(Groups.list().slice(0,4).map(g=>g.name).join(', '))}${n>4?'…':''}.`:'Make groups like LV Department or Door Department, then give a task to the whole group.'}</p><button class="btn sm" data-act="nav" data-view="groups">${icon('team')}Open Groups</button></section><section class="scard">`);
+  const mine=Groups.of(Who.pid()); if(!mine.length) return h;
+  return h.replace('</section></div>',`<p class="s-p">Your groups: <b>${esc(mine.map(g=>g.name).join(', '))}</b> — tasks given to them show up on your list.</p></section></div>`); }; }
+
 /* =========================================================
    Boot
    ========================================================= */
@@ -10457,7 +10758,7 @@ window.__punch={S,UI,Store,parseQuick,sanitize,runSearch,parseSched,occurrences,
 boot();
 if('launchQueue' in window){ window.launchQueue.setConsumer(async p=>{ const h=p.files&&p.files[0]; if(!h) return; try{ const f=await h.getFile(); const text=await f.text(); Maps.withApi(api=>api.openText(text,{}),{show:'markup'}); }catch(e){ toast('Couldn’t open that file'); } }); }
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(e=>console.warn('offline support unavailable',e&&e.message));
-window.__hub={S,UI,Store,Maps,HUB,go,openItem,createJob,seedJobs,jobByName,renderAll:()=>scheduleRender(),fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
+window.__hub={S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
 })();
 
 </script>
