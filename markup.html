@@ -828,6 +828,20 @@ html.phone .menu { max-width: calc(100vw - 16px); }
   .rp-phgrid img { width: 100%; height: 2.1in; object-fit: cover; border-radius: 4px; }
   .rp-phgrid figcaption { font-size: 8.5pt; color: #475569; margin-top: 2px; }
 }
+/* small drag-and-drop banner along the top of the map */
+.stage-drag { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 14px; border-radius: 10px; background: var(--glass); backdrop-filter: blur(8px); border: 1px solid var(--accent); box-shadow: var(--shadow-sm); font-size: 12.5px; color: var(--text-2); text-align: center; pointer-events: none; }
+.stage-drag .sd1 { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+.stage-drag .sd1 .ic, .stage-drag .sd1 svg { width: 15px; height: 15px; color: var(--accent); }
+.stage-drag .sd2 { font-size: 11.5px; color: var(--muted); }
+.stage-drag kbd, .stage-hint kbd { font: 600 11px/1 var(--mono, monospace); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); }
+.stage.dragpal { outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: -3px; }
+html:not(.touch) .stage-hint:has(kbd) { pointer-events: none; }
+.hub-only { display: none !important; }
+html.in-hub .hub-only { display: inline-flex !important; }
+.cab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cab-grid .fld:first-child { grid-column: 1 / -1; }
+.cab-total { margin: 2px 0 0; color: var(--text-2); }
+html.phone #ed-quote span { display: none; }
 </style>
 </head>
 <body data-view="home">
@@ -900,6 +914,7 @@ html.phone .menu { max-width: calc(100vw - 16px); }
     </div>
     <div class="ed-right">
       <button class="btn ghost" id="ed-devices" title="Device list (Ctrl+L)"><i data-ic="ListDetails"></i><span>Devices</span></button>
+      <button class="btn ghost hub-only" id="ed-quote" title="Estimate the time and cost, and make a quote"><i data-ic="Report"></i><span>Make quote</span></button>
       <button class="btn ghost" id="ed-export"><i data-ic="FileExport"></i><span>Export</span></button>
       <button class="btn primary" id="ed-save" title="Save (Ctrl+S)"><i data-ic="DeviceFloppy"></i><span>Save</span></button>
       <button class="icon-btn" id="ed-more" title="More"><i data-ic="DotsVertical"></i></button>
@@ -940,7 +955,7 @@ html.phone .menu { max-width: calc(100vw - 16px); }
           <g id="l-temp"></g>
         </g>
       </svg>
-      <div class="stage-top"><div class="stage-hint" id="stage-hint" hidden></div><div class="tbar" id="tbar" hidden></div></div>
+      <div class="stage-top"><div class="stage-drag" id="stage-drag" hidden></div><div class="stage-hint" id="stage-hint" hidden></div><div class="tbar" id="tbar" hidden></div></div>
       <button class="fab" id="fab-add" title="Add devices and layout items"><i data-ic="Plus"></i><span>Add</span></button>
       <div class="viewbar">
         <button class="btn sm glass" id="btn-layers" title="Choose what shows on the map"><i data-ic="Stack2"></i><span>Layers</span></button>
@@ -3283,6 +3298,7 @@ const Editor = {
     $('#ed-redo').onclick = () => this.doRedo();
     $('#ed-devices').onclick = () => Side.toggleList();
     $('#ed-export').onclick = (e) => this.exportMenu(e.currentTarget);
+    $('#ed-quote').onclick = () => { if (!App.project) return; App.writeDraftNow && App.writeDraftNow(); Hub.notify('makeQuote', App.project.id); };
     $('#ed-more').onclick = (e) => this.moreMenu(e.currentTarget);
     const nameInp = $('#ed-name');
     nameInp.addEventListener('input', () => { this.project.name = nameInp.value || 'Untitled project'; App.changed(); this.sizeName(); });
@@ -3363,6 +3379,7 @@ const Editor = {
     LayoutUI.ghostRoom = null;
     if (t !== 'lplace') { MapView.placeLayout = null; }
     if (t !== 'place') { this.placeType = null; MapView.placeType = null; }
+    if (t !== 'place' && t !== 'lplace') Touch.keep = false;
     if (t !== 'place' && t !== 'lplace') $$('.pal-item.armed').forEach(e => e.classList.remove('armed'));
     if ((t === 'wall' || t === 'room' || t === 'lplace') && this.palTab() !== 'build') { this.tool = t; this.setPalTab('build'); }
     this.tool = t;
@@ -3409,8 +3426,8 @@ const Editor = {
     MapView.placeType = typeId;
     $$('.pal-item').forEach(e => e.classList.toggle('armed', e.dataset.type === typeId));
     $$('#toolrail .tool').forEach(b => b.classList.remove('on'));
-    this.hint(Device.touch ? `Tap the map to place <b>${esc(t.name)}</b> — drag your finger to fine-tune before you lift. Tap <b>Done</b> when finished.`
-      : `Click the map to place <b>${esc(t.name)}</b>. Keep clicking to place more. <kbd>Esc</kbd> when done.`, true);
+    this.hint(Device.touch ? `Tap the map to place <b>${esc(t.name)}</b>. Turn on <b>Place more</b> to keep tapping in more.`
+      : `Click the map to place <b>${esc(t.name)}</b> · hold <kbd>Shift</kbd> while clicking to keep placing more · <kbd>Esc</kbd> to cancel`, true);
     Touch.afterArm();
   },
 
@@ -3490,6 +3507,7 @@ const Editor = {
       el.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/x-bs-type', el.dataset.type);
         e.dataTransfer.effectAllowed = 'copy';
+        MapView.dragName = Reg.type(el.dataset.type).name;
         const ghost = el.querySelector('.tico');
         if (ghost) e.dataTransfer.setDragImage(ghost, 15, 15);
       });
@@ -4162,6 +4180,15 @@ const Editor = {
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const MapView = {
+  dragName: '',
+  dragBanner(on) {
+    const el = document.getElementById('stage-drag'); if (!el) return;
+    if (!on) { if (!el.hidden) el.hidden = true; return; }
+    if (!el.hidden && el.dataset.n === this.dragName) return;
+    el.dataset.n = this.dragName;
+    el.innerHTML = `<div class="sd1">${ic('Download')}<span>Drop <b>${esc(this.dragName || 'it')}</b> anywhere on the map</span></div><div class="sd2">Or click an icon, then click the map — hold <kbd>Shift</kbd> while clicking to keep placing more</div>`;
+    el.hidden = false;
+  },
   svg: null, vp: null,
   plan: null,
   k: 1, tx: 0, ty: 0,
@@ -4194,11 +4221,13 @@ const MapView = {
     s.addEventListener('contextmenu', e => this.onContext(e));
     const stage = $('#stage');
     stage.addEventListener('dragover', e => {
-      if (e.dataTransfer.types.includes('text/x-bs-type') || e.dataTransfer.types.includes('text/x-bs-layout') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; stage.classList.add('drop'); }
+      const pal = e.dataTransfer.types.includes('text/x-bs-type') || e.dataTransfer.types.includes('text/x-bs-layout');
+      if (pal || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; stage.classList.add(pal ? 'dragpal' : 'drop'); if (pal) this.dragBanner(true); }
     });
-    stage.addEventListener('dragleave', e => { if (!stage.contains(e.relatedTarget)) stage.classList.remove('drop'); });
+    stage.addEventListener('dragleave', e => { if (!stage.contains(e.relatedTarget)) { stage.classList.remove('drop', 'dragpal'); this.dragBanner(false); } });
+    document.addEventListener('dragend', () => { stage.classList.remove('drop', 'dragpal'); this.dragBanner(false); });
     stage.addEventListener('drop', e => {
-      stage.classList.remove('drop');
+      stage.classList.remove('drop', 'dragpal'); this.dragBanner(false);
       const layId = e.dataTransfer.getData('text/x-bs-layout');
       if (layId && Layout.is(this.plan)) {
         e.preventDefault();
@@ -4925,6 +4954,7 @@ const MapView = {
       case 'place':
         Editor.placeDevice(this.placeType, d.p[0], d.p[1]);
         this.hover = e.pointerType === 'touch' ? null : d.p;
+        if (!(e.shiftKey || this.shiftDown || Touch.keep)) { this.hover = null; Editor.setTool('select'); }
         this.renderTemp();
         break;
       case 'text': {
@@ -4999,6 +5029,7 @@ const MapView = {
       case 'lplace':
         LayoutUI.placeAt(this.placeLayout, p, { free: (e.altKey || Touch.free) });
         this.hover = p;
+        if (!(e.shiftKey || this.shiftDown || Touch.keep)) { this.hover = null; Editor.setTool('select'); }
         this.renderTemp();
         break;
     }
@@ -5669,6 +5700,12 @@ const Side = {
     if (focusText) setTimeout(() => { const t = $('#mk-text'); if (t) { t.focus({ preventScroll: true }); t.select(); } }, 60);
   },
 
+  cableTotalText(m) {
+    const s = Editor.plan.scale; const n = m.count || 1;
+    if (!s) return `${m.cableType ? esc(m.cableType) + ' · ' : ''}Set the plan scale to measure this run.`;
+    const ft = Math.round((polyLength(m.points) / s.pxPerFt + (m.extraFt || 0)) * n);
+    return `<b>${ft.toLocaleString()} ft</b> of ${esc(m.cableType || 'cable')}${n > 1 ? ` (${n} cables)` : ''}`;
+  },
   renderMarkup() {
     const m = Editor.findItem(this.id);
     if (!m) { this.close(); return; }
@@ -5696,7 +5733,11 @@ const Side = {
           <label class="chk-row"><input type="checkbox" class="chk" id="mk-bold" ${m.bold !== false ? 'checked' : ''}><span>Bold</span></label>` : ''}
         ${m.kind === 'rect' || m.kind === 'ellipse' ? `<div class="slider-row"><span>Fill</span><input type="range" id="mk-fill" min="0" max="0.6" step="0.02" value="${m.fill || 0}"><em id="mk-fill-v">${Math.round((m.fill || 0) * 100)}%</em></div>` : ''}
         ${m.kind === 'arrow' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-both" ${m.both ? 'checked' : ''}><span>Arrowheads on both ends</span></label>` : ''}
-        ${m.kind === 'cable' ? `<p class="tiny muted">Drag the dots on the map to reshape the run. ${plural(m.points.length, 'point')}.</p>` : ''}
+        ${m.kind === 'cable' ? `<div class="cab-grid"><label class="fld"><span>Cable type</span><select class="inp" id="mk-ctype"><option value="">Not set</option>${CABLE_TYPES.map(c => `<option ${m.cableType === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+          <label class="fld"><span>Cables in this run</span><input class="inp" id="mk-count" type="number" min="1" step="1" value="${m.count || 1}"></label>
+          <label class="fld"><span>Extra per cable (ft)</span><input class="inp" id="mk-extra" type="number" min="0" step="1" value="${m.extraFt || ''}" placeholder="slack, drops"></label></div>
+          <p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
+          <p class="tiny muted">Drag the dots on the map to reshape the run. ${plural(m.points.length, 'point')}. The cable type and total feet go into estimates and quotes in the Office Hub.</p>` : ''}
         <div class="mk-actions">
           <button class="btn sm" id="mk-dup">${ic('Copy')}<span>Duplicate</span></button>
           <button class="btn sm danger-ghost" id="mk-del">${ic('Trash')}<span>Delete</span></button>
@@ -5711,6 +5752,9 @@ const Side = {
     $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
     const t = $('#mk-text'); if (t) t.oninput = () => { m.text = t.value; touch(); };
     const lb = $('#mk-label'); if (lb) lb.oninput = () => { m.label = lb.value; touch(); };
+    const ct = $('#mk-ctype'); if (ct) ct.onchange = () => { m.cableType = ct.value || undefined; if (m.cableType && !m.label) { m.label = m.cableType; if (lb) lb.value = m.label; } $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch('now'); };
+    const cn = $('#mk-count'); if (cn) cn.oninput = () => { const v = Math.max(1, Math.round(+cn.value || 1)); m.count = v > 1 ? v : undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
+    const cx = $('#mk-extra'); if (cx) cx.oninput = () => { const v = Math.max(0, +cx.value || 0); m.extraFt = v || undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
     $$('#mk-colors [data-c]', this.el).forEach(b => b.onclick = () => { m.color = b.dataset.c; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.toggle('on', x === b)); touch('now'); $('.mk-ico', this.el).style.setProperty('--c', m.color); });
     $('#mk-color').oninput = e => { m.color = e.target.value; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.remove('on')); touch(); };
     const w = $('#mk-width'); if (w) w.oninput = () => { m.width = +w.value * u; $('#mk-width-v').textContent = w.value; touch(); };
@@ -7953,6 +7997,7 @@ const LayoutUI = {
       el.onclick = () => this.arm(el.dataset.lay);
       el.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/x-bs-layout', el.dataset.lay);
+        MapView.dragName = (LAYOUT_BY_ID[el.dataset.lay] || {}).name || 'it';
         e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setDragImage(el.querySelector('.lay-tile'), 15, 15);
       });
@@ -7967,8 +8012,8 @@ const LayoutUI = {
     $$('.lay-item').forEach(e => e.classList.toggle('armed', e.dataset.lay === id));
     $$('#toolrail .tool').forEach(b => b.classList.remove('on'));
     const how = c.kind === 'item' ? 'It lines up against a wall when you get close.' : 'It snaps into the nearest wall.';
-    Editor.hint(Device.touch ? `Tap to place <b>${esc(c.name)}</b> — drag to fine-tune before you lift. ${how} Tap <b>Snap</b> to turn snapping off.`
-      : `Click to place <b>${esc(c.name)}</b>. ${how} Hold <kbd>Alt</kbd> for free placement. <kbd>Esc</kbd> when done.`, true);
+    Editor.hint(Device.touch ? `Tap to place <b>${esc(c.name)}</b>. ${how} Turn on <b>Place more</b> to keep tapping in more.`
+      : `Click to place <b>${esc(c.name)}</b>. ${how} Hold <kbd>Shift</kbd> while clicking to keep placing more · <kbd>Alt</kbd> for free placement · <kbd>Esc</kbd> to cancel`, true);
     Touch.afterArm();
   },
 
@@ -8832,6 +8877,9 @@ const Touch = {
       if (poly.pts.length > 1) btns.push({ a: 'finish-poly', icon: 'Check', label: 'Finish', primary: true });
     } else if (t === 'room' && LayoutUI.ghostRoom) {
       btns.push({ a: 'cancel-ghost', icon: 'X', label: 'Cancel' });
+    } else if (t === 'place' || t === 'lplace') {
+      btns.push({ a: 'keep', icon: 'Copy', label: 'Place more', on: !!this.keep });
+      btns.push({ a: 'done', icon: 'X', label: 'Cancel' });
     } else if (t !== 'select' && t !== 'pan') {
       btns.push({ a: 'done', icon: 'Check', label: 'Done', primary: true });
     }
@@ -8852,6 +8900,7 @@ const Touch = {
       case 'finish-poly': MapView.finishPoly(true); break;
       case 'cancel-ghost': LayoutUI.ghostRoom = null; Editor.hint(TOUCH_HINTS.room); break;
       case 'done': Editor.setTool('select'); break;
+      case 'keep': this.keep = !this.keep; toast(this.keep ? 'Place more is on — every tap adds another. Tap Done when finished.' : 'Place more is off — the next tap places one'); if (this.keep) { this._barKey = ''; } break;
     }
     MapView.renderTemp();
     this.updateBar();
@@ -9088,6 +9137,36 @@ if (HUB) {
       if (!p) return null;
       normalizeProject(p);
       return HubField.pack(p);
+    },
+    /* every device type the app knows (for install-time settings) */
+    catalog() {
+      Reg.rebuild(App.project || null);
+      const systems = Reg.systemList().map(s => ({ id: s.id, name: s.name, short: s.short || s.name, color: s.color, custom: !!s.custom }));
+      const types = [...Reg.types.values()].filter(t => !t.missing).map(t => ({ id: t.id, name: t.name, system: t.system, prefix: t.prefix || '', color: Reg.color(t), glyph: t.image ? '' : glyphInner(t.glyph), image: t.image || '', custom: !!t.custom }));
+      return { systems, types, cables: CABLE_TYPES.filter(c => c !== 'Wireless') };
+    },
+    /* what's on a project: devices with status and cable runs with feet (for estimates and quotes) */
+    async takeoff({ id = '', text = '' } = {}) {
+      let p = null;
+      if (text) p = parseProjectFile(text).project;
+      else if (App.project && App.project.id === id) p = App.project;
+      else { const d = await Drafts.get(id).catch(() => null); p = d && d.project; }
+      if (!p) return null;
+      p = clone(p); normalizeProject(p);
+      const plans = p.plans.map(pl => {
+        const ppf = pl.scale && pl.scale.pxPerFt;
+        return {
+          id: pl.id, name: pl.name || 'Plan', scaled: !!ppf,
+          devices: pl.devices.map(d => { const t = HubField.typeOf(p, d.type); const s = HubField.sysOf(p, t.system);
+            return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '' }; }),
+          cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
+            const n = Math.max(1, m.count || 1);
+            const ft = ppf ? Math.round((polyLength(m.points) / ppf + (m.extraFt || 0)) * n) : null;
+            return { id: m.id, label: m.label || '', cableType: m.cableType || (CABLE_TYPES.find(c => new RegExp('\\b' + c.replace(/[^a-z0-9]/gi, '.?'), 'i').test(m.label || '')) || ''), count: n, ft };
+          }),
+        };
+      });
+      return { id: p.id, name: p.name, client: p.client || '', address: p.address || '', plans };
     },
     /* the crew's answers (status, install info, notes, photos) go into the original project */
     async applyField(id, updates, { text = '', jobId = '' } = {}) {

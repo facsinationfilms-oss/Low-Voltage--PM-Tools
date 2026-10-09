@@ -2367,6 +2367,75 @@ body.fv-full{overflow:hidden}
   .fv-zoom button{width:36px;height:36px;border-bottom:0;border-right:1px solid #e5e7eb}.fv-zoom button:last-child{border-right:0}
 }
 
+/* ---------- install times & costs, estimates, progress report ---------- */
+.eg{display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--c)}
+.eg svg{width:60%;height:60%}.eg img{width:62%;height:62%;object-fit:contain}
+.est-chips{flex-wrap:wrap}
+.est-tbl{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:12px}
+.et-row{display:grid;grid-template-columns:minmax(180px,2.2fr) repeat(6,minmax(70px,1fr));gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13.5px}
+.et-row:last-child{border-bottom:0}
+.et-row.head{background:var(--surface-2);font:700 11px/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.et-row.head small{display:block;text-transform:none;letter-spacing:0;font-weight:500}
+.et-row.zero .et-name b{color:var(--muted)}
+.et-row.warnrow{background:color-mix(in srgb,var(--signal) 6%,transparent)}
+.et-name{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap}
+.et-name b{font-weight:600}.et-name small{color:var(--muted);font-size:12px;width:100%;padding-left:31px;margin-top:-4px}
+.et-name .av+b{margin-left:0}
+.et-in,.et-sel{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface-2);color:var(--ink);font:500 13px var(--f-mono)}
+.et-sel{font-family:var(--f-body)}
+.et-in::placeholder{color:var(--faint)}
+.money-in.sm{display:flex;align-items:center;border:1px solid var(--line-2);border-radius:7px;background:var(--surface-2);padding-left:7px}
+.money-in.sm span{color:var(--muted);font-size:12px}.money-in.sm .et-in{border:0;background:transparent;padding-left:3px}
+.et-calc{font:500 13px var(--f-mono);color:var(--ink-2)}
+.et-learn{color:var(--ok)!important}
+.est-cab .et-row{grid-template-columns:minmax(160px,1.6fr) repeat(4,minmax(80px,1fr))}
+.est-pay .et-row{grid-template-columns:minmax(180px,2fr) 1fr 1fr}
+.est-h{font:700 14px var(--f-display);margin:22px 0 8px}.est-h small{font:500 12px var(--f-body);color:var(--muted);margin-left:6px}
+.est-gen{margin-bottom:8px}
+.est-card .btn{margin-top:4px}
+.pr-in{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line-2);border-radius:8px;padding:2px 8px;background:var(--surface-2)}.pr-in input{width:80px;border:0;background:transparent;color:var(--ink);font:inherit}
+.est-dlg-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}.est-dlg-top>div{display:flex;flex-direction:column;flex:1}.est-dlg-top small{color:var(--muted)}
+.est-crew{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}.est-crew input{width:64px;padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--ink)}
+.est-tiles{margin-top:0}
+.est-warn{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--signal-soft);color:var(--signal-ink);font-size:13px}
+.est-warn div{display:flex;gap:8px;align-items:flex-start}.est-warn svg{width:16px;height:16px;flex:none;margin-top:2px}
+.est-sum .et-row{grid-template-columns:minmax(170px,2.2fr) .6fr .9fr .7fr .9fr 1fr 1fr}
+.est-sum.prog .et-row{grid-template-columns:minmax(170px,2.2fr) .6fr .9fr .9fr .7fr .9fr 1fr 1fr}
+.est-sum-cab .et-row{grid-template-columns:minmax(170px,2.2fr) .8fr .6fr .8fr .9fr 1fr 1fr}
+.sd-cost{display:flex;align-items:center;gap:12px;margin:-4px 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.sd-cost>div{display:flex;flex-direction:column;flex:1;min-width:0}.sd-cost span{font-size:12px;color:var(--muted)}.sd-cost small{font-size:11.5px;color:var(--muted)}
+/* progress report screen */
+.fm-screen.rp{display:flex;flex-direction:column;background:var(--bg)}
+.rp-top{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+.rp-title{display:flex;flex-direction:column;flex:1;min-width:0}.rp-title b{font:700 16px var(--f-display)}.rp-title span{font-size:12px;color:var(--muted)}
+.rp-acts{display:flex;gap:8px;flex-wrap:wrap}
+.rp-scroll{flex:1;overflow:auto}
+.rp-body{max-width:1100px;margin:0 auto;padding:18px 18px 60px}
+.rp-loading{display:flex;align-items:center;gap:10px;justify-content:center;padding:60px;color:var(--muted)}
+.rp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.rp-tile{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rp-tile span{display:block;font-size:12px;color:var(--muted)}.rp-tile b{display:block;font:700 24px/1.2 var(--f-display);font-variant-numeric:tabular-nums}.rp-tile small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.rp-tile.big b{font-size:30px}
+.rp-bar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin:6px 0 4px}.rp-bar i{display:block;height:100%;background:var(--ok)}
+.rp-var{font-style:normal;font-weight:600;margin-left:4px}.rp-var.bad{color:var(--danger)}.rp-var.good{color:var(--ok-ink)}.rp-var.ok{color:var(--muted)}
+.rp-sec{margin-bottom:18px}.rp-sec h2{display:flex;align-items:center;gap:8px;font:700 15px var(--f-display);margin:0 0 8px}.rp-sec h2 svg{width:17px;height:17px;color:var(--muted)}.rp-sec h2 small{font:500 12px var(--f-body);color:var(--muted)}
+.rp-kv{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rp-kv>div{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13.5px}.rp-kv>div:last-child{border-bottom:0}.rp-kv span{color:var(--ink-2)}.rp-kv b{text-align:right;font-weight:600}
+.rp-dev .et-row{grid-template-columns:minmax(170px,2.2fr) .8fr .8fr 1fr .8fr .8fr .8fr}
+.rp-dev .et-row span small{display:block;font-size:11px;color:var(--muted)}
+.rp-dev .pos{color:var(--ok-ink);font-weight:600}.rp-dev .neg,.rp-dev em.neg{color:var(--danger);font-style:normal}
+.rp-cab .et-row{grid-template-columns:minmax(160px,2fr) 1fr 1fr 1fr}
+.rp-ppl .et-row{grid-template-columns:minmax(160px,2fr) .8fr 1fr .9fr .8fr .8fr}
+.rp-vis .et-row{grid-template-columns:minmax(160px,2fr) 2fr .8fr .8fr}
+.rp-trend .et-row{grid-template-columns:minmax(160px,2fr) .8fr 1fr 1fr 1fr}
+.rp-trend span small,.rp-vis span small{display:block;color:var(--muted);font-size:11.5px}
+@media (max-width:900px){
+  .rp-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .est-tbl{overflow-x:auto}.est-tbl .et-row{min-width:640px}
+  .rp-acts .btn span{display:none}
+}
+@media (max-width:640px){ .rp-tile b{font-size:20px}.rp-tile.big b{font-size:24px}.rp-top{padding:8px 10px}.rp-body{padding:12px 12px 60px} }
+
 </style>
 </head>
 <body>
@@ -8629,7 +8698,7 @@ function jobVisitsList(j){
   const row=e=>{ const c=checkState(e), k=clockState(e); const days=(e.endDate?diffDays(e.endDate,e.date):0)+1; const ppl=e.people.filter(id=>S.people[id]);
     return `<button type="button" class="vrow" style="--c:${entryColor(e)}" data-act="open-sched" data-id="${e.id}"><span class="vr-date"><b>${esc(fmtDay(e.date))}</b><small>${days>1?`${days} days · `:''}${esc(timeRange(e))}</small></span><span class="vr-main"><b>${esc(entryLabel(e))}</b><small>${ppl.length?esc(ppl.map(personName).join(', ')):'No crew yet'}</small></span>
       <span class="vr-stats">${k.open.size?`<span class="vr-live">${icon('clock')}${k.open.size} on the clock</span>`:''}${k.total>=1?`<span>${icon('clock')}${hm(k.total)}</span>`:''}${c.total?`<span class="vr-prog"><i style="width:${Math.round(c.done/c.total*100)}%"></i></span><span>${c.done}/${c.total}</span>`:''}</span></button>`; };
-  return `<section class="ip-sec"><h2 class="ip-sec-h">${icon('sched')}Visits <span class="count">${up.length||''}</span></h2>${up.length?`<div class="vrows">${up.map(row).join('')}</div>`:`<div class="ip-card"><div class="ip-empty">No visits coming up. Click a day on the calendar or <b>Schedule</b> to send the crew.</div></div>`}
+  return `<section class="ip-sec"><h2 class="ip-sec-h">${icon('sched')}Visits <span class="count">${up.length||''}</span><span class="spacer"></span>${Est.canSee()?`<button type="button" class="btn sm" data-act="rp-open" data-job="${j.id}">${icon('trend')}Progress report</button>`:''}</h2>${up.length?`<div class="vrows">${up.map(row).join('')}</div>`:`<div class="ip-card"><div class="ip-empty">No visits coming up. Click a day on the calendar or <b>Schedule</b> to send the crew.</div></div>`}
     ${past.length?`<details class="job-past"><summary>Earlier visits (${past.length})</summary><div class="vrows">${past.slice(0,40).map(row).join('')}</div></details>`:''}</section>`;
 }
 function newVisit(j,{date,time=''}={}){
@@ -8675,6 +8744,7 @@ function visitPage(e){
     <div class="vh-acts">${me&&!e.people.includes(me)&&!meOn?'':`<button type="button" class="btn ${meOn?'':'primary'} vh-clock" data-act="v-clock" data-id="${e.id}" data-pid="${me}">${icon(meOn?'clockOut':'clockIn')}${meOn?`Clock out${me?'':''}`:'Clock in'}</button>`}
       ${loc?`<a class="btn" href="${mapUrl(loc)}" target="_blank" rel="noopener noreferrer">${icon('place')}Directions</a>`:''}
       ${j&&(j.phone||(contactFor(j,{make:false})||{}).phone)?(()=>{ const cx=contactFor(j,{make:false}); const ph=(cx&&cx.phone)||j.phone; return `<a class="btn" href="tel:${telHref(ph)}">${icon('phone')}Call ${esc((cx&&cx.name)||j.contact||'site')}</a>`; })():''}
+      ${j&&Est.canSee()?`<button type="button" class="btn" data-act="rp-open" data-job="${j.id}">${icon('trend')}Progress report</button>`:''}
       <button type="button" class="btn ghost vh-me" data-act="v-me" title="Who’s using this phone">${icon('user')}${me?esc(personName(me)):'Who are you?'}</button></div></section>`;
   const w=warns.length?`<div class="s-warns" role="alert">${warns.map(m=>`<div>${icon('warn')}${esc(m)}</div>`).join('')}</div>`:'';
   const F=[];
@@ -9664,6 +9734,365 @@ function fmAction(act,a,e){
   }
   return false;
 }
+
+/* ---- fm-estimate.js ---- */
+/* =========================================================
+   Install data → estimates, quotes from maps, progress reports
+   - Settings › Install times & costs: per device type (time, workers, material, sell),
+     per cable type (feet per hour, $/ft), crew pay rates, manager PIN
+   - Make quote from a markup / layout
+   - Progress report (managers only): estimated vs actual, per device and per person
+   ========================================================= */
+const EST_SYS_DEF={alarm:[0.5,1],access:[1.5,1],video:[1.5,1],pa:[0.75,1],intercom:[1.25,1],doors:[1.5,1],network:[0.75,1],power:[1,1]};
+const EST_TYPE_DEF={'alarm-panel':[4,1],'alarm-keypad':[0.75,1],'pir':[0.5,1],'dual-tech':[0.5,1],'door-contact':[0.5,1],'window-contact':[0.5,1],'ohd-contact':[0.75,1],'glass-break':[0.5,1],'shock':[0.5,1],'smoke':[0.75,1],'heat':[0.75,1],'co':[0.5,1],'siren-int':[0.5,1],'siren-ext':[1,2],'panic':[0.5,1],'flood':[0.5,1],'temp':[0.5,1],'beam':[2,2],'receiver':[0.75,1],'expander':[1,1],'communicator':[1,1],
+  'acu':[4,1],'card-reader':[1.5,1],'keypad-reader':[1.5,1],'bio-reader':[2,1],'face-reader':[2,1],'rex-motion':[0.75,1],'rex-button':[0.75,1],'dps':[0.75,1],'strike':[2.5,1],'maglock':[2,2],'elock':[3,1],'break-glass':[1,1],'gate-op':[6,2],'turnstile':[8,2],'elevator-ctl':[6,1],
+  'cam-dome':[1.5,1],'cam-bullet':[1.5,1],'cam-turret':[1.5,1],'cam-ptz':[3,2],'cam-fisheye':[1.5,1],'cam-multi':[3,2],'cam-lpr':[3,2],'nvr':[3,1],'monitor':[1.5,2],'vms-ws':[2,1],
+  'spk-ceiling':[0.75,1],'spk-wall':[0.75,1],'spk-horn':[1.5,2],'spk-pendant':[1.25,1],'amp':[2,1],'page-mic':[0.75,1],'vol-ctl':[0.75,1],'page-ctl':[2,1],'music':[0.75,1],
+  'ic-master':[1.5,1],'ic-door':[1.5,1],'ic-video':[2,1],'ic-sub':[1,1],'ic-emergency':[2.5,1],'ic-refuge':[2.5,1],'ic-handset':[1,1],'ic-server':[3,1],'ic-elevator':[3,1],
+  'door':[0,1],'door-double':[0,1],'closer':[1,1],'auto-op':[6,2],'ada-plate':[1,1],'exit-device':[2.5,1],'lockset':[1.5,1],'ept':[1.5,1],'holder':[1,1],'overhead':[0,1],'gate':[0,1],
+  'rack':[4,2],'switch':[1.5,1],'wap':[1,1],'data-drop':[0.75,1],'patch':[3,1],'router':[1.5,1],'fiber':[3,1],'server':[2,1],'pc':[1,1],'bridge':[3,2],
+  'psu':[1.5,1],'ups':[1,1],'outlet':[0,1],'jbox':[1,1],'transformer':[0.5,1],'elec-panel':[0,1],'relay':[0.75,1]};
+const EST_CABLE_DEF={'CAT6':[120,.32],'CAT6A':[90,.55],'CAT5e':[130,.22],'Fiber':[80,1.1],'22/2':[160,.12],'22/4':[150,.16],'22/6':[140,.22],'18/2':[150,.18],'18/4':[140,.26],'16/2 speaker':[150,.28],'14/2 speaker':[130,.38],'RG59 / Siamese':[110,.3],'Composite access cable':[90,1.15],'Other':[120,.3]};
+const EST_CABLES=Object.keys(EST_CABLE_DEF);
+const r2=n=>Math.round((+n||0)*100)/100;
+const fmtH=h=>{ h=+h||0; const d=Math.abs(h)<10?2:1; return (Math.round(h*10**d)/10**d).toLocaleString(undefined,{maximumFractionDigits:d})+' h'; };
+
+/* ---------- settings + access ---------- */
+const Est={
+  cfg(){ return S.settings.estimating||{}; },
+  save(p){ const cur=S.settings.estimating||{}; Store.put('settings',NORM.settings({...cur,...p,id:'estimating',type:'estimating',updatedAt:Date.now()})); scheduleRender(); },
+  setType(id,p){ const t={...(this.cfg().types||{})}; t[id]={...(t[id]||{}),...p}; for(const k of Object.keys(t[id])) if(t[id][k]===null||t[id][k]===undefined||t[id][k]==='') delete t[id][k]; this.save({types:t}); },
+  setCable(id,p){ const t={...(this.cfg().cables||{})}; t[id]={...(t[id]||{}),...p}; for(const k of Object.keys(t[id])) if(t[id][k]===null||t[id][k]==='') delete t[id][k]; this.save({cables:t}); },
+  markup(){ return +company().defaultMarkup||35; },
+  type(id,sys){
+    const o=(this.cfg().types||{})[id]||{}; const d=EST_TYPE_DEF[id]||EST_SYS_DEF[sys]||[1,1]; const it=o.itemId&&S.items[o.itemId];
+    const hrs=o.hrs!=null?+o.hrs:d[0], crew=o.crew!=null?Math.max(1,+o.crew):d[1];
+    const mat=o.mat!=null?+o.mat:(it?it.cost:0);
+    const price=o.price!=null?+o.price:(it?it.price:(mat?r2(mat*(1+this.markup()/100)):0));
+    return {hrs,crew,labor:r2(hrs*crew),mat,price,itemId:it?o.itemId:'',item:it||null,custom:o.hrs!=null||o.crew!=null,learned:o.learned||null};
+  },
+  cable(name){ const o=(this.cfg().cables||{})[name]||{}; const d=EST_CABLE_DEF[name]||EST_CABLE_DEF.Other; const ftHr=o.ftHr!=null?Math.max(1,+o.ftHr):d[0]; const mat=o.mat!=null?+o.mat:d[1]; const price=o.price!=null?+o.price:r2(mat*(1+this.markup()/100)); return {ftHr,mat,price}; },
+  slack(){ const v=this.cfg().slack; return v!=null?+v:10; },
+  dayHrs(){ const v=this.cfg().dayHrs; return v!=null?Math.max(1,+v):8; },
+  crew(){ const v=this.cfg().crew; return v!=null?Math.max(1,+v):2; },
+  laborCost(){ return +company().laborCost||45; },
+  laborRate(){ return +company().laborRate||95; },
+  pay(pid){ const p=S.people[pid]; return p&&p.payRate?+p.payRate:this.laborCost(); },
+  canSee(){ const id=Me.id(); const p=S.people[id]; if(!p) return true; return p.access==='admin'; },
+};
+/* crew pay rate */
+{ const base=NORM.people; NORM.people=o=>{ const p=base(o); p.payRate=Math.max(0,Math.min(1000,finNum(o.payRate))); return p; }; }
+{ const base=renderPersonDetail; renderPersonDetail=function(el,p){
+  base(el,p);
+  if(!Est.canSee()) return;
+  const f=el.querySelector('.d-fields'); if(!f) return;
+  f.insertAdjacentHTML('beforeend',`<div class="d-label">${icon('money')}Pay rate</div><div class="d-val"><div class="money-in pr-in"><span>$</span><input id="p-pay" inputmode="decimal" value="${p.payRate?(+p.payRate).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="Pay rate per hour"><span>/hr</span></div><span class="view-sub">${p.payRate?'':'Uses your default labor cost until set · '}only managers see this</span></div>`);
+  const i=el.querySelector('#p-pay'); i.addEventListener('change',()=>{ patch('people',p.id,{payRate:parseMoney(i.value)}); refreshDetail(); });
+}; }
+/* picking an admin on a phone can ask for the manager PIN */
+{ const base=Me.set.bind(Me); Me.set=function(pid){
+  const p=S.people[pid], pin=String(Est.cfg().pin||'');
+  if(p&&p.access==='admin'&&pin&&lsGet('bs-hub.pinok')!==pin){
+    openModal({title:'Manager PIN',body:`<p>${esc(p.name)} can see costs and reports. Enter the manager PIN to use this phone as ${esc(p.name)}.</p><div class="field"><label for="mgr-pin">PIN</label><input id="mgr-pin" type="password" inputmode="numeric" autocomplete="off"></div>`,
+      actions:[{label:'Cancel'},{label:'Continue',kind:'primary',act:w=>{ if(w.querySelector('#mgr-pin').value!==pin){ toast('That PIN isn’t right'); return false; } lsSet('bs-hub.pinok',pin); base(pid); }}]});
+    return;
+  }
+  base(pid);
+}; }
+
+/* ---------- the device catalog (from the markup app) ---------- */
+const Catalog={
+  data:(()=>{ try{ return JSON.parse(lsGet('bs-hub.catalog')||'null'); }catch(e){ return null; } })(),
+  loading:null,
+  load(){ if(this.loading) return this.loading; this.loading=Maps.ensure().then(api=>api.catalog()).then(c=>{ this.data=c; lsSet('bs-hub.catalog',JSON.stringify(c)); return c; }).finally(()=>{ this.loading=null; }); return this.loading; },
+  type(id){ return this.data&&this.data.types.find(t=>t.id===id); },
+  sysName(id){ const s=this.data&&this.data.systems.find(x=>x.id===id); return s?s.name:''; },
+};
+const typeGlyph=(t,size=26)=>`<span class="eg" style="--c:${esc(t.color||'#64748b')};width:${size}px;height:${size}px">${t.image&&/^data:image\//.test(t.image)?`<img src="${esc(t.image)}" alt="">`:`<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${safeGlyph(t.glyph)}</svg>`}</span>`;
+
+/* ---------- Settings › Install times & costs ---------- */
+NAV.push(['estimating','Install times & costs','labor']);
+{ const base=navArea; navArea=function(){ return UI.view==='estimating'&&!UI.item&&!HUB.tool?'settings':base(); }; }
+VIEWS.estimating=()=>{
+  if(!Est.canSee()) return `<div class="content-inner">${viewHead('Install times & costs')}${emptyState('Managers only','Ask a manager to open this on their account, or pick yourself on this phone with “Who are you?” on a visit.')}</div>`;
+  const cat=Catalog.data; if(!cat){ Catalog.load().then(()=>scheduleRender()).catch(e=>toast('Couldn’t load the device list: '+(e.message||e))); return `<div class="content-inner">${viewHead('Install times & costs')}<div class="ip-card"><div class="ip-empty"><span class="spin"></span> Loading the device list…</div></div></div>`; }
+  const sys=UI.estSys&&(UI.estSys==='cable'||UI.estSys==='general'||cat.systems.some(s=>s.id===UI.estSys))?UI.estSys:cat.systems[0].id;
+  const q=(UI.estQ||'').trim().toLowerCase();
+  const chips=[...cat.systems.map(s=>[s.id,s.short||s.name,s.color]),['cable','Cable','#0891b2'],['general','Crew & general','#64748b']].map(([k,l,c])=>`<button class="fchip ${sys===k?'on':''}" data-act="est-sys" data-val="${k}"><span class="dot round" style="--c:${c}"></span>${esc(l)}</button>`).join('');
+  const items=Object.values(S.items).sort((a,b)=>a.name.localeCompare(b.name));
+  let body='';
+  if(sys==='cable'){
+    body=`<div class="est-tbl est-cab"><div class="et-row head"><span>Cable</span><span>Feet per hour<small>one worker</small></span><span>Material $/ft</span><span>Sell $/ft</span><span>1,000 ft takes</span></div>
+      ${EST_CABLES.map(c=>{ const v=Est.cable(c), o=(Est.cfg().cables||{})[c]||{}; return `<div class="et-row"><span class="et-name"><b>${esc(c)}</b></span>
+        <input class="et-in" data-est-cable="${esc(c)}" data-k="ftHr" inputmode="decimal" value="${o.ftHr??''}" placeholder="${EST_CABLE_DEF[c][0]}" aria-label="${esc(c)} feet per hour">
+        <span class="money-in sm"><span>$</span><input class="et-in" data-est-cable="${esc(c)}" data-k="mat" inputmode="decimal" value="${o.mat??''}" placeholder="${EST_CABLE_DEF[c][1].toFixed(2)}" aria-label="${esc(c)} material per foot"></span>
+        <span class="money-in sm"><span>$</span><input class="et-in" data-est-cable="${esc(c)}" data-k="price" inputmode="decimal" value="${o.price??''}" placeholder="${v.price.toFixed(2)}" aria-label="${esc(c)} sell per foot"></span>
+        <span class="et-calc">${fmtH(1000/v.ftHr)}</span></div>`; }).join('')}</div>
+      <p class="view-sub lay-note">Cable runs drawn on a map (with a cable type and the plan scale set) and the cable length on each device are added up by type. Slack is added from the Crew &amp; general tab.</p>`;
+  } else if(sys==='general'){
+    const ppl=Object.values(S.people).filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name));
+    const c=Est.cfg();
+    body=`<div class="sgrid est-gen">
+      <div class="sf"><label for="eg-crew">Typical crew size</label><input id="eg-crew" data-est-gen="crew" inputmode="numeric" value="${c.crew??''}" placeholder="2"><small>Used to turn labor hours into days</small></div>
+      <div class="sf"><label for="eg-day">Hours in a work day</label><input id="eg-day" data-est-gen="dayHrs" inputmode="decimal" value="${c.dayHrs??''}" placeholder="8"></div>
+      <div class="sf"><label for="eg-slack">Extra cable for slack &amp; waste</label><div class="money-in r"><input id="eg-slack" data-est-gen="slack" inputmode="decimal" value="${c.slack??''}" placeholder="10"><span>%</span></div></div>
+      <div class="sf"><label>Labor</label><p class="s-p">Cost ${fmtMoney(Est.laborCost())}/hr · charged ${fmtMoney(Est.laborRate())}/hr · markup ${Est.markup()}%<br><button class="linkish" data-act="nav" data-view="settings">Change in Settings › Quotes</button></p></div>
+      <div class="sf"><label for="eg-pin">Manager PIN</label><input id="eg-pin" data-est-gen="pin" type="password" inputmode="numeric" autocomplete="new-password" value="${esc(c.pin||'')}" placeholder="Optional"><small>Asked when someone picks a manager as “who’s using this phone”</small></div></div>
+      <h3 class="est-h">Crew pay rates <small>only managers see these</small></h3>
+      <div class="est-tbl est-pay"><div class="et-row head"><span>Person</span><span>Access</span><span>Pay $/hr</span></div>
+      ${ppl.map(p=>`<div class="et-row"><span class="et-name">${av(p,'sm')}<b>${esc(p.name)}</b><small>${esc(p.role||'')}</small></span><span>${{admin:'Manager',edit:'Crew',view:'View only'}[p.access]}</span><span class="money-in sm"><span>$</span><input class="et-in" data-est-pay="${p.id}" inputmode="decimal" value="${p.payRate?(+p.payRate).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="${esc(p.name)} pay per hour"></span></div>`).join('')||'<div class="ip-empty">Add your crew on Schedule › Crew.</div>'}</div>
+      <p class="view-sub lay-note">Managers are people with <b>Admin</b> access (Schedule › Crew). Only they see pay rates, costs and progress reports.</p>`;
+  } else {
+    let ts=cat.types.filter(t=>t.system===sys); if(q) ts=cat.types.filter(t=>t.name.toLowerCase().includes(q));
+    body=`<div class="est-tbl est-dev"><div class="et-row head"><span>Device</span><span>Time each<small>hours</small></span><span>Workers</span><span>Labor hrs</span><span>Material $</span><span>Sell $</span><span>Library item</span></div>
+      ${ts.map(t=>{ const v=Est.type(t.id,t.system), o=(Est.cfg().types||{})[t.id]||{}; const d=EST_TYPE_DEF[t.id]||EST_SYS_DEF[t.system]||[1,1];
+        return `<div class="et-row ${v.hrs?'':'zero'}" data-type="${esc(t.id)}"><span class="et-name">${typeGlyph(t)}<b>${esc(t.name)}</b>${v.learned?`<small class="et-learn" title="From ${v.learned.n} installs on finished jobs">Jobs say ${fmtH(v.learned.hrs)} <button class="linkish" data-act="est-learn" data-id="${esc(t.id)}">Use</button></small>`:''}</span>
+          <input class="et-in" data-est-type="${esc(t.id)}" data-k="hrs" inputmode="decimal" value="${o.hrs??''}" placeholder="${d[0]}" aria-label="${esc(t.name)} hours each">
+          <input class="et-in" data-est-type="${esc(t.id)}" data-k="crew" inputmode="numeric" value="${o.crew??''}" placeholder="${d[1]}" aria-label="${esc(t.name)} workers">
+          <span class="et-calc">${fmtH(v.labor)}</span>
+          <span class="money-in sm"><span>$</span><input class="et-in" data-est-type="${esc(t.id)}" data-k="mat" inputmode="decimal" value="${o.mat??''}" placeholder="${v.item?v.item.cost.toFixed(2):'0.00'}" aria-label="${esc(t.name)} material cost"></span>
+          <span class="money-in sm"><span>$</span><input class="et-in" data-est-type="${esc(t.id)}" data-k="price" inputmode="decimal" value="${o.price??''}" placeholder="${v.price.toFixed(2)}" aria-label="${esc(t.name)} sell price"></span>
+          <select class="et-sel" data-est-item="${esc(t.id)}" aria-label="${esc(t.name)} library item"><option value="">—</option>${items.map(i=>`<option value="${i.id}" ${o.itemId===i.id?'selected':''}>${esc(i.name)}${i.sku?' · '+esc(i.sku):''}</option>`).join('')}</select></div>`; }).join('')||'<div class="ip-empty">No devices match.</div>'}</div>
+      <p class="view-sub lay-note"><b>Time each</b> is how long one device takes with that many <b>workers</b> — labor hours = time × workers. Leave a box empty to use the grey suggestion. Linking a library item uses its name, part #, cost and price on quotes. Things you don’t install (like the doors themselves) have 0 time and no price, so they’re left out of estimates.</p>`;
+  }
+  const tools=`<label class="search sm">${icon('search')}<input id="est-q" placeholder="Find a device…" value="${esc(UI.estQ||'')}" autocomplete="off"></label><span class="spacer"></span><button class="btn" data-act="nav" data-view="settings">${icon('gear')}Settings</button>`;
+  return `<div class="content-inner wide est-view">${viewHead('Install times & costs',{sub:'What each device and cable takes to install — used for estimates, quotes and progress reports',tools,after:`<div class="fchips est-chips">${chips}</div>`})}${body}</div>`;
+};
+document.addEventListener('change',e=>{
+  const t=e.target; if(!t.dataset) return;
+  const num_=v=>v.trim()===''?null:Math.max(0,parseMoney(v));
+  if(t.dataset.estType){ Est.setType(t.dataset.estType,{[t.dataset.k]:num_(t.value)}); }
+  else if(t.dataset.estCable){ Est.setCable(t.dataset.estCable,{[t.dataset.k]:num_(t.value)}); }
+  else if(t.dataset.estItem!==undefined){ Est.setType(t.dataset.estItem,{itemId:t.value||null}); }
+  else if(t.dataset.estPay){ patch('people',t.dataset.estPay,{payRate:parseMoney(t.value)}); }
+  else if(t.dataset.estGen){ const k=t.dataset.estGen; Est.save({[k]:k==='pin'?t.value.trim().slice(0,12):num_(t.value)}); }
+});
+document.addEventListener('input',e=>{ if(e.target.id==='est-q'){ UI.estQ=e.target.value; scheduleRender(); } });
+{ const base=VIEWS.settings; VIEWS.settings=()=>{ const h=base(); if(!Est.canSee()) return h; return h.replace('<section class="scard" id="s-inv">',`<section class="scard est-card"><h2>${icon('labor')}Install times &amp; costs</h2><p class="s-p">How long each device and cable run takes, how many workers, material and sell prices, crew pay rates and the manager PIN. Estimates, <b>Make quote</b> on a map and progress reports all use these.</p><button class="btn sm primary" data-act="nav" data-view="estimating">${icon('labor')}Open install times &amp; costs</button></section><section class="scard" id="s-inv">`); }; }
+
+/* =========================================================
+   Estimate from map take-offs
+   ========================================================= */
+const INSTALLABLE=st=>st!=='existing'&&st!=='remove';
+function estimateFrom(takeoffs,{crew=Est.crew(),statusOf=null}={}){
+  const types=new Map(), cables=new Map(), warn={unscaled:[],untyped:0,unpriced:new Set(),zero:new Set(),skipped:new Set()};
+  for(const tk of takeoffs) for(const pl of tk.plans){
+    for(const d of pl.devices){
+      const st=statusOf?statusOf(tk,d):d.status; if(!INSTALLABLE(st)) continue;
+      let x=types.get(d.type); if(!x){ const e=Est.type(d.type,d.system); if(!e.labor&&!e.price&&!e.mat){ warn.skipped.add(d.typeName); continue; } x={id:d.type,name:d.typeName,system:d.system,sysName:d.sysName||Catalog.sysName(d.system)||'Other',qty:0,installed:0,issue:0,...e,devices:[]}; types.set(d.type,x); }
+      if(x.skip) continue;
+      x.qty++; if(st==='installed') x.installed++; if(st==='issue'||st==='service') x.issue++;
+      x.devices.push({mapId:tk.id,planId:pl.id,id:d.id,label:d.label,status:st});
+      if(d.cableLength>0){ const ct=EST_CABLES.includes(d.cableType)?d.cableType:'Other'; const c=cables.get(ct)||{type:ct,ft:0,runs:0}; c.ft+=d.cableLength; c.runs++; cables.set(ct,c); }
+    }
+    for(const r of pl.cables){
+      if(r.ft==null){ if(!warn.unscaled.includes(pl.name)) warn.unscaled.push(pl.name); continue; }
+      let ct=EST_CABLES.find(c=>c.toLowerCase()===String(r.cableType||'').toLowerCase()); if(!ct){ ct='Other'; warn.untyped++; }
+      const c=cables.get(ct)||{type:ct,ft:0,runs:0}; c.ft+=r.ft; c.runs+=r.count||1; cables.set(ct,c);
+    }
+  }
+  const T=[...types.values()].map(x=>{ x.laborTotal=r2(x.qty*x.labor); x.matTotal=r2(x.qty*x.mat); x.priceTotal=r2(x.qty*x.price); if(!x.price) warn.unpriced.add(x.name); if(!x.labor) warn.zero.add(x.name); return x; }).sort((a,b)=>a.sysName.localeCompare(b.sysName)||b.qty-a.qty);
+  const slack=Est.slack();
+  const C=[...cables.values()].map(c=>{ const v=Est.cable(c.type); const ft=Math.round(c.ft*(1+slack/100)); return {...c,ftNet:Math.round(c.ft),ft,...v,labor:r2(ft/v.ftHr),matTotal:r2(ft*v.mat),priceTotal:r2(ft*v.price)}; }).sort((a,b)=>b.ft-a.ft);
+  const devLabor=r2(T.reduce((a,x)=>a+x.laborTotal,0)), cabLabor=r2(C.reduce((a,c)=>a+c.labor,0)), labor=r2(devLabor+cabLabor);
+  const mat=r2(T.reduce((a,x)=>a+x.matTotal,0)+C.reduce((a,c)=>a+c.matTotal,0)), matPrice=r2(T.reduce((a,x)=>a+x.priceTotal,0)+C.reduce((a,c)=>a+c.priceTotal,0));
+  const laborCost=r2(labor*Est.laborCost()), laborPrice=r2(labor*Est.laborRate());
+  const days=labor/(Math.max(1,crew)*Est.dayHrs());
+  const bySys=new Map(); for(const x of T){ const s=bySys.get(x.sysName)||{name:x.sysName,labor:0,qty:0}; s.labor+=x.laborTotal; s.qty+=x.qty; bySys.set(x.sysName,s); }
+  return {types:T,cables:C,bySys:[...bySys.values()],warn,crew,totals:{devLabor,cabLabor,labor,mat,matPrice,laborCost,laborPrice,cost:r2(mat+laborCost),price:r2(matPrice+laborPrice),days,count:T.reduce((a,x)=>a+x.qty,0),installed:T.reduce((a,x)=>a+x.installed,0)}};
+}
+const fmtDays=d=>{ d=+d||0; if(d<0.05) return '—'; const r=Math.round(d*2)/2; return `${r.toLocaleString()} day${r===1?'':'s'}`; };
+function estTables(E,{progress=false}={}){
+  const head=`<div class="et-row head"><span>Device</span><span>Qty</span>${progress?'<span>Installed</span>':''}<span>Time each</span><span>Workers</span><span>Labor</span><span>Material</span><span>Sell</span></div>`;
+  const rows=E.types.map(x=>{ const t=Catalog.type(x.id)||{color:'#64748b',glyph:''}; return `<div class="et-row ${!x.labor||!x.price?'warnrow':''}"><span class="et-name">${typeGlyph({...t,image:t.image||''},22)}<b>${esc(x.name)}</b><small>${esc(x.sysName)}</small></span><span>${x.qty}</span>${progress?`<span>${x.installed}${x.issue?` <em class="neg">· ${x.issue} issue</em>`:''}</span>`:''}<span>${fmtH(x.hrs)}</span><span>${x.crew}</span><span>${fmtH(x.laborTotal)}</span><span>${fmtMoney(x.matTotal,{cents:false})}</span><span>${x.price?fmtMoney(x.priceTotal,{cents:false}):'<em class="neg">no price</em>'}</span></div>`; }).join('');
+  const cab=E.cables.length?`<div class="est-tbl est-sum-cab"><div class="et-row head"><span>Cable</span><span>Feet</span><span>Runs</span><span>Rate</span><span>Labor</span><span>Material</span><span>Sell</span></div>${E.cables.map(c=>`<div class="et-row"><span class="et-name"><b>${esc(c.type)}</b><small>${c.ftNet.toLocaleString()} ft + ${Est.slack()}% slack</small></span><span>${c.ft.toLocaleString()}</span><span>${c.runs}</span><span>${c.ftHr} ft/h</span><span>${fmtH(c.labor)}</span><span>${fmtMoney(c.matTotal,{cents:false})}</span><span>${fmtMoney(c.priceTotal,{cents:false})}</span></div>`).join('')}</div>`:'';
+  return `<div class="est-tbl est-sum ${progress?'prog':''}">${head}${rows||'<div class="ip-empty">No installable devices on these maps yet.</div>'}</div>${cab}`;
+}
+function estWarnings(E){
+  const w=[];
+  if(E.warn.unscaled.length) w.push(`Cable runs on ${E.warn.unscaled.map(esc).join(', ')} aren’t counted — set the plan scale so they can be measured.`);
+  if(E.warn.untyped) w.push(`${E.warn.untyped} cable run${E.warn.untyped>1?'s have':' has'} no cable type, so ${E.warn.untyped>1?'they’re':'it’s'} counted as “Other”. Pick a type on the run in the markup.`);
+  if(E.warn.unpriced.size) w.push(`No sell price yet for ${[...E.warn.unpriced].slice(0,6).map(esc).join(', ')}${E.warn.unpriced.size>6?'…':''}. Set it (or link a library item) in Install times &amp; costs.`);
+  if(E.warn.zero.size) w.push(`${[...E.warn.zero].slice(0,6).map(esc).join(', ')} ${E.warn.zero.size===1?'has':'have'} a price but no install time.`);
+  if(E.warn.skipped.size) w.push(`Left out (no install time or price set): ${[...E.warn.skipped].slice(0,8).map(esc).join(', ')}.`);
+  return w.length?`<div class="est-warn">${w.map(x=>`<div>${icon('warn')}<span>${x}</span></div>`).join('')}</div>`:'';
+}
+
+/* ---------- Make quote (button in the markup / layout editor) ---------- */
+window.HubBridge.makeQuote=id=>{ estimateDialog(id); };
+async function estimateDialog(mapId){
+  if(!Est.canSee()){ toast('Only managers can make quotes from a map'); return; }
+  let tk=null; try{ const api=await Maps.ensure(); await Catalog.load().catch(()=>{}); tk=await api.takeoff({id:mapId}); }catch(e){ toast('Couldn’t read the map: '+(e.message||e)); return; }
+  if(!tk){ toast('Couldn’t read the map'); return; }
+  const m=S.maps[mapId]; const jobId=(m&&m.jobId)||'';
+  let crew=Est.crew();
+  const w=bigModal({title:'Estimate & quote',size:'wide',body:`<div class="est-dlg"><div class="est-dlg-top"><div><b>${esc(tk.name)}</b><small>${esc([S.jobs[jobId]?S.jobs[jobId].name:'Not on a job yet',`${tk.plans.length} plan${tk.plans.length===1?'':'s'}`].join(' · '))}</small></div>
+      <label class="est-crew">Crew size <input id="ed-crew" type="number" min="1" max="20" value="${crew}"></label></div><div id="ed-body"></div></div>`,
+    actions:[{label:'Cancel'},{label:'Edit install times',act:()=>{ closeAllScreens(); hubLeaveTool&&hubLeaveTool(); go('estimating'); }},{label:'Create quote',kind:'primary',act:w=>{ const q=quoteFromEstimate(tk,estimateFrom([tk],{crew}),{jobId,mapId}); hubLeaveTool&&hubLeaveTool(); openQuote(q.id); toast(`Quote ${q.number} made from ${tk.name}`); }}]});
+  if(!w) return;
+  const draw=()=>{ const E=estimateFrom([tk],{crew}); const t=E.totals;
+    w.querySelector('#ed-body').innerHTML=`<div class="qtiles est-tiles"><div><span>Labor</span><b>${fmtH(t.labor)}</b><small>${fmtH(t.devLabor)} devices · ${fmtH(t.cabLabor)} cable</small></div><div><span>Time on site</span><b>${fmtDays(t.days)}</b><small>with ${crew} worker${crew>1?'s':''}, ${Est.dayHrs()} h days</small></div><div><span>Your cost</span><b>${fmtMoney(t.cost,{cents:false})}</b><small>${fmtMoney(t.laborCost,{cents:false})} labor · ${fmtMoney(t.mat,{cents:false})} material</small></div><div><span>Quote price</span><b>${fmtMoney(t.price,{cents:false})}</b><small>${t.price?Math.round((t.price-t.cost)/t.price*100)+'% margin':''} before tax</small></div></div>${estWarnings(E)}${estTables(E)}`; };
+  w.querySelector('#ed-crew').addEventListener('input',e=>{ crew=Math.max(1,Math.min(20,Math.round(+e.target.value||1))); draw(); });
+  draw();
+}
+function quoteFromEstimate(tk,E,{jobId='',mapId=''}={}){
+  const q=createQuote({jobId,title:tk.name});
+  const secs=[];
+  const bySys=new Map(); for(const x of E.types){ if(!bySys.has(x.sysName)) bySys.set(x.sysName,[]); bySys.get(x.sysName).push(x); }
+  for(const [name,list] of bySys){
+    secs.push({id:uid('sec'),name,desc:'',lines:list.map(x=>{ const it=x.item; return cleanLine({id:uid('l'),type:'item',itemId:it?it.id:'',name:it?it.name:x.name,desc:it?it.desc:'',sku:it?it.sku:'',mfr:it?it.mfr:'',unit:'ea',qty:x.qty,price:x.price,cost:x.mat,taxable:it?it.taxable:true,labor:x.labor}); })});
+  }
+  if(E.cables.length) secs.push({id:uid('sec'),name:'Cabling',desc:'',lines:E.cables.map(c=>cleanLine({id:uid('l'),type:'item',name:`${c.type} cable`,desc:`${c.runs} run${c.runs>1?'s':''} · includes ${Est.slack()}% for slack`,unit:'ft',qty:c.ft,price:c.price,cost:c.mat,taxable:true,labor:r2(1/c.ftHr)}))});
+  const lab=[...E.bySys.filter(s=>s.labor>0).map(s=>[`Installation labor – ${s.name}`,r2(s.labor)]),...(E.totals.cabLabor>0?[['Cable installation labor',E.totals.cabLabor]]:[])];
+  if(lab.length) secs.push({id:uid('sec'),name:'Labor',desc:'',lines:lab.map(([n,h])=>cleanLine({id:uid('l'),type:'labor',name:n,unit:'hr',qty:h,price:Est.laborRate(),cost:Est.laborCost(),taxable:false}))});
+  const est={mapIds:[mapId].filter(Boolean),labor:E.totals.labor,days:r2(E.totals.days),crew:E.crew,cost:E.totals.cost,at:Date.now()};
+  const n=NORM.quotes({...S.quotes[q.id],sections:secs.length?secs:S.quotes[q.id].sections,estimate:est,history:[...S.quotes[q.id].history,{at:Date.now(),what:`Built from ${tk.name}: ${fmtH(E.totals.labor)}, about ${fmtDays(E.totals.days)} with ${E.crew}`}]});
+  const c=quoteCalc(n); n.totals={sub:c.sub,total:c.total,cost:c.cost};
+  Store.put('quotes',n); scheduleRender();
+  return n;
+}
+{ const base=NORM.quotes; NORM.quotes=o=>{ const q=base(o); const e=o&&o.estimate; q.estimate=e&&typeof e==='object'?{mapIds:Array.isArray(e.mapIds)?e.mapIds.filter(validId).slice(0,20):[],labor:finNum(e.labor),days:finNum(e.days),crew:Math.max(1,Math.round(finNum(e.crew,1))),cost:finNum(e.cost),at:num(e.at)}:null; return q; }; }
+{ const base=qbTotals; qbTotals=function(){ base(); if(!QB||!QB.q.estimate) return; const card=QB.el.querySelector('.qint'); if(!card) return; let r=card.querySelector('.qt-est'); if(!r){ card.insertAdjacentHTML('beforeend','<div class="qt-row qt-est"><span>From the map</span><b></b></div>'); r=card.querySelector('.qt-est'); } const e=QB.q.estimate; r.querySelector('b').textContent=`${fmtH(e.labor)} · ${fmtDays(e.days)} (${e.crew} crew)`; }; }
+
+/* =========================================================
+   Progress report (managers): estimated vs actual, per device type and person
+   ========================================================= */
+VL_KINDS.push('snapshot');
+{ const base=NORM.visitlog; NORM.visitlog=o=>{ const r=base(o); r.instAt=num(o.instAt); if(r.kind==='snapshot'&&o.snap&&typeof o.snap==='object'){ const s={}; for(const [k,v] of Object.entries(o.snap)) if(/^[a-zA-Z]{1,20}$/.test(k)&&typeof v==='number'&&isFinite(v)) s[k]=v; r.snap=s; } return r; }; }
+{ const base=DevPanel.save.bind(DevPanel); DevPanel.save=function(p){ const c=this.ctx; if(c&&p.status==='installed'){ const cur=S.visitlog[devRowId(c.mapId,c.dev.id)]; if(!cur||cur.status!=='installed') p.instAt=Date.now(); } return base(p); }; }
+
+async function jobTakeoffs(j){
+  const ms=Object.values(S.maps).filter(m=>m.jobId===j.id||(j.type==='project'&&S.jobs[m.jobId]&&S.jobs[m.jobId].projectId===j.id));
+  const api=await Maps.ensure(); const out=[]; const errs=[];
+  for(const m of ms){
+    try{
+      const local=await api.localInfo(m.id).catch(()=>null); let tk=null;
+      if(local&&(!m.path||m.path.startsWith('local:')||local.savedAt>=(m.savedAt||0)-2000)) tk=await api.takeoff({id:m.id});
+      if(!tk&&m.path&&!m.path.startsWith('local:')) tk=await api.takeoff({text:await Maps.fetchText(m)});
+      if(tk){ tk.id=m.id; tk.mapName=m.name; out.push(tk); } else errs.push(m.name);
+    }catch(e){ errs.push(m.name); }
+  }
+  return {tks:out,errs};
+}
+const fieldStatus=(tk,d)=>{ const r=S.visitlog[devRowId(tk.id,d.id)]; return r&&r.status?(r.status==='issue'?'service':r.status):d.status; };
+function addWorkdays(d,n){ let x=d, left=Math.ceil(n); while(left>0){ x=addDays(x,1); const w=toDate(x).getDay(); if(w!==0&&w!==6) left--; } return x; }
+async function jobReport(j){
+  await Catalog.load().catch(()=>{});
+  const {tks,errs}=await jobTakeoffs(j);
+  const E=estimateFrom(tks,{statusOf:fieldStatus});
+  const visits=jobVisits(j); const vids=new Set(visits.map(v=>v.id));
+  const now=Date.now();
+  const clocks=Object.values(S.visitlog).filter(r=>r.kind==='clock'&&(vids.has(r.visitId)||r.jobId===j.id));
+  const hrsOf=r=>Math.max(0,((r.out||now)-r.in)/3600000);
+  const people=new Map();
+  for(const r of clocks){ const p=people.get(r.pid)||{pid:r.pid,hrs:0,cost:0,installs:0,checks:0}; const h=hrsOf(r); p.hrs+=h; p.cost+=h*Est.pay(r.pid); people.set(r.pid,p); }
+  const devRows=Object.values(S.visitlog).filter(r=>r.kind==='device'&&tks.some(t=>t.id===r.mapId));
+  for(const r of devRows) if(r.status==='installed'&&r.by){ const p=people.get(r.by)||{pid:r.by,hrs:0,cost:0,installs:0,checks:0}; p.installs++; people.set(r.by,p); }
+  for(const r of Object.values(S.visitlog)) if(r.kind==='check'&&r.done&&vids.has(r.visitId)&&r.by){ const p=people.get(r.by)||{pid:r.by,hrs:0,cost:0,installs:0,checks:0}; p.checks++; people.set(r.by,p); }
+  const actualH=clocks.reduce((a,r)=>a+hrsOf(r),0), actualCost=[...people.values()].reduce((a,p)=>a+p.cost,0);
+  // earned hours: what the finished work was estimated to take
+  const L=E.totals.labor, devL=E.totals.devLabor||0;
+  const earnedDev=E.types.reduce((a,x)=>a+x.installed*x.labor,0);
+  const frac=E.totals.count?E.totals.installed/E.totals.count:0;
+  const earned=earnedDev+E.totals.cabLabor*frac;
+  const pct=L?earned/L:0;
+  // spread clocked time over the devices finished that day (carrying time on days nothing was finished)
+  const devShare=L?devL/L:1;
+  const byDay=new Map(); for(const r of clocks){ const d=msDate(r.in); byDay.set(d,(byDay.get(d)||0)+hrsOf(r)); }
+  const inst=devRows.filter(r=>r.status==='installed'&&(r.instAt||r.at)).map(r=>{ const tk=tks.find(t=>t.id===r.mapId); const pl=tk&&tk.plans.find(p=>p.devices.some(d=>d.id===r.devId)); const d=pl&&pl.devices.find(x=>x.id===r.devId); const x=d&&E.types.find(t=>t.id===d.type); return x?{type:x.id,est:x.labor,day:msDate(r.instAt||r.at)}:null; }).filter(Boolean);
+  const days=[...new Set([...byDay.keys(),...inst.map(i=>i.day)])].sort();
+  const act=new Map(); let carry=0;
+  for(const d of days){ carry+=(byDay.get(d)||0)*devShare; const done=inst.filter(i=>i.day===d); const sum=done.reduce((a,i)=>a+(i.est||0.25),0); if(done.length&&sum){ for(const i of done){ const a=act.get(i.type)||{hrs:0,n:0}; a.hrs+=carry*(i.est||0.25)/sum; a.n++; act.set(i.type,a); } carry=0; } }
+  for(const x of E.types){ const a=act.get(x.id); x.actualEach=a&&a.n?a.hrs/a.n:null; x.tracked=a?a.n:0; x.earned=x.installed*x.labor; x.remaining=Math.max(0,x.laborTotal-x.earned); }
+  const trackedIds=new Set(devRows.filter(r=>r.status==='installed').map(r=>r.mapId+'/'+r.devId));
+  let earnedTracked=0, trackedN=0; for(const x of E.types) for(const d of x.devices) if(d.status==='installed'&&trackedIds.has(d.mapId+'/'+d.id)){ earnedTracked+=x.labor; trackedN++; }
+  earnedTracked+=E.totals.count?E.totals.cabLabor*trackedN/E.totals.count:0;
+  const prod=actualH>0.05&&earnedTracked>0?earnedTracked/actualH:null;
+  const remEst=Math.max(0,L-earned);
+  const projRem=prod?remEst/prod:remEst;
+  const projH=actualH+projRem;
+  const avgPay=actualH>0.05?actualCost/actualH:Est.laborCost();
+  const projCost=actualCost+projRem*avgPay;
+  const budgetCost=L*Est.laborCost();
+  // what's on the schedule from today on
+  const t0=today(); let schedH=0, schedCost=0;
+  for(const o of occurrences(t0,addDays(t0,365)).filter(o=>vids.has(o.e.id))){ for(let d=o.date; d<=o.endDate; d=addDays(d,1)){ if(d<t0) continue; for(const pid of o.e.people.filter(p=>S.people[p])){ const h=entryMinutes(o.e,pid)/60; schedH+=h; schedCost+=h*Est.pay(pid); } } }
+  const qs=Object.values(S.quotes).filter(q=>q.jobId===j.id&&q.status==='accepted'&&!q.template);
+  const quotedH=qs.reduce((a,q)=>a+quoteCalc(q).labor,0);
+  const daily=Math.max(1,Est.crew())*Est.dayHrs();
+  const finish=projRem>0.05?addWorkdays(t0,projRem/daily):t0;
+  const snaps=Object.values(S.visitlog).filter(r=>r.kind==='snapshot'&&r.jobId===j.id).sort((a,b)=>a.at-b.at);
+  return {earnedTracked,j,tks,errs,E,visits,clocks,people:[...people.values()].sort((a,b)=>b.hrs-a.hrs),actualH,actualCost,earned,pct,prod,remEst,projRem,projH,projCost,budgetCost,L,schedH,schedCost,quotedH,finish,snaps,carry,frac};
+}
+async function openReport(jobId){
+  if(!Est.canSee()){ toast('Progress reports are for managers'); return; }
+  const j=S.jobs[jobId]; if(!j) return;
+  const el=openScreen('rp',`<div class="rp-top"><button class="qb-back" data-rp="back" data-esc>${icon('back')}<span>Back</span></button><div class="rp-title"><b>Progress report</b><span>${esc(j.name)} · ${esc(fmtStamp(Date.now()))}</span></div><div class="rp-acts"><button class="btn" data-rp="refresh">${icon('repeat')}<span>Update</span></button><button class="btn" data-rp="snap">${icon('pin')}<span>Save snapshot</span></button><button class="btn" data-rp="csv">${icon('download')}<span>CSV</span></button><button class="btn primary" data-rp="print">${icon('print')}<span>Print</span></button></div></div><div class="rp-scroll"><div class="rp-body"><div class="rp-loading"><span class="spin"></span>Adding up the maps, the time clock and the installs…</div></div></div>`);
+  let R=null;
+  const draw=async()=>{ el.querySelector('.rp-body').innerHTML='<div class="rp-loading"><span class="spin"></span>Adding up the maps, the time clock and the installs…</div>'; try{ R=await jobReport(j); el.querySelector('.rp-body').innerHTML=reportHTML(R); el.querySelector('.rp-title span').textContent=`${j.name} · ${fmtStamp(Date.now())}`; }catch(e){ console.error(e); el.querySelector('.rp-body').innerHTML=`<div class="ip-empty">${icon('warn')} Couldn’t build the report: ${esc(e.message||String(e))}</div>`; } };
+  el.addEventListener('click',e=>{ const b=e.target.closest('[data-rp]'); if(!b) return; const a=b.dataset.rp;
+    if(a==='back') closeScreen(el);
+    else if(a==='refresh') draw();
+    else if(a==='print'&&R) printReport(R);
+    else if(a==='csv'&&R) reportCsv(R);
+    else if(a==='snap'&&R){ vlPut({id:uid('sn'),kind:'snapshot',jobId:j.id,at:Date.now(),by:Me.id(),byName:Me.name(),snap:{pct:r2(R.pct*100),actualH:r2(R.actualH),projH:r2(R.projH),estH:r2(R.L),actualCost:r2(R.actualCost),projCost:r2(R.projCost),installed:R.E.totals.installed,total:R.E.totals.count}}); toast('Snapshot saved — it shows in the trend at the bottom'); setTimeout(draw,200); }
+    else if(a==='learn'&&R){ const t={...(Est.cfg().types||{})}; let n=0; for(const x of R.E.types) if(x.tracked>=2&&x.actualEach){ t[x.id]={...(t[x.id]||{}),learned:{hrs:r2(x.actualEach/Math.max(1,x.crew)),n:x.tracked}}; n++; } Est.save({types:t}); toast(n?`Saved what this job learned for ${n} device type${n>1?'s':''} — use it in Install times & costs`:'Need at least 2 tracked installs of a type first'); }
+  });
+  draw();
+}
+const pctTxt=v=>`${Math.round((+v||0)*100)}%`;
+const varTag=(proj,base,{money=false}={})=>{ if(!base) return ''; const d=proj-base; const p=d/base; const over=d>0.5; const txt=money?fmtMoney(Math.abs(d),{cents:false}):fmtH(Math.abs(d)); return `<em class="rp-var ${Math.abs(p)<0.05?'ok':over?'bad':'good'}">${Math.abs(p)<0.05?'on budget':(over?'over by ':'under by ')+txt}</em>`; };
+function reportHTML(R){
+  const E=R.E, t=E.totals;
+  const tiles=`<div class="rp-tiles">
+    <div class="rp-tile big"><span>Complete</span><b>${pctTxt(R.pct)}</b><div class="rp-bar"><i style="width:${Math.min(100,R.pct*100)}%"></i></div><small>${t.installed} of ${t.count} devices installed${E.cables.length?` · cable counted in step`:''}</small></div>
+    <div class="rp-tile"><span>Hours</span><b>${fmtH(R.actualH)}</b><small>worked · the estimate says ${fmtH(R.earnedTracked)} for what they finished</small></div>
+    <div class="rp-tile"><span>Pace</span><b class="${R.prod==null?'':R.prod>=1?'pos':'neg'}">${R.prod==null?'—':pctTxt(R.prod)}</b><small>${R.prod==null?'needs clocked time and installs':R.prod>=1?'faster than estimated':'slower than estimated'}</small></div>
+    <div class="rp-tile"><span>At completion</span><b>${fmtH(R.projH)}</b><small>estimate ${fmtH(R.L)} ${varTag(R.projH,R.L)}</small></div>
+    <div class="rp-tile"><span>Labor cost</span><b>${fmtMoney(R.actualCost,{cents:false})}</b><small>so far · projected ${fmtMoney(R.projCost,{cents:false})} ${varTag(R.projCost,R.budgetCost,{money:true})}</small></div>
+    <div class="rp-tile"><span>Projected finish</span><b>${esc(fmtDay(R.finish))}</b><small>${esc(fmtLong(R.finish))}</small><small>${fmtH(R.projRem)} left at ${Est.crew()} × ${Est.dayHrs()} h a day</small></div></div>`;
+  const plan=`<section class="rp-sec"><h2>${icon('sched')}Budget, schedule and what’s left</h2><div class="rp-kv">
+    <div><span>Estimated labor (from the maps)</span><b>${fmtH(R.L)} · ${fmtMoney(R.budgetCost,{cents:false})} at ${fmtMoney(Est.laborCost())}/h</b></div>
+    ${R.quotedH?`<div><span>Quoted labor (accepted quotes)</span><b>${fmtH(R.quotedH)}</b></div>`:''}
+    <div><span>Worked so far</span><b>${fmtH(R.actualH)} · ${fmtMoney(R.actualCost,{cents:false})} at the crew’s pay rates</b></div>
+    <div><span>Still needed (at this pace)</span><b>${fmtH(R.projRem)}</b></div>
+    <div><span>Crew time already scheduled from today</span><b>${fmtH(R.schedH)} · ${fmtMoney(R.schedCost,{cents:false})} ${R.schedH?(R.schedH+0.5<R.projRem?`<em class="rp-var bad">${fmtH(R.projRem-R.schedH)} short — schedule more</em>`:R.schedH>R.projRem*1.15+1?`<em class="rp-var good">${fmtH(R.schedH-R.projRem)} more than needed</em>`:'<em class="rp-var ok">about right</em>'):''}</b></div>
+    ${R.carry>0.1?`<div><span>Time on devices not finished yet</span><b>${fmtH(R.carry)}</b></div>`:''}</div></section>`;
+  const rows=E.types.map(x=>{ const tt=Catalog.type(x.id)||{color:'#64748b',glyph:''}; const ae=x.actualEach; const cmp=ae==null?'':ae>x.labor*1.15?'neg':ae<x.labor*0.87?'pos':'';
+    return `<div class="et-row"><span class="et-name">${typeGlyph({...tt,image:tt.image||''},22)}<b>${esc(x.name)}</b><small>${esc(x.sysName)}</small></span><span>${x.installed}/${x.qty}${x.issue?` <em class="neg">${x.issue}!</em>`:''}</span><span>${fmtH(x.labor)}</span><span class="${cmp}">${ae==null?'—':fmtH(ae)}${x.tracked?`<small>${x.tracked} tracked</small>`:''}</span><span>${fmtH(x.laborTotal)}</span><span>${fmtH(x.earned)}</span><span>${fmtH(x.remaining)}</span></div>`; }).join('');
+  const dev=`<section class="rp-sec"><h2>${icon('device')}Devices <small>labor hours each = time × workers</small></h2><div class="est-tbl rp-dev"><div class="et-row head"><span>Device</span><span>Installed</span><span>Est. each</span><span>Actual each</span><span>Est. total</span><span>Done</span><span>Left</span></div>${rows||'<div class="ip-empty">No devices on this job’s maps yet.</div>'}</div>
+    ${E.types.some(x=>x.tracked>=2)?`<p class="view-sub">“Actual each” spreads the clocked hours over the devices finished each day. <button class="linkish" data-rp="learn">Save these as what this job learned</button> — they show next to the install times in Settings.</p>`:''}</section>`;
+  const cab=E.cables.length?`<section class="rp-sec"><h2>${icon('link')}Cable</h2><div class="est-tbl rp-cab"><div class="et-row head"><span>Cable</span><span>Feet</span><span>Est. labor</span><span>Done (with devices)</span></div>${E.cables.map(c=>`<div class="et-row"><span class="et-name"><b>${esc(c.type)}</b><small>${c.runs} runs</small></span><span>${c.ft.toLocaleString()} ft</span><span>${fmtH(c.labor)}</span><span>${fmtH(c.labor*R.frac)}</span></div>`).join('')}</div></section>`:'';
+  const ppl=`<section class="rp-sec"><h2>${icon('team')}Crew</h2><div class="est-tbl rp-ppl"><div class="et-row head"><span>Person</span><span>Hours</span><span>Pay</span><span>Cost</span><span>Installed</span><span>Checked off</span></div>${R.people.map(p=>{ const pp=S.people[p.pid]; return `<div class="et-row"><span class="et-name">${pp?av(pp,'sm'):''}<b>${esc(pp?pp.name:'Someone')}</b></span><span>${fmtH(p.hrs)}</span><span>${fmtMoney(Est.pay(p.pid))}/h${pp&&pp.payRate?'':' <small>default</small>'}</span><span>${fmtMoney(p.cost,{cents:false})}</span><span>${p.installs}</span><span>${p.checks}</span></div>`; }).join('')||'<div class="ip-empty">No one has clocked in on this job’s visits yet.</div>'}</div></section>`;
+  const vs=R.visits.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const vis=`<section class="rp-sec"><h2>${icon('sched')}Visits</h2><div class="est-tbl rp-vis"><div class="et-row head"><span>Visit</span><span>Crew</span><span>Clocked</span><span>Checklists</span></div>${vs.map(v=>{ const c=checkState(v), k=clockState(v); return `<div class="et-row"><span class="et-name"><b>${esc(entryLabel(v))}</b><small>${esc(fmtDay(v.date))}${v.endDate?' → '+esc(fmtDay(v.endDate)):''}</small></span><span>${esc(v.people.map(personName).filter(Boolean).join(', ')||'—')}</span><span>${fmtH(k.total/60)}</span><span>${c.total?`${c.done}/${c.total}`:'—'}</span></div>`; }).join('')||'<div class="ip-empty">No visits yet.</div>'}</div></section>`;
+  const tr=R.snaps.length?`<section class="rp-sec"><h2>${icon('trend')}Trend <small>saved snapshots</small></h2><div class="est-tbl rp-trend"><div class="et-row head"><span>When</span><span>Complete</span><span>Worked</span><span>At completion</span><span>Projected cost</span></div>${R.snaps.map(s=>`<div class="et-row"><span>${esc(fmtStamp(s.at))}<small>${esc(s.byName||'')}</small></span><span>${Math.round(s.snap.pct||0)}%</span><span>${fmtH(s.snap.actualH)}</span><span>${fmtH(s.snap.projH)}</span><span>${fmtMoney(s.snap.projCost||0,{cents:false})}</span></div>`).join('')}</div></section>`:'';
+  const notes=[...(R.errs.length?[`Couldn’t read ${R.errs.map(esc).join(', ')} — open ${R.errs.length>1?'them':'it'} once on the device that made ${R.errs.length>1?'them':'it'}.`]:[]),...(!R.tks.length?['This job has no maps yet, so there’s nothing to estimate against. Add a markup or layout on the job’s Maps & drawings tab.']:[])];
+  return `${notes.length?`<div class="est-warn">${notes.map(x=>`<div>${icon('warn')}<span>${x}</span></div>`).join('')}</div>`:''}${tiles}${plan}${dev}${cab}${ppl}${vis}${tr}${estWarnings(E)}`;
+}
+function reportCsv(R){
+  const q=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const rows=[['Device','System','Qty','Installed','Issues','Est labor each (h)','Actual each (h)','Est total (h)','Done (h)','Left (h)'],...R.E.types.map(x=>[x.name,x.sysName,x.qty,x.installed,x.issue,x.labor,x.actualEach==null?'':r2(x.actualEach),x.laborTotal,r2(x.earned),r2(x.remaining)]),[],['Cable','Feet','Est labor (h)'],...R.E.cables.map(c=>[c.type,c.ft,c.labor]),[],['Person','Hours','Pay rate','Cost','Installed','Checked off'],...R.people.map(p=>[personName(p.pid)||'Someone',r2(p.hrs),Est.pay(p.pid),r2(p.cost),p.installs,p.checks]),[],['Summary'],['Complete %',Math.round(R.pct*100)],['Worked (h)',r2(R.actualH)],['Estimate (h)',r2(R.L)],['At completion (h)',r2(R.projH)],['Labor cost so far',r2(R.actualCost)],['Projected labor cost',r2(R.projCost)],['Projected finish',R.finish]];
+  saveBlob(new Blob([rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}),`progress-${safeName(R.j.name)}-${today()}.csv`,'text/csv');
+}
+function printReport(R){
+  const css=`body{font:12px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:24px}h1{font-size:20px;margin:0}h2{font-size:14px;margin:18px 0 6px;display:flex;gap:6px;align-items:center}h2 svg,.et-name .eg,.ip-empty svg,.est-warn svg{display:none}small{color:#666;font-size:10.5px;margin-left:4px}.rp-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.rp-tile{border:1px solid #ddd;border-radius:8px;padding:8px}.rp-tile span{display:block;color:#666;font-size:11px}.rp-tile b{font-size:18px}.rp-tile small{display:block;margin:0}.rp-bar{height:6px;background:#eee;border-radius:3px}.rp-bar i{display:block;height:100%;background:#16a34a}.et-row{display:grid;grid-template-columns:2.2fr repeat(6,1fr);gap:6px;padding:4px 0;border-bottom:1px solid #eee}.et-row.head{font-weight:700;color:#555}.rp-kv div{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:4px 0}.neg{color:#b42318}.pos{color:#15803d}.rp-var{font-style:normal;margin-left:6px}.rp-var.bad{color:#b42318}.rp-var.good{color:#15803d}button{display:none}.est-warn div{color:#92400e}`;
+  const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print the report'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Progress report – ${esc(R.j.name)}</title><style>${css}</style></head><body><h1>Progress report — ${esc(R.j.name)}</h1><div style="color:#666">${esc(company().name||'')} · ${esc(fmtStamp(Date.now()))}</div>${reportHTML(R)}</body></html>`);
+  w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} },300);
+}
+
+/* ---------- where managers open it, and crew cost on a visit ---------- */
+{ const base=visitsAction; visitsAction=function(act,a,e){ if(act==='rp-open'){ openReport(a.dataset.job); return true; } if(act==='est-sys'){ UI.estSys=a.dataset.val; UI.estQ=''; savePrefs(); scheduleRender(); return true; } if(act==='est-learn'){ const id=a.dataset.id; const l=((Est.cfg().types||{})[id]||{}).learned; if(l) Est.setType(id,{hrs:l.hrs}); toast('Install time updated from finished jobs'); return true; } return base(act,a,e); }; }
+{ const base=renderSchedDetail; renderSchedDetail=function(el,o){
+  base(el,o);
+  if(D.kind!=='sched'||!isVisit(o)||!Est.canSee()) return;
+  const ppl=o.people.filter(id=>S.people[id]); if(!ppl.length) return;
+  const days=(o.endDate?diffDays(o.endDate,o.date):0)+1;
+  let h=0,c=0; const parts=ppl.map(pid=>{ const hh=entryMinutes(o,pid)/60*days; h+=hh; c+=hh*Est.pay(pid); return `${esc(personName(pid).split(' ')[0])} ${fmtMoney(Est.pay(pid))}/h`; });
+  const box=el.querySelector('.sd-visit'); if(box) box.insertAdjacentHTML('afterend',`<div class="sd-cost"><div><span>Crew cost for this visit</span><b>${fmtH(h)} · ${fmtMoney(c,{cents:false})}</b><small>${parts.join(' · ')}${days>1?` · ${days} days`:''}</small></div>${visitJob(o)?`<button type="button" class="btn sm" data-sd-rp="${visitJob(o).id}">${icon('trend')}Job report</button>`:''}</div>`);
+  const b=el.querySelector('[data-sd-rp]'); if(b) b.addEventListener('click',()=>openReport(b.dataset.sdRp));
+}; }
 
 /* =========================================================
    Boot
