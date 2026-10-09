@@ -2524,6 +2524,140 @@ body.fv-full{overflow:hidden}
 .gr-p small{color:var(--muted);font-size:11.5px}
 @media (max-width:600px){.gr-people{grid-template-columns:1fr 1fr}.as-t small{max-width:140px}}
 
+/* ---------- top right: messages + your avatar ---------- */
+.top-me{display:flex;align-items:center;gap:6px;margin-left:4px}
+.top-chat{position:relative;width:40px;height:40px;border-radius:12px}
+.top-chat svg.i{width:21px;height:21px}
+.top-chat.is-open{background:var(--accent-soft);color:var(--accent)}
+.top-badge{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--danger);color:#fff;font:700 11px/18px var(--f-body);text-align:center;box-shadow:0 0 0 2px var(--surface)}
+.top-av{border-radius:50%;padding:2px;display:grid;place-items:center}
+.top-av:hover .av,.top-av:focus-visible .av{box-shadow:0 0 0 3px var(--accent-soft)}
+.top-av .av{width:34px;height:34px;font-size:12.5px}
+.av.lg{width:44px;height:44px;font-size:15px}
+.av.xl{width:76px;height:76px;font-size:26px}
+.me-pop{min-width:250px}
+.me-head{display:flex;align-items:center;gap:12px;padding:10px 10px 8px}
+.me-head div{display:flex;flex-direction:column;min-width:0}
+.me-head b{font-size:15px}
+.me-head small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-hint{margin-left:auto;font-size:12px;color:var(--danger);font-weight:650}
+/* account page */
+.ac-hero{display:flex;align-items:center;gap:18px;padding:18px 20px;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-lg,16px);background:linear-gradient(135deg,var(--accent-soft),transparent 70%),var(--surface)}
+.ac-who{min-width:0}
+.ac-who h2{margin:0 0 4px;font-size:22px}
+.ac-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;color:var(--muted);font-size:13.5px}
+.ac-meta span{display:inline-flex;align-items:center;gap:5px}
+.ac-meta svg.i{width:14px;height:14px}
+.ac-role{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.ac-role.r-admin{background:var(--ok-soft);color:var(--ok)}
+.ac-groups{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.ac-g{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;font-weight:600;background:var(--surface)}
+.ac-g .as-gic{width:20px;height:20px;border-radius:6px}
+.ac-card h2{display:flex;align-items:center;gap:8px}
+.ac-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:12px 0 4px}
+.ac-f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ac-f.wide{grid-column:1/-1}
+.ac-l{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ac-l svg.i{width:14px;height:14px}
+.ac-f input{font-size:15px;padding:9px 11px}
+.ac-f small{color:var(--muted);font-size:12px}
+.ac-acts{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ac-acts.left{justify-content:flex-start}
+.ac-saved{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:650;font-size:13.5px}
+.ac-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ac-row:last-of-type{border-bottom:0}
+.ac-row>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ac-v{font-size:15px;overflow:hidden;text-overflow:ellipsis}
+.ac-email-box,.ac-pass-box{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 0 12px}
+.ac-email-box input,.ac-pass-box input{flex:1;min-width:200px;font-size:15px;padding:8px 10px}
+.ac-email-box small{flex-basis:100%;color:var(--muted);font-size:12.5px}
+.ac-tog{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.ac-tog input{margin-top:3px;width:18px;height:18px;flex:none}
+.ac-tog span{display:flex;flex-direction:column;gap:2px}
+.ac-tog small{color:var(--muted);font-size:12.5px}
+.ac-install{display:flex;gap:10px;align-items:flex-start;padding-top:12px;color:var(--muted);font-size:13px}
+.ac-install svg.i{flex:none;margin-top:2px}
+.warn-t{color:var(--danger)}
+@media (max-width:600px){.ac-grid{grid-template-columns:1fr}.ac-hero{padding:14px}.av.xl{width:58px;height:58px;font-size:20px}.top-chat{width:38px;height:38px}.top-av .av{width:30px;height:30px;font-size:11px}}
+
+/* ---------- messages panel ---------- */
+.chat{position:fixed;top:var(--bar-top,64px);right:0;bottom:0;width:min(410px,100vw);z-index:55;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line-2);box-shadow:-18px 0 40px rgba(0,0,0,.22);transform:translateX(100%);transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.chat.in{transform:none}
+:root:not([data-bs-theme="light"]) .chat{background:var(--surface)}
+.ch-head{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--line);min-height:60px}
+.ch-head .icon-btn{flex:none}
+.ch-ht{min-width:0;display:flex;flex-direction:column}
+.ch-ht h2{margin:0;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-ht small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.ch-search{display:flex;align-items:center;gap:8px;margin:10px 12px 4px;padding:7px 11px;border:1px solid var(--line-2);border-radius:10px;color:var(--muted);background:var(--surface-2)}
+.ch-search input{border:0;background:none;padding:0;flex:1;font-size:14.5px;outline:none;color:var(--ink)}
+.ch-list{flex:1;overflow-y:auto;padding:4px 6px 8px}
+.ch-list .pop-label{padding:12px 10px 4px}
+.ch-row{display:flex;align-items:center;gap:11px;width:100%;padding:9px 9px;border-radius:12px;text-align:left}
+.ch-row:hover,.ch-row:focus-visible{background:var(--hover)}
+.ch-row .av{width:40px;height:40px;font-size:14px}
+.ch-rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ch-rn{display:flex;align-items:baseline;gap:8px}
+.ch-rn b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.ch-rn time{font-size:11.5px;color:var(--muted);flex:none}
+.ch-rp{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-row.unread .ch-rn b{font-weight:750}
+.ch-row.unread .ch-rp{color:var(--ink-2);font-weight:550}
+.ch-row.unread .ch-rn time{color:var(--accent);font-weight:650}
+.ch-n{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--accent);color:#fff;font:700 12px/22px var(--f-body);text-align:center;flex:none}
+.ch-face{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ch-face svg.i{width:20px;height:20px}
+.ch-face.all{background:var(--accent);color:#fff}
+.ch-face.grp{background:color-mix(in srgb,var(--c) 20%,transparent);color:var(--c)}
+.ch-face.mk{background:var(--surface-2);border:1.5px dashed var(--line-2);color:var(--muted)}
+.ch-face.lg{width:58px;height:58px;border-radius:16px}
+.ch-head .ch-face,.ch-head .av{width:34px;height:34px;border-radius:10px}
+.ch-head .av{border-radius:50%;font-size:12px}
+.ch-empty{padding:18px 12px;color:var(--muted);font-size:13.5px;text-align:center}
+.ch-empty.sm{padding:6px 10px;text-align:left}
+.ch-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:9px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.ch-foot .linkish{display:inline-flex;align-items:center;gap:5px}
+.ch-msgs{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:2px;background:var(--surface-2)}
+.ch-day{text-align:center;margin:12px 0 6px}
+.ch-day span{font-size:11.5px;font-weight:650;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:3px 10px;border-radius:999px}
+.ch-m{display:flex;align-items:flex-end;gap:7px;max-width:86%;margin-top:8px;position:relative}
+.ch-m.cont{margin-top:2px}
+.ch-m.mine{align-self:flex-end;flex-direction:row-reverse}
+.ch-m .av.sm,.ch-avs{width:26px;height:26px;font-size:10px;flex:none}
+.ch-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ch-from{font-size:12px;color:var(--muted);padding-left:10px;font-weight:650}
+.ch-tx{padding:8px 12px;border-radius:16px 16px 16px 5px;background:var(--surface);border:1px solid var(--line);font-size:14.5px;line-height:1.42;overflow-wrap:anywhere;white-space:normal}
+.ch-tx a{color:inherit;text-decoration:underline}
+.ch-m.mine .ch-tx{background:var(--accent);border-color:var(--accent);color:#fff;border-radius:16px 16px 5px 16px}
+.ch-m.gone .ch-tx{background:none;color:var(--muted);border-style:dashed}
+.ch-m.sending .ch-tx{opacity:.65}
+.ch-m.failed .ch-tx{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+.ch-meta{font-size:11px;color:var(--faint);padding:0 8px}
+.ch-m.mine .ch-meta{text-align:right}
+.ch-m.cont .ch-meta{display:none}
+.ch-m:hover .ch-meta,.ch-m.failed .ch-meta,.ch-m.sending .ch-meta,.ch-m:last-child .ch-meta{display:block}
+.ch-x{opacity:0;align-self:center;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex:none}
+.ch-x svg.i{width:14px;height:14px}
+.ch-m:hover .ch-x,.ch-x:focus-visible{opacity:1}
+.ch-x:hover{background:var(--hover);color:var(--danger)}
+.ch-start{margin:auto;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:var(--muted);padding:30px 20px;max-width:280px}
+.ch-start b{color:var(--ink);font-size:16px}
+.ch-start .av{width:58px;height:58px;font-size:20px}
+.ch-comp{display:flex;align-items:flex-end;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--surface)}
+.ch-comp textarea{flex:1;resize:none;border-radius:18px;padding:9px 14px;font-size:15px;line-height:1.35;max-height:160px;min-height:40px}
+.ch-send{width:42px;height:42px;border-radius:50%;padding:0;display:grid;place-items:center;flex:none}
+@media (max-width:600px){
+  .chat{top:0;width:100vw;border:0;box-shadow:none;z-index:62}
+  .ch-head{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+  .ch-x{opacity:.7}
+  .ch-m{max-width:92%}
+}
+@media (pointer:coarse){.ch-x{opacity:.6}}
+.top-chat.is-open svg.i{fill:none}
+.account-view .swatches{gap:8px;flex-wrap:wrap}
+.account-view .swatches .sw{width:30px;height:30px;border-radius:50%}
+.chat .ch-search input,.chat .ch-search input:focus{background:none;border:0;box-shadow:none;padding:0}
+
 </style>
 </head>
 <body>
@@ -2904,6 +3038,20 @@ body.fv-full{overflow:hidden}
     signOut,
     get org() { return org; },
     get role() { return org ? org.role : null; },
+    /* messages: to everyone, a group or one person */
+    msgs: {
+      async list(since) { let r; try { r = await sb.rpc('my_messages', { p_org: ORG(), p_since: since || null }); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data || []; },
+      async send(m) { let r; try { r = await sb.rpc('send_message', { p_org: ORG(), p_id: m.id, p_kind: m.to_kind, p_to: m.to_id || '', p_body: m.body }); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data; },
+      async unsend(id) { let r; try { r = await sb.rpc('unsend_message', { p_org: ORG(), p_id: id }); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data; },
+      async reads() { let r; try { r = await sb.rpc('my_reads', { p_org: ORG() }); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data || {}; },
+      async markRead(conv, at) { let r; try { r = await sb.rpc('mark_read', { p_org: ORG(), p_conv: conv, p_at: at }); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data; },
+      watch(cb) { const ch = sb.channel('hub-msgs-' + Math.random().toString(36).slice(2, 7)).on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: 'org_id=eq.' + ORG() }, p => { if (p.new && p.new.id) cb(p.new); }).subscribe(); return () => { try { sb.removeChannel(ch); } catch (e) {} }; },
+    },
+    /* your profile and sign-in */
+    async saveProfile(p) { let r; try { r = await sb.rpc('save_my_profile', { p_org: ORG(), p_profile: p }); } catch (e) { fail(e); } if (r.error) fail(r.error); if (org && r.data) { org.member_name = r.data.name; org.phone = r.data.phone; cacheOrg(); } return r.data; },
+    async changeEmail(email) { const r = await sb.auth.updateUser({ email }, { emailRedirectTo: location.origin + location.pathname }); if (r.error) fail(r.error); return r.data; },
+    async changePassword(pw) { const r = await sb.auth.updateUser({ password: pw }); if (r.error) fail(r.error); return r.data; },
+    async signOutEverywhere() { try { await sb.auth.signOut({ scope: 'global' }); } catch (e) {} hooks.clearLocal && hooks.clearLocal(); try { for (const k of Object.keys(localStorage)) if (/^bs-hub|^punchlist\.cache/.test(k)) localStorage.removeItem(k); } catch (e) {} location.reload(); },
     /* pull a fresh copy from the server (after it refused a change, or after leaving a task) */
     refresh(kind) { for (const [k, f] of Object.entries(reloaders)) if (!kind || k === kind) f(); },
     inviteLink() { return org && org.join_code ? location.origin + location.pathname + '?join=' + encodeURIComponent(org.join_code) : ''; },
@@ -10500,7 +10648,7 @@ const Who={
   uid(){ return (window.BSCloud&&window.BSCloud.user&&window.BSCloud.user.id)||''; },
   pid(){ return Me.id()||''; },
   name(){ const p=this.pid()&&S.people[this.pid()]; const o=Role.org(); const em=(window.BSCloud&&window.BSCloud.user&&window.BSCloud.user.email)||'';
-    return (p&&p.name)||(o&&o.member_name)||em.split('@')[0]||'Someone'; },
+    return (p&&p.name&&p.name!=='Me'&&p.name)||(o&&o.member_name)||(p&&p.name)||em.split('@')[0]||'Someone'; },
 };
 
 /* ---------- groups (kept in settings, managers edit them) ---------- */
@@ -10686,7 +10834,7 @@ NAV.push(['groups','Groups','team']);
 VIEWS.groups=()=>{
   const can=Groups.canEdit(); const list=Groups.list();
   const open=gid=>Object.values(S.tasks).filter(t=>!t.done&&asList(t).some(a=>a.k==='g'&&a.id===gid)).length;
-  const add=can?`<section class="scard gr-new"><h2>${icon('plus')}New group</h2><p class="s-p">One for each crew or department. Add a group to a task and everyone in it sees the task on their own list.</p><div class="gr-add"><input id="gr-new" placeholder="e.g. LV Department" autocomplete="off" aria-label="Group name"><button class="btn primary" data-act="gr-add">${icon('plus')}Add group</button></div></section>`:'';
+  const add=can?`<section class="scard gr-new"><h2>${icon('plus')}New group</h2><p class="s-p">One for each crew, division or role. Give a task or send a message to a group and everyone in it gets it.</p><div class="gr-add"><input id="gr-new" placeholder="e.g. LV Division, Door Division, Lead Technicians" autocomplete="off" aria-label="Group name"><button class="btn primary" data-act="gr-add">${icon('plus')}Add group</button></div></section>`:'';
   const cards=list.map(g=>{ const mem=Array.isArray(g.members)?g.members:[]; const n=mem.filter(p=>S.people[p]).length; const o=open(g.id);
     return `<section class="scard gr-card" data-gid="${g.id}"><div class="gr-head"><span class="as-gic" style="--c:${g.color}">${icon('team')}</span><input class="gr-name" data-gr-name="${g.id}" value="${esc(g.name)}" ${can?'':'disabled'} aria-label="Group name"><span class="gr-n">${n} ${n===1?'person':'people'}${o?` · ${o} open task${o===1?'':'s'}`:''}</span>${can?`<button class="btn sm ghost danger-t" data-act="gr-del" data-id="${g.id}">${icon('trash')}Delete</button>`:''}</div>
       <div class="gr-people">${peopleList().map(p=>{ const on=mem.includes(p.id); return `<label class="gr-p ${on?'on':''}"><input type="checkbox" data-gr-mem="${g.id}" value="${p.id}" ${on?'checked':''} ${can?'':'disabled'}>${av(p,'sm')}<span>${esc(p.name)}${p.role?`<small>${esc(p.role)}</small>`:''}</span></label>`; }).join('')||'<span class="view-sub">Add crew on the Schedule page first.</span>'}</div></section>`; }).join('');
@@ -10713,6 +10861,315 @@ function groupsAction(act,a){
   if(Groups.canEdit()) return h.replace('<section class="scard">',`<section class="scard gr-scard"><h2>${icon('team')}Groups</h2><p class="s-p">${n?`${n} group${n===1?'':'s'}: ${esc(Groups.list().slice(0,4).map(g=>g.name).join(', '))}${n>4?'…':''}.`:'Make groups like LV Department or Door Department, then give a task to the whole group.'}</p><button class="btn sm" data-act="nav" data-view="groups">${icon('team')}Open Groups</button></section><section class="scard">`);
   const mine=Groups.of(Who.pid()); if(!mine.length) return h;
   return h.replace('</section></div>',`<p class="s-p">Your groups: <b>${esc(mine.map(g=>g.name).join(', '))}</b> — tasks given to them show up on your list.</p></section></div>`); }; }
+
+/* ---- fm-account.js ---- */
+/* =========================================================
+   Your account: profile (name, title, phone, email, color — also your crew card), sign-in email, password,
+   this device (pop-ups, install), sign out. Opens from the avatar at the top right.
+   ========================================================= */
+Object.assign(IC,{
+  chat:'<path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/>',
+  lock:'<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle cx="12" cy="15" r="1.2"/>',
+  bell:'<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  logout:'<path d="M14 4.5H6.5a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1H14"/><path d="M10.5 12h9M16.5 8.5 20 12l-3.5 3.5"/>',
+  shield:'<path d="M12 3.5 19 6v5.5c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z"/><path d="m9 12 2 2 4-4"/>',
+});
+const Acct={
+  user(){ return (window.BSCloud&&window.BSCloud.user)||null; },
+  card(){ const id=Who.pid(); return id&&S.people[id]||null; },
+  prefs(){ try{ return JSON.parse(lsGet('bs-hub.acctprefs')||'{}')||{}; }catch(e){ return {}; } },
+  setPref(k,v){ const p=this.prefs(); p[k]=v; try{ lsSet('bs-hub.acctprefs',JSON.stringify(p)); }catch(e){} },
+  pending:false,
+};
+if(window.BSCloud) window.BSCloud.openAccount=()=>go('account');
+{ const base=go; go=function(view,...r){ if(view!=='account'){ Acct.draft=null; Acct.color=null; } return base(view,...r); }; }
+NAV.push(['account','Your account','user']);
+
+/* ---------- the avatar at the top right ---------- */
+function meAvatar(cls=''){
+  const c=Acct.card(); const nm=Who.name();
+  return `<span class="av ${cls}" style="--c:${(c&&c.color)||'var(--accent)'}" aria-hidden="true">${esc(initials(nm))}</span>`;
+}
+function renderTopMe(){
+  let box=$('#top-me'); const bar=$('#appbar'); if(!bar) return;
+  if(!box){ box=document.createElement('div'); box.id='top-me'; box.className='top-me'; bar.appendChild(box); }
+  const n=typeof Chat!=='undefined'?Chat.unreadTotal():0;
+  const chatOn=typeof Chat!=='undefined'&&Chat.enabled();
+  box.innerHTML=`${chatOn?`<button class="icon-btn top-chat ${Chat.isOpen?'is-open':''}" data-act="chat-toggle" id="chat-btn" aria-label="Messages${n?` (${n} unread)`:''}" title="Messages" aria-expanded="${!!Chat.isOpen}">${icon('chat')}${n?`<span class="top-badge">${n>99?'99+':n}</span>`:''}</button>`:''}
+    <button class="top-av" data-act="me-menu" id="me-btn" aria-label="Your account" aria-haspopup="menu" title="${esc(Who.name())}">${meAvatar()}</button>`;
+}
+{ const base=renderNav; renderNav=function(){ base(); renderTopMe(); }; }
+function meMenu(anchor){
+  const u=Acct.user(); const o=Role.org();
+  const head=`<div class="me-head">${meAvatar('lg')}<div><b>${esc(Who.name())}</b><small>${esc(u?u.email:'')}</small>${o&&Role.team()?`<small>${esc(Role.name(o.role))} · ${esc(o.name||'')}</small>`:''}</div></div>`;
+  openPop(anchor,`${head}<div class="pop-sep"></div>
+    <button class="pop-item" data-me="account" role="menuitem">${icon('user')}<span>Your account</span></button>
+    ${typeof Chat!=='undefined'&&Chat.enabled()?`<button class="pop-item" data-me="chat" role="menuitem">${icon('chat')}<span>Messages</span>${Chat.unreadTotal()?`<span class="pop-hint">${Chat.unreadTotal()} new</span>`:''}</button>`:''}
+    <button class="pop-item" data-me="settings" role="menuitem">${icon('gear')}<span>Settings</span></button>
+    <div class="pop-sep"></div>
+    <button class="pop-item danger" data-me="out" role="menuitem">${icon('logout')}<span>Sign out</span></button>`,el=>el.addEventListener('click',e=>{ const b=e.target.closest('[data-me]'); if(!b) return; closePop();
+      const a=b.dataset.me; if(a==='account') go('account'); else if(a==='settings') go('settings'); else if(a==='chat') Chat.open(); else if(a==='out') confirmSignOut(); }),{cls:'me-pop'});
+}
+function confirmSignOut(all){
+  const n=Store.pending.size+Store.inflight.size;
+  openModal({title:all?'Sign out on every device?':'Sign out?',body:`<p>${all?'Every phone and computer signed in as you will need to sign in again.':'You’ll need your email and password to sign back in.'}</p>${n?`<p class="warn-t">${n} change${n===1?' hasn’t':'s haven’t'} reached the server yet — signing out now would lose ${n===1?'it':'them'}.</p>`:''}`,
+    actions:[{label:'Cancel'},{label:'Sign out',kind:'danger',act:()=>{ all?window.BSCloud.signOutEverywhere():window.BSCloud.signOut(); }}]});
+}
+
+/* ---------- the account page ---------- */
+VIEWS.account=()=>{
+  const u=Acct.user(); const o=Role.org(); const c=Acct.card(); const team=Role.team();
+  if(!u) return `<div class="content-inner">${viewHead('Your account')}${emptyState('Not signed in','Sign in to see your account.')}</div>`;
+  const dr=Acct.draft||{};
+  const name=dr.name??((c&&c.name&&c.name!=='Me'&&c.name)||(o&&o.member_name)||(c&&c.name)||'');
+  const phone=dr.phone??((c&&c.phone)||(o&&o.phone)||'');
+  const email=dr.email??((c&&c.email)||u.email||'');
+  const title=dr.title??((c&&c.role)||'');
+  const color=Acct.color||(c&&c.color)||'';
+  const groups=Groups.of(Who.pid());
+  const notif=('Notification' in window)?Notification.permission:'unsupported';
+  const prefs=Acct.prefs();
+  const f=(id,label,val,{type='text',ph='',ic='',hint='',auto=''}={})=>`<label class="ac-f" for="${id}"><span class="ac-l">${icon(ic)}${label}</span><input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}" ${auto?`autocomplete="${auto}"`:''}>${hint?`<small>${hint}</small>`:''}</label>`;
+  const swatches=PALETTE.map(([n,h])=>`<button type="button" class="sw" style="--c:${h}" data-ac-color="${h}" aria-label="${n}" aria-pressed="${color.toLowerCase()===h.toLowerCase()}" title="${n}"></button>`).join('');
+  const hero=`<section class="ac-hero">${meAvatar('xl')}<div class="ac-who"><h2>${esc(name||Who.name())}</h2><div class="ac-meta">${title?`<span>${esc(title)}</span>`:''}${team&&o?`<span class="chip ac-role r-${o.role}">${icon('shield')}${esc(Role.name(o.role))}</span>`:''}${o&&o.name?`<span>${icon('building')}${esc(o.name)}</span>`:''}</div>
+      ${groups.length?`<div class="ac-groups">${groups.map(g=>`<span class="ac-g"><span class="as-gic" style="--c:${g.color}">${icon('team')}</span>${esc(g.name)}</span>`).join('')}</div>`:''}</div></section>`;
+  const profile=`<section class="scard ac-card"><h2>${icon('user')}Profile</h2><p class="s-p">How you show up to everyone — on the schedule, tasks and messages.${c?'':' <b>Your account isn’t linked to a crew card yet</b>, so only your name and phone are saved — ask an admin to link it on Settings › Team.'}</p>
+      <form class="ac-grid" id="ac-profile" autocomplete="on">
+        ${f('ac-name','Full name',name,{ic:'user',ph:'First and last name',auto:'name'})}
+        ${f('ac-title','Job title',title,{ic:'tag',ph:'e.g. Lead technician',auto:'organization-title'})}
+        ${f('ac-phone','Phone',phone,{type:'tel',ic:'phone2',ph:'Mobile number',auto:'tel'})}
+        ${f('ac-email','Contact email',email,{type:'email',ic:'mail',ph:'Where people can email you',auto:'email',hint:'Shown on your crew card. Your sign-in email is below.'})}
+        <div class="ac-f wide"><span class="ac-l">${icon('drop')}Your color</span><div class="swatches">${swatches}</div></div>
+      </form>
+      <div class="ac-acts"><span class="ac-saved" id="ac-saved" ${Date.now()-(Acct.savedAt||0)<6000&&!Acct.draft?'':'hidden'}>${icon('done')}Saved</span><button class="btn primary" data-act="ac-save" id="ac-save" ${Acct.draft||Acct.color?'':'disabled'}>${icon('check')}Save profile</button></div></section>`;
+  const signin=`<section class="scard ac-card"><h2>${icon('lock')}Sign-in & password</h2>
+      <div class="ac-row"><div><span class="ac-l">${icon('mail')}Sign-in email</span><b class="ac-v">${esc(u.email||'')}</b>${u.new_email?`<small class="warn-t">Waiting for you to confirm ${esc(u.new_email)}</small>`:''}</div><button class="btn sm" data-act="ac-email">Change</button></div>
+      <div class="ac-email-box" id="ac-email-box" hidden><input id="ac-new-email" type="email" placeholder="New sign-in email" autocomplete="email"><button class="btn primary sm" data-act="ac-email-go">Send confirmation</button><small>We email a link to the new address (and your current one). The change happens when you tap it.</small></div>
+      <div class="ac-row"><div><span class="ac-l">${icon('lock')}Password</span><b class="ac-v">••••••••</b></div><button class="btn sm" data-act="ac-pass">Change</button></div>
+      <div class="ac-pass-box" id="ac-pass-box" hidden><input id="ac-pass1" type="password" placeholder="New password (8 or more characters)" autocomplete="new-password"><input id="ac-pass2" type="password" placeholder="Type it again" autocomplete="new-password"><button class="btn primary sm" data-act="ac-pass-go">Change password</button></div></section>`;
+  const device=`<section class="scard ac-card"><h2>${icon('bell')}This device</h2>
+      <label class="ac-tog"><input type="checkbox" id="ac-pop" ${prefs.noPop?'':'checked'}><span><b>Pop-ups for new messages</b><small>A note at the bottom of the screen when someone messages you.</small></span></label>
+      <label class="ac-tog"><input type="checkbox" id="ac-notif" ${notif==='granted'&&!prefs.noNotif?'checked':''} ${notif==='unsupported'||notif==='denied'?'disabled':''}><span><b>Alerts when the app is in the background</b><small>${notif==='unsupported'?'This browser can’t show alerts. On iPhone, add the app to your Home Screen first.':notif==='denied'?'Alerts are blocked for this site in your browser settings.':'Your phone or computer shows an alert for new messages while the app is open in the background.'}</small></span></label>
+      <div class="ac-install">${icon('download')}<span><b>Install the app</b> — on a computer use the install icon in the address bar; on iPhone/iPad tap Share → Add to Home Screen; on Android tap ⋮ → Install app.</span></div></section>`;
+  const out=`<section class="scard ac-card"><h2>${icon('logout')}Sign out</h2><p class="s-p">${team&&o?`${esc(Role.name(o.role))} — ${esc(ROLE_INFO[o.role]||'')}.`:''}</p><div class="ac-acts left"><button class="btn danger" data-act="ac-out">${icon('logout')}Sign out</button><button class="btn ghost" data-act="ac-out-all">Sign out on every device</button></div></section>`;
+  return `<div class="content-inner settings account-view">${viewHead('Your account',{sub:esc(u.email||'')})}${hero}${profile}${signin}${device}${out}</div>`;
+};
+const acVals=()=>({name:($('#ac-name')||{}).value||'',title:($('#ac-title')||{}).value||'',phone:($('#ac-phone')||{}).value||'',email:($('#ac-email')||{}).value||''});
+function acDirty(){ Acct.draft=acVals(); Acct.savedAt=0; const b=$('#ac-save'); if(b) b.disabled=false; const s=$('#ac-saved'); if(s) s.hidden=true; }
+document.addEventListener('input',e=>{ if(e.target.closest&&e.target.closest('#ac-profile')) acDirty(); });
+document.addEventListener('change',e=>{ const t=e.target;
+  if(t.id==='ac-pop'){ Acct.setPref('noPop',!t.checked); toast(t.checked?'Message pop-ups on':'Message pop-ups off'); }
+  else if(t.id==='ac-notif'){ if(t.checked){ Notification.requestPermission().then(p=>{ if(p!=='granted'){ t.checked=false; toast('Alerts weren’t allowed'); } else { Acct.setPref('noNotif',false); toast('Alerts on for this device'); } }); } else { Acct.setPref('noNotif',true); toast('Alerts off for this device'); } }
+});
+async function accountAction(act,a){
+  switch(act){
+    case 'ac-save': {
+      const v=acVals(); v.name=v.name.trim(); v.title=v.title.trim(); v.phone=v.phone.trim(); v.email=v.email.trim();
+      if(!v.name){ toast('Type your name'); $('#ac-name').focus(); return true; }
+      if(v.email&&!/^\S+@\S+\.\S+$/.test(v.email)){ toast('That email doesn’t look right'); $('#ac-email').focus(); return true; }
+      const c=Acct.card(); const col=Acct.color||(c&&c.color)||'';
+      const btn=$('#ac-save'); btn.disabled=true;
+      try{
+        if(Role.team()) await window.BSCloud.saveProfile({name:v.name,title:v.title,phone:v.phone,email:v.email,color:col});
+        if(c){ // show it right away (the server already changed the card; this keeps the screen in step)
+          S.people[c.id]={...c,name:v.name,role:v.title,phone:v.phone,email:v.email,color:col||c.color,updatedAt:Date.now()};
+          if(!Role.team()) patch('people',c.id,{name:v.name,role:v.title,phone:v.phone,email:v.email,...(col?{color:col}:{})});
+        }
+        Acct.color=null; Acct.draft=null; Acct.savedAt=Date.now(); scheduleRender(); renderTopMe(); toast('Profile saved');
+      }catch(e){ btn.disabled=false; toast(e.code==='unavailable'?'You’re offline — try again when you have signal':'Couldn’t save: '+(e.message||'try again')); }
+      return true; }
+    case 'ac-email': { const b=$('#ac-email-box'); b.hidden=!b.hidden; if(!b.hidden) $('#ac-new-email').focus(); return true; }
+    case 'ac-email-go': { const v=$('#ac-new-email').value.trim(); if(!/^\S+@\S+\.\S+$/.test(v)){ toast('Type the new email address'); return true; }
+      try{ await window.BSCloud.changeEmail(v); $('#ac-email-box').hidden=true; openModal({title:'Check your email',body:`<p>We sent a confirmation link to <b>${esc(v)}</b>. Your sign-in email changes once you tap it${''} — until then, keep signing in with ${esc((Acct.user()||{}).email||'')}.</p>`}); }
+      catch(e){ toast('Couldn’t change it: '+(e.message||'try again')); } return true; }
+    case 'ac-pass': { const b=$('#ac-pass-box'); b.hidden=!b.hidden; if(!b.hidden) $('#ac-pass1').focus(); return true; }
+    case 'ac-pass-go': { const p1=$('#ac-pass1').value, p2=$('#ac-pass2').value;
+      if(p1.length<8){ toast('Use at least 8 characters'); $('#ac-pass1').focus(); return true; }
+      if(p1!==p2){ toast('The two passwords don’t match'); $('#ac-pass2').focus(); return true; }
+      try{ await window.BSCloud.changePassword(p1); $('#ac-pass-box').hidden=true; $('#ac-pass1').value=$('#ac-pass2').value=''; toast('Password changed'); }
+      catch(e){ toast('Couldn’t change it: '+(e.message||'try again')); } return true; }
+    case 'ac-out': confirmSignOut(false); return true;
+    case 'ac-out-all': confirmSignOut(true); return true;
+    case 'me-menu': meMenu(a); return true;
+  }
+  return false;
+}
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-ac-color]'); if(!b) return; Acct.color=b.dataset.acColor; $$('[data-ac-color]').forEach(x=>x.setAttribute('aria-pressed',x===b)); acDirty(); });
+{ const base=visitsAction; visitsAction=function(act,a,e){ if(/^ac-|^me-menu$/.test(act)){ accountAction(act,a); return true; } return base(act,a,e); }; }
+/* the Settings "Your account" boxes open this page */
+{ const base=VIEWS.settings; VIEWS.settings=()=>base().replace(/Profile, password &amp; sign out|Profile, password & sign out|Password &amp; sign out|Password & sign out/,'Your account'); }
+
+/* ---- fm-chat.js ---- */
+/* =========================================================
+   Messages: to one coworker, a group (LV Division, Door Division, Lead Technicians…) or the whole company.
+   Opens from the chat button at the top right. The database only hands each person the messages they're part of.
+   ========================================================= */
+const Chat={
+  msgs:new Map(), reads:{}, loaded:false, loading:null, isOpen:false, conv:null, q:'', unwatch:null, lastAt:0, pickOpen:false,
+  enabled(){ return Role.team()&&!!window.BSCloud&&!!window.BSCloud.msgs; },
+  me(){ return Who.uid(); },
+  norm(r){ return {id:r.id,sender:r.sender,pid:r.sender_pid||'',name:r.sender_name||'',k:r.to_kind,to:r.to_id||'',body:r.body||'',deleted:!!r.deleted,at:Date.parse(r.created_at)||Date.now(),pending:!!r.pending,failed:!!r.failed}; },
+  convOf(m){ if(m.k==='all') return 'all'; if(m.k==='group') return 'g:'+m.to; return m.sender===this.me()?'p:'+m.to:'p:'+(m.pid||'u:'+m.sender); },
+  cacheKey(){ return 'bs-hub.msgs.'+this.me(); },
+  save:debounce(function(){ try{ const keep=[...Chat.msgs.values()].filter(m=>!m.pending).sort((a,b)=>a.at-b.at).slice(-400); lsSet(Chat.cacheKey(),JSON.stringify({reads:Chat.reads,msgs:keep})); }catch(e){} },800),
+  restore(){ try{ const c=JSON.parse(lsGet(this.cacheKey())||'null'); if(c&&Array.isArray(c.msgs)){ for(const m of c.msgs) this.msgs.set(m.id,m); this.reads=c.reads||{}; } }catch(e){} },
+  async load(){
+    if(!this.enabled()) return; if(this.loading) return this.loading;
+    if(!this.msgs.size) this.restore();
+    this.loading=(async()=>{
+      try{
+        const since=this.loaded&&this.lastAt?new Date(this.lastAt-120000).toISOString():null;
+        const [rows,reads]=await Promise.all([window.BSCloud.msgs.list(since),window.BSCloud.msgs.reads()]);
+        if(!since){ for(const [id,m] of this.msgs) if(!m.pending&&!m.failed) this.msgs.delete(id); }
+        for(const r of rows) this.put(this.norm(r),{quiet:true});
+        for(const [c,t] of Object.entries(reads||{})) this.reads[c]=Math.max(this.reads[c]||0,Date.parse(t)||0);
+        this.loaded=true; this.save(); this.changed();
+      }catch(e){ console.warn('messages',e); }
+      finally{ this.loading=null; }
+    })();
+    if(!this.unwatch) this.unwatch=window.BSCloud.msgs.watch(r=>{ const m=this.norm(r); const isNew=!this.msgs.has(m.id); this.put(m); if(isNew) this.arrived(m); });
+    return this.loading;
+  },
+  put(m,{quiet}={}){ const old=this.msgs.get(m.id); if(old&&old.pending&&!m.pending){ /* our own message came back from the server */ } this.msgs.set(m.id,m); if(m.at>this.lastAt&&!m.pending) this.lastAt=m.at; if(!quiet){ this.save(); this.changed(); } },
+  arrived(m){
+    if(m.sender===this.me()||m.deleted) return;
+    const c=this.convOf(m);
+    if(this.isOpen&&this.conv===c&&document.visibilityState==='visible'){ this.markRead(c); return; }
+    const who=m.name||'Someone'; const where=m.k==='all'?' to everyone':m.k==='group'?` in ${(Groups.get(m.to)||{}).name||'a group'}`:'';
+    if(!Acct.prefs().noPop) toast(`${who}${where}: ${trunc(m.body,80)}`,{label:'Reply',action:()=>this.open(c),ms:8000});
+    if(document.visibilityState!=='visible'&&'Notification' in window&&Notification.permission==='granted'&&!Acct.prefs().noNotif){
+      try{ const n=new Notification(who+where,{body:trunc(m.body,140),tag:'bs-msg-'+c,icon:'icon-192.png'}); n.onclick=()=>{ window.focus(); this.open(c); n.close(); }; }catch(e){}
+    }
+  },
+  changed(){ renderTopMe(); if(this.isOpen) this.draw(); },
+  list(c){ return [...this.msgs.values()].filter(m=>this.convOf(m)===c).sort((a,b)=>a.at-b.at); },
+  unread(c){ const r=this.reads[c]||0; let n=0; for(const m of this.msgs.values()) if(m.sender!==this.me()&&!m.deleted&&m.at>r&&this.convOf(m)===c) n++; return n; },
+  unreadTotal(){ if(!this.enabled()) return 0; const seen={}; let n=0; for(const m of this.msgs.values()){ if(m.sender===this.me()||m.deleted) continue; const c=this.convOf(m); if(m.at>(this.reads[c]||0)) n++; } return n; },
+  markRead(c){ const l=this.list(c); const last=l.length?l[l.length-1].at:Date.now(); if((this.reads[c]||0)>=last) return; this.reads[c]=last; this.save(); renderTopMe(); window.BSCloud.msgs.markRead(c,new Date(last).toISOString()).catch(()=>{}); },
+  /* conversations: everyone, your groups (and groups you've posted to), people you've talked with */
+  convs(){
+    const me=Who.pid(); const out=new Map();
+    const add=(c,extra={})=>{ if(!out.has(c)) out.set(c,{c,last:null,...extra}); return out.get(c); };
+    add('all');
+    for(const g of Groups.list()) if(me&&(g.members||[]).includes(me)) add('g:'+g.id);
+    for(const m of this.msgs.values()){ const c=this.convOf(m); const x=add(c); if(!x.last||m.at>x.last.at) x.last=m; }
+    return [...out.values()].sort((a,b)=>(a.c==='all'?-1:b.c==='all'?1:0)||((b.last?b.last.at:0)-(a.last?a.last.at:0)));
+  },
+  title(c){ if(c==='all') return 'Everyone'; if(c.startsWith('g:')){ const g=Groups.get(c.slice(2)); return g?g.name:'(a removed group)'; } const id=c.slice(2); const p=S.people[id]; if(p) return p.name; const m=[...this.msgs.values()].find(x=>x.pid===id||('u:'+x.sender)===id); return (m&&m.name)||'Someone'; },
+  sub(c){ if(c==='all'){ const n=Team.loaded?Team.list.filter(m=>m.status==='active').length:0; return `${esc((Role.org()||{}).name||'The whole company')}${n?` · ${n} people`:''}`; }
+    if(c.startsWith('g:')){ const g=Groups.get(c.slice(2)); if(!g) return 'This group was deleted'; const ms=Groups.members(g.id); return `${ms.length} ${ms.length===1?'person':'people'}: ${esc(ms.map(personName).slice(0,5).join(', '))}${ms.length>5?'…':''}`; }
+    const p=S.people[c.slice(2)]; const acct=Team.loaded&&p?Team.byPerson(p.id):null; return p?`${esc(p.role||'')}${Team.loaded&&!acct?`${p.role?' · ':''}hasn’t joined the app yet — they’ll see it when they do`:''}`:''; },
+  face(c,cls=''){ if(c==='all') return `<span class="ch-face all ${cls}">${icon('building')}</span>`; if(c.startsWith('g:')){ const g=Groups.get(c.slice(2)); return `<span class="ch-face grp ${cls}" style="--c:${(g&&g.color)||'var(--faint)'}">${icon('team')}</span>`; } const p=S.people[c.slice(2)]; return p?av(p,cls):`<span class="av ${cls}" style="--c:var(--faint)">${esc(initials(this.title(c)))}</span>`; },
+  target(c){ if(c==='all') return {to_kind:'all',to_id:''}; if(c.startsWith('g:')) return {to_kind:'group',to_id:c.slice(2)}; return {to_kind:'person',to_id:c.slice(2)}; },
+
+  /* ---------- the panel ---------- */
+  open(c){ if(!this.enabled()) return; this.isOpen=true; if(c!==undefined) this.conv=c; this.pickOpen=false; this.mount(); this.draw(); if(!this.loaded) this.load(); if(Role.team()&&!Team.loaded) Team.load(); renderTopMe(); if(this.conv) this.markRead(this.conv); },
+  close(){ this.isOpen=false; const el=$('#chat'); if(el){ el.classList.remove('in'); setTimeout(()=>{ if(!this.isOpen) el.remove(); },200); } document.body.classList.remove('chat-open'); renderTopMe(); },
+  mount(){ let el=$('#chat'); if(!el){ el=document.createElement('aside'); el.id='chat'; el.className='chat'; el.setAttribute('aria-label','Messages'); document.body.appendChild(el); el.addEventListener('click',e=>this.click(e)); el.addEventListener('keydown',e=>this.key(e)); el.addEventListener('input',e=>this.input(e)); requestAnimationFrame(()=>el.classList.add('in')); } document.body.classList.add('chat-open'); },
+  draw(){
+    const el=$('#chat'); if(!el) return;
+    const keepDraft=$('#ch-text'); if(keepDraft&&this.conv) this.drafts[this.conv]=keepDraft.value;
+    if(this.pickOpen) el.innerHTML=this.pickHTML();
+    else if(this.conv) el.innerHTML=this.threadHTML(this.conv);
+    else el.innerHTML=this.homeHTML();
+    if(this.conv&&!this.pickOpen){ const box=$('#ch-msgs'); if(box) box.scrollTop=box.scrollHeight; const t=$('#ch-text'); if(t){ t.value=this.drafts[this.conv]||''; this.grow(t); if(!this._noFocus&&matchMedia('(pointer:fine)').matches) t.focus(); } }
+    if(this.pickOpen){ const q=$('#ch-pick-q'); if(q){ q.value=this.pq||''; q.focus(); } }
+    this._noFocus=false;
+  },
+  drafts:{},
+  head(title,{back=false,sub='',face='',tools=''}={}){ return `<div class="ch-head">${back?`<button class="icon-btn" data-ch="back" aria-label="Back to messages" title="Back">${icon('back')}</button>`:''}${face}<div class="ch-ht"><h2>${title}</h2>${sub?`<small>${sub}</small>`:''}</div><span class="spacer"></span>${tools}<button class="icon-btn" data-ch="close" aria-label="Close messages" title="Close (Esc)">${icon('close')}</button></div>`; },
+  homeHTML(){
+    const q=this.q.trim().toLowerCase();
+    let cs=this.convs(); if(q) cs=cs.filter(x=>this.title(x.c).toLowerCase().includes(q)||(x.last&&x.last.body.toLowerCase().includes(q)));
+    const row=x=>{ const n=this.unread(x.c); const l=x.last; const who=l?(l.sender===this.me()?'You':(x.c.startsWith('p:')?'':(l.name||'').split(' ')[0])):'';
+      const prev=l?(l.deleted?'<i>Message unsent</i>':esc((who?who+': ':'')+l.body)):`<i>${x.c==='all'?'Message the whole company':'No messages yet'}</i>`;
+      return `<button class="ch-row ${n?'unread':''}" data-ch="conv" data-c="${esc(x.c)}">${this.face(x.c)}<span class="ch-rt"><span class="ch-rn"><b>${esc(this.title(x.c))}</b>${l?`<time>${esc(chatWhen(l.at))}</time>`:''}</span><span class="ch-rp">${prev}</span></span>${n?`<span class="ch-n">${n}</span>`:''}</button>`; };
+    const body=cs.length?cs.map(row).join(''):`<div class="ch-empty">Nothing matches “${esc(this.q)}”.</div>`;
+    return `${this.head('Messages',{tools:`<button class="btn sm primary" data-ch="new">${icon('plus')}New</button>`})}
+      <label class="ch-search">${icon('search')}<input id="ch-q" placeholder="Search messages" value="${esc(this.q)}" autocomplete="off" aria-label="Search messages"></label>
+      <div class="ch-list">${body}${!this.loaded&&!this.msgs.size?'<div class="ch-empty"><span class="spin"></span> Loading…</div>':''}</div>
+      <div class="ch-foot">${Groups.canEdit()?`<button class="linkish" data-ch="groups">${icon('team')}Edit groups</button><span>·</span>`:''}<span>Groups are the same ones you give tasks to.</span></div>`;
+  },
+  pickHTML(){
+    const q=(this.pq||'').trim().toLowerCase(); const m=s=>!q||String(s||'').toLowerCase().includes(q);
+    const me=Who.pid();
+    const gs=Groups.list().filter(g=>m(g.name)); const ps=peopleList().filter(p=>p.id!==me&&m([p.name,p.role].join(' ')));
+    const opt=(c,face,name,sub)=>`<button class="ch-row" data-ch="start" data-c="${esc(c)}">${face}<span class="ch-rt"><span class="ch-rn"><b>${esc(name)}</b></span><span class="ch-rp">${sub}</span></span></button>`;
+    const acct=p=>!Team.loaded||!!Team.byPerson(p.id);
+    return `${this.head('New message',{back:true})}
+      <label class="ch-search">${icon('search')}<input id="ch-pick-q" placeholder="Who to? A person, group or everyone" autocomplete="off" aria-label="Who to message"></label>
+      <div class="ch-list">
+        ${m('everyone company all')?`<div class="pop-label">Company</div>${opt('all',this.face('all'),'Everyone',`Everybody at ${esc((Role.org()||{}).name||'the company')}`)}`:''}
+        ${gs.length||!q?`<div class="pop-label">Groups</div>`:''}${gs.map(g=>opt('g:'+g.id,this.face('g:'+g.id),g.name,`${Groups.members(g.id).length} people`)).join('')}
+        ${!Groups.list().length&&!q?`<div class="ch-empty sm">No groups yet.${Groups.canEdit()?' <button class="linkish" data-ch="groups">Make one</button> — LV Division, Door Division, Lead Technicians…':' A manager can make them.'}</div>`:''}
+        ${Groups.list().length&&Groups.canEdit()&&!q?`<button class="ch-row ch-mk" data-ch="groups"><span class="ch-face mk">${icon('plus')}</span><span class="ch-rt"><span class="ch-rn"><b>New group or edit groups</b></span><span class="ch-rp">Make a list of people to message together</span></span></button>`:''}
+        <div class="pop-label">People</div>${ps.map(p=>opt('p:'+p.id,av(p),p.name,esc([p.role,acct(p)?'':'hasn’t joined the app yet'].filter(Boolean).join(' · ')||'—'))).join('')||`<div class="ch-empty sm">Nobody called “${esc(this.pq)}”</div>`}
+      </div>`;
+  },
+  threadHTML(c){
+    const l=this.list(c); const me=this.me(); const showNames=!c.startsWith('p:');
+    let html=''; let lastDay=''; let prev=null;
+    for(const m of l){
+      const d=new Date(m.at); const day=d.toDateString();
+      if(day!==lastDay){ html+=`<div class="ch-day"><span>${esc(chatDay(d))}</span></div>`; lastDay=day; prev=null; }
+      const mine=m.sender===me; const group=prev&&prev.sender===m.sender&&m.at-prev.at<5*60000;
+      const p=m.pid&&S.people[m.pid];
+      html+=`<div class="ch-m ${mine?'mine':''} ${group?'cont':''} ${m.deleted?'gone':''} ${m.pending?'sending':''} ${m.failed?'failed':''}" data-mid="${esc(m.id)}">
+        ${!mine&&showNames?(group?'<span class="ch-avs"></span>':(p?av(p,'sm'):`<span class="av sm" style="--c:var(--faint)">${esc(initials(m.name))}</span>`)):''}
+        <div class="ch-b">${!mine&&showNames&&!group?`<b class="ch-from">${esc(m.name||'Someone')}</b>`:''}<div class="ch-tx">${m.deleted?'<i>Message unsent</i>':linkify(esc(m.body))}</div>
+        <span class="ch-meta"><time title="${esc(fmtStamp(m.at))}">${esc(fmtTime(pad(d.getHours())+':'+pad(d.getMinutes())))}</time>${m.pending?' · Sending…':''}${m.failed?` · <button class="linkish" data-ch="retry" data-id="${esc(m.id)}">Didn’t send — tap to retry</button>`:''}</span></div>
+        ${mine&&!m.deleted&&!m.pending&&!m.failed?`<button class="ch-x" data-ch="unsend" data-id="${esc(m.id)}" title="Unsend" aria-label="Unsend this message">${icon('undo')}</button>`:''}</div>`;
+      prev=m;
+    }
+    if(!l.length) html=`<div class="ch-start">${this.face(c,'lg')}<b>${esc(this.title(c))}</b><span>${c==='all'?'Everyone at the company sees what you send here.':c.startsWith('g:')?'Everyone in this group sees what you send here.':'Only the two of you see these messages.'}</span></div>`;
+    const tools=c.startsWith('g:')&&Groups.canEdit()?`<button class="icon-btn" data-ch="groups" title="Edit groups" aria-label="Edit groups">${icon('gear')}</button>`:'';
+    return `${this.head(esc(this.title(c)),{back:true,face:this.face(c),sub:this.sub(c),tools})}
+      <div class="ch-msgs" id="ch-msgs">${html}</div>
+      <form class="ch-comp" id="ch-comp"><textarea id="ch-text" rows="1" placeholder="Message ${esc(this.title(c))}" aria-label="Message" maxlength="4000" enterkeyhint="send"></textarea><button class="btn primary ch-send" data-ch="send" aria-label="Send" title="Send (Enter)">${icon('send')}</button></form>`;
+  },
+  grow(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,160)+'px'; },
+  input(e){ const t=e.target; if(t.id==='ch-q'){ this.q=t.value; const pos=t.selectionStart; this.draw(); const n=$('#ch-q'); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } else if(t.id==='ch-pick-q'){ this.pq=t.value; this.draw(); } else if(t.id==='ch-text'){ this.grow(t); this.drafts[this.conv]=t.value; } },
+  key(e){
+    if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); if(this.pickOpen||this.conv){ this.pickOpen=false; this.conv=null; this.draw(); } else this.close(); return; }
+    if(e.target.id==='ch-text'&&e.key==='Enter'&&!e.shiftKey&&matchMedia('(pointer:fine)').matches){ e.preventDefault(); this.send(); }
+    if(e.target.id==='ch-pick-q'&&e.key==='Enter'){ const f=$('#chat [data-ch="start"]'); if(f){ e.preventDefault(); f.click(); } }
+  },
+  click(e){
+    const b=e.target.closest('[data-ch]'); if(!b) return; const a=b.dataset.ch;
+    if(a==='close') this.close();
+    else if(a==='back'){ if(this.pickOpen){ this.pickOpen=false; } else this.conv=null; this.draw(); }
+    else if(a==='conv'){ this.conv=b.dataset.c; this.draw(); this.markRead(this.conv); }
+    else if(a==='new'){ this.pickOpen=true; this.pq=''; if(!Team.loaded) Team.load(); this.draw(); }
+    else if(a==='start'){ this.pickOpen=false; this.conv=b.dataset.c; this.draw(); this.markRead(this.conv); }
+    else if(a==='groups'){ this.close(); go('groups'); }
+    else if(a==='send'){ e.preventDefault(); this.send(); }
+    else if(a==='retry'){ const m=this.msgs.get(b.dataset.id); if(m) this.deliver(m); }
+    else if(a==='unsend'){ const id=b.dataset.id; openModal({title:'Unsend this message?',body:'<p>It’s replaced with “Message unsent” for everyone.</p>',actions:[{label:'Cancel'},{label:'Unsend',kind:'danger',act:async()=>{ const m=this.msgs.get(id); if(!m) return; const before={...m}; this.put({...m,deleted:true,body:''}); try{ await window.BSCloud.msgs.unsend(id); }catch(err){ this.put(before); toast('Couldn’t unsend it — try again'); } }}]}); }
+  },
+  send(){
+    const t=$('#ch-text'); if(!t||!this.conv) return; const body=t.value.trim(); if(!body) return;
+    if(body.length>4000){ toast('That’s too long — split it into a few messages'); return; }
+    const tg=this.target(this.conv);
+    const m={id:uid('m'),sender:this.me(),pid:Who.pid(),name:Who.name(),k:tg.to_kind,to:tg.to_id,body,deleted:false,at:Date.now(),pending:true,failed:false};
+    t.value=''; this.drafts[this.conv]=''; this.grow(t);
+    this.put(m); this.deliver(m);
+  },
+  async deliver(m){
+    this.put({...m,pending:true,failed:false});
+    try{ const r=await window.BSCloud.msgs.send({id:m.id,to_kind:m.k,to_id:m.to,body:m.body}); this.put(this.norm(r)); this.markRead(this.convOf(m)); }
+    catch(e){ this.put({...m,pending:false,failed:true}); if(e.code!=='unavailable') toast('Message didn’t send: '+(e.message||'try again')); }
+  },
+};
+function chatWhen(ms){ const d=new Date(ms), n=new Date(); if(d.toDateString()===n.toDateString()) return fmtTime(pad(d.getHours())+':'+pad(d.getMinutes())); const y=new Date(n); y.setDate(n.getDate()-1); if(d.toDateString()===y.toDateString()) return 'Yesterday'; if(n-d<6*864e5) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]; return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function chatDay(d){ const n=new Date(); if(d.toDateString()===n.toDateString()) return 'Today'; const y=new Date(n); y.setDate(n.getDate()-1); if(d.toDateString()===y.toDateString()) return 'Yesterday'; return `${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}${d.getFullYear()!==n.getFullYear()?', '+d.getFullYear():''}`; }
+function linkify(h){ return h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\n/g,'<br>'); }
+{ const hr=hubReady; hubReady=function(){ hr(); if(Chat.enabled()) Chat.load(); renderTopMe(); }; }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&Chat.enabled()&&Chat.loaded){ Chat.load(); if(Chat.isOpen&&Chat.conv) Chat.markRead(Chat.conv); } });
+addEventListener('online',()=>{ if(Chat.enabled()&&Chat.loaded){ Chat.load(); for(const m of Chat.msgs.values()) if(m.failed) Chat.deliver(m); } });
+{ const base=visitsAction; visitsAction=function(act,a,e){ if(act==='chat-toggle'){ Chat.isOpen?Chat.close():Chat.open(); return true; } return base(act,a,e); }; }
+/* "Message" on a crew card */
+{ const base=renderPersonDetail; renderPersonDetail=function(el,p){ base(el,p); if(!Chat.enabled()||p.id===Who.pid()) return; const head=el.querySelector('.detail-head .spacer'); if(head&&!el.querySelector('[data-msg-person]')) head.insertAdjacentHTML('afterend',`<button class="btn sm" data-msg-person="${p.id}" title="Send ${esc(p.name)} a message">${icon('chat')}Message</button>`); }; }
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-msg-person]'); if(b){ Chat.open('p:'+b.dataset.msgPerson); } });
 
 /* =========================================================
    Boot
