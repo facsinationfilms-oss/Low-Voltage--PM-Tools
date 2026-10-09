@@ -1315,6 +1315,13 @@ body.tool-mode .appbar .search,body.tool-mode .appbar .top-actions{visibility:hi
   .job-actions .btn{flex:1 1 44%}
   .home-stats b{font-size:20px}
 }
+/* sign-in: tabs, waiting screen */
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.auth-tabs button{padding:8px;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.auth-tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-1)}
+.auth-card.gate{text-align:left}
+.gate-acts{display:flex;gap:8px;margin-top:6px}
+.auth-paste{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink-2)}
 
 /* ===================== Field management ===================== */
 :root{--c-rev:#2a78d6;--c-exp:#eb6834;--c-prof:#1baf7a;--ok-ink:#157347}
@@ -2436,6 +2443,30 @@ body.fv-full{overflow:hidden}
 }
 @media (max-width:640px){ .rp-tile b{font-size:20px}.rp-tile.big b{font-size:24px}.rp-top{padding:8px 10px}.rp-body{padding:12px 12px 60px} }
 
+/* ---------- team ---------- */
+.team-mode .vh-me{display:none}
+.tm-card .count.alert,.tm-pend .count.alert{background:var(--danger);color:#fff;padding:1px 8px;border-radius:99px;font-size:12px;margin-left:6px}
+.tm-link{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tm-link input{flex:1;min-width:220px;padding:9px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font:500 13px var(--f-mono)}
+.tm-auto{display:flex;align-items:center;gap:9px;font-size:14px;margin:6px 0}.tm-auto input{width:18px;height:18px}
+.tm-small{font-size:12.5px;color:var(--muted);margin-top:4px}
+.tm-row{display:grid;grid-template-columns:minmax(200px,1.6fr) minmax(140px,.8fr) minmax(170px,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.tm-row:last-child{border-bottom:0}
+.tm-row.pend{grid-template-columns:minmax(200px,1.4fr) minmax(140px,.8fr) minmax(170px,1fr) auto}
+.tm-who{display:flex;align-items:center;gap:10px;min-width:0}.tm-who>span,.tm-row.pend .tm-who{display:flex;flex-direction:column;min-width:0}
+.tm-who b{font-weight:600}.tm-who small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.tm-who em{font-style:normal;color:var(--muted);font-weight:500;font-size:12px}.tm-who em.tm-own{color:var(--accent);margin-left:4px}
+.tm-f{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tm-f select{padding:7px 9px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font:500 13.5px var(--f-body);text-transform:none;letter-spacing:0}
+.tm-acts{display:flex;gap:6px;justify-content:flex-end}
+.tm-gone{margin-top:10px}.tm-gone summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}
+.tm-ri{display:flex;gap:10px;padding:6px 0;font-size:13.5px}.tm-ri b{min-width:96px}.tm-ri span{color:var(--ink-2)}
+.tm-banner{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:11px 14px;border-radius:12px;border:1px solid var(--accent-line);background:var(--accent-soft)}
+.tm-banner span{flex:1}.tm-banner svg{width:18px;height:18px;color:var(--accent)}
+.acct{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}.acct svg{width:15px;height:15px}
+@media (max-width:760px){ .tm-row,.tm-row.pend{grid-template-columns:1fr 1fr;row-gap:8px}.tm-who{grid-column:1/-1}.tm-acts{grid-column:1/-1;justify-content:flex-start} }
+.tm-row.pend .tm-who{align-items:flex-start}
+
 </style>
 </head>
 <body>
@@ -2491,7 +2522,13 @@ body.fv-full{overflow:hidden}
   const $ = s => document.querySelector(s);
   const escH = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  let sb = null, hooks = null, user = null, started = false;
+  let sb = null, hooks = null, user = null, started = false, org = null, orgs = [];
+  const ORG = () => (org ? org.org_id : user.id);
+  const lsG = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsS = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+  { const j = new URLSearchParams(location.search).get('join'); if (j && /^[\w-]{6,64}$/.test(j)) lsS('bs-hub.join', j); }
+  const joinCode = () => lsG('bs-hub.join') || '';
+  const cleanUrl = () => { if (/[?&]join=/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} } };
   try { sb = window.supabase.createClient(URL_, KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'bs-hub-auth' } }); }
   catch (e) { console.error('Supabase client failed to load', e); }
 
@@ -2516,7 +2553,7 @@ body.fv-full{overflow:hidden}
             let alive = true, chan = null;
             const emit = () => alive && cb(snapDocs([...rows.values()]));
             const load = async () => {
-              const { data, error } = await sb.from(kind).select('id,data').eq('user_id', user.id);
+              const { data, error } = await sb.from(kind).select('id,data').eq('user_id', ORG());
               if (!alive) return;
               if (error) { onErr && onErr({ code: codeOf(error), message: error.message }); return; }
               rows.clear();
@@ -2524,7 +2561,7 @@ body.fv-full{overflow:hidden}
               emit();
             };
             chan = sb.channel('hub-' + kind + '-' + Math.random().toString(36).slice(2, 7))
-              .on('postgres_changes', { event: '*', schema: 'public', table: kind, filter: 'user_id=eq.' + user.id }, p => {
+              .on('postgres_changes', { event: '*', schema: 'public', table: kind, filter: 'user_id=eq.' + ORG() }, p => {
                 if (p.eventType === 'DELETE') { if (p.old && p.old.id) rows.delete(p.old.id); }
                 else if (p.new && p.new.id) rows.set(p.new.id, { id: p.new.id, data: p.new.data });
                 emit();
@@ -2546,12 +2583,12 @@ body.fv-full{overflow:hidden}
         return {
           async set(obj) {
             let r;
-            try { r = await sb.from(kind).upsert({ user_id: user.id, id, data: obj }, { onConflict: 'user_id,id' }); } catch (e) { fail(e); }
+            try { r = await sb.from(kind).upsert({ user_id: ORG(), id, data: obj }, { onConflict: 'user_id,id' }); } catch (e) { fail(e); }
             if (r.error) fail(r.error);
           },
           async delete() {
             let r;
-            try { r = await sb.from(kind).delete().eq('user_id', user.id).eq('id', id); } catch (e) { fail(e); }
+            try { r = await sb.from(kind).delete().eq('user_id', ORG()).eq('id', id); } catch (e) { fail(e); }
             if (r.error) fail(r.error);
           },
         };
@@ -2559,40 +2596,143 @@ body.fv-full{overflow:hidden}
     };
   }
 
-  /* ---------- sign-in screen ---------- */
+  /* ---------- sign-in / create account ---------- */
   function authScreen(msg) {
     let el = $('#auth');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'auth';
-      el.innerHTML = `<form class="auth-card" autocomplete="on">
-          <div class="auth-logo">${document.querySelector('.brand-mark') ? document.querySelector('.brand-mark').outerHTML : ''}</div>
-          <h1>B&amp;S Office Hub</h1>
-          <p class="auth-sub">Sign in to your jobs, schedule, tasks and maps.</p>
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'auth';
+    const code = joinCode();
+    let mode = code ? 'up' : 'in';
+    const mark = document.querySelector('.brand-mark') ? document.querySelector('.brand-mark').outerHTML : '';
+    const draw = () => {
+      el.innerHTML = `<form class="auth-card" autocomplete="on" novalidate>
+          <div class="auth-logo">${mark}</div>
+          <h1 id="auth-h">${mode === 'up' ? 'Create your account' : 'B&amp;S Office Hub'}</h1>
+          <p class="auth-sub" id="auth-sub">${mode === 'up' ? (code ? 'You’ve been invited to join the team.' : 'Use the invite link your admin sent you.') : 'Sign in to your jobs, schedule, tasks and maps.'}</p>
+          <div class="auth-tabs" role="tablist"><button type="button" role="tab" data-m="in" aria-selected="${mode === 'in'}">Sign in</button><button type="button" role="tab" data-m="up" aria-selected="${mode === 'up'}">Create account</button></div>
+          ${mode === 'up' ? `<label>Your name<input id="auth-name" autocomplete="name" maxlength="120" required placeholder="First and last name"></label>` : ''}
           <label>Email<input type="email" id="auth-email" autocomplete="username" required></label>
-          <label>Password<input type="password" id="auth-pass" autocomplete="current-password" required></label>
+          <label>Password<input type="password" id="auth-pass" autocomplete="${mode === 'up' ? 'new-password' : 'current-password'}" required ${mode === 'up' ? 'minlength="8" placeholder="At least 8 characters"' : ''}></label>
+          ${mode === 'up' && !code ? `<label>Invite link or code<input id="auth-code" autocomplete="off" placeholder="Paste the link from your admin"></label>` : ''}
           <div class="auth-err" id="auth-err" role="alert"></div>
-          <button class="btn primary auth-go" type="submit" id="auth-go">Sign in</button>
-          <p class="auth-foot">Forgot your password? Ask Claude to set a temporary one for you.</p>
+          <button class="btn primary auth-go" type="submit" id="auth-go">${mode === 'up' ? 'Create account' : 'Sign in'}</button>
+          <p class="auth-foot">${mode === 'up' ? 'New accounts start as a technician. An admin approves you and sets what you can see.' : 'Forgot your password? Ask your admin.'}</p>
         </form>`;
-      document.body.appendChild(el);
-      el.querySelector('form').addEventListener('submit', async e => {
-        e.preventDefault();
-        const btn = $('#auth-go'), err = $('#auth-err');
-        btn.disabled = true; btn.textContent = 'Signing in…'; err.textContent = '';
+      el.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; draw(); }));
+      el.querySelector('form').addEventListener('submit', submit);
+      setTimeout(() => { const f = $('#auth-name') || $('#auth-email'); f && f.focus(); }, 50);
+      if (code && mode === 'up') sb.rpc('org_by_code', { p_code: code }).then(r => { if (r && r.data && r.data.name && $('#auth-sub')) $('#auth-sub').innerHTML = `You’ve been invited to join <b>${escH(r.data.name)}</b>.`; }).catch(() => {});
+    };
+    const submit = async e => {
+      e.preventDefault();
+      const btn = $('#auth-go'), err = $('#auth-err');
+      const email = $('#auth-email').value.trim(), pass = $('#auth-pass').value;
+      err.textContent = '';
+      if (mode === 'up') {
+        const name = $('#auth-name').value.trim();
+        let c = joinCode();
+        if (!c && $('#auth-code')) { const v = $('#auth-code').value.trim(); const m = v.match(/[?&]join=([\w-]+)/); c = m ? m[1] : (/^[\w-]{6,64}$/.test(v) ? v : ''); if (c) lsS('bs-hub.join', c); }
+        if (!name) { err.textContent = 'Type your name.'; return; }
+        if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = 'Type your email address.'; return; }
+        if (pass.length < 8) { err.textContent = 'Use at least 8 characters for the password.'; return; }
+        if (!c) { err.textContent = 'You need the invite link from your admin to create an account.'; return; }
+        btn.disabled = true; btn.textContent = 'Creating your account…';
         try {
-          const { data, error } = await sb.auth.signInWithPassword({ email: $('#auth-email').value.trim(), password: $('#auth-pass').value });
+          const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { join_code: c, name }, emailRedirectTo: location.origin + location.pathname } });
           if (error) throw error;
-          user = data.user;
-          el.remove();
-          connect();
+          lsS('bs-hub.myname', name);
+          if (data.session && data.user) { user = data.user; el.remove(); afterSignIn(); return; }
+          el.querySelector('.auth-card').innerHTML = `<div class="auth-logo">${mark}</div><h1>Check your email</h1><p class="auth-sub">We sent a confirmation link to <b>${escH(email)}</b>. Tap it, then come back here and sign in.</p><button class="btn primary auth-go" type="button" id="auth-back">Sign in</button>`;
+          $('#auth-back').addEventListener('click', () => { mode = 'in'; draw(); $('#auth-email').value = email; });
         } catch (ex) {
-          err.textContent = netErr(ex) ? 'Can’t reach the server. Check your connection and try again.' : 'That email and password don’t match. Try again.';
-        } finally { btn.disabled = false; btn.textContent = 'Sign in'; }
-      });
-    }
+          err.textContent = netErr(ex) ? 'Can’t reach the server. Check your connection and try again.' : /registered|exists/i.test(ex.message || '') ? 'There’s already an account with that email — sign in instead.' : (ex.message || 'Couldn’t create the account.');
+          if (/registered|exists/i.test(ex.message || '')) { mode = 'in'; draw(); $('#auth-email').value = email; $('#auth-err').textContent = 'You already have an account — sign in and you’ll join the team.'; }
+        } finally { const b2 = $('#auth-go'); if (b2) { b2.disabled = false; b2.textContent = mode === 'up' ? 'Create account' : 'Sign in'; } }
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+        user = data.user;
+        el.remove();
+        afterSignIn();
+      } catch (ex) {
+        err.textContent = netErr(ex) ? 'Can’t reach the server. Check your connection and try again.' : /confirm/i.test(ex.message || '') ? 'Confirm your email first — open the link we sent you.' : 'That email and password don’t match. Try again.';
+      } finally { const b2 = $('#auth-go'); if (b2) { b2.disabled = false; b2.textContent = 'Sign in'; } }
+    };
+    document.body.appendChild(el);
+    draw();
     if (msg) $('#auth-err').textContent = msg;
-    setTimeout(() => $('#auth-email') && $('#auth-email').focus(), 50);
+  }
+
+  /* ---------- which company, which role ---------- */
+  async function loadOrgs() {
+    let r;
+    try { r = await sb.rpc('my_orgs'); } catch (e) { return 'offline'; }
+    if (r.error) {
+      if (netErr(r.error)) return 'offline';
+      if (/my_orgs|function|PGRST202|42883/i.test((r.error.message || '') + (r.error.code || ''))) return 'legacy';
+      return 'offline';
+    }
+    orgs = Array.isArray(r.data) ? r.data : [];
+    return orgs;
+  }
+  const cacheOrg = () => lsS('bs-hub.orgcache', org ? JSON.stringify({ ...org, uid: user.id }) : null);
+  async function afterSignIn() {
+    const code = joinCode();
+    if (code) {
+      try {
+        const r = await sb.rpc('join_org', { p_code: code, p_name: lsG('bs-hub.myname') || '' });
+        if (r && r.data && (r.data.ok || r.data.error)) { lsS('bs-hub.join', null); cleanUrl(); }
+        if (r && r.data && r.data.error === 'code') lsS('bs-hub.badcode', '1');
+      } catch (e) {}
+    }
+    const res = await loadOrgs();
+    if (res === 'offline') {
+      let cached = null; try { cached = JSON.parse(lsG('bs-hub.orgcache') || 'null'); } catch (e) {}
+      if (cached && cached.uid === user.id) { org = cached; connect(); return; }
+      gate('offline'); return;
+    }
+    if (res === 'legacy') { org = { org_id: user.id, role: 'admin', status: 'active', owner: true, legacy: true, name: '' }; connect(); return; }
+    const active = orgs.filter(o => o.status === 'active');
+    const saved = lsG('bs-hub.org');
+    org = active.find(o => o.org_id === saved) || active[0] || null;
+    if (!org) { gate(orgs.some(o => o.status === 'pending') ? 'pending' : 'none'); return; }
+    cacheOrg(); cleanUrl();
+    connect();
+    watchMe();
+  }
+  function gate(kind) {
+    let el = $('#auth'); if (el) el.remove();
+    el = document.createElement('div'); el.id = 'auth';
+    const p = orgs.find(o => o.status === 'pending');
+    const mark = document.querySelector('.brand-mark') ? document.querySelector('.brand-mark').outerHTML : '';
+    const body = kind === 'pending' ? `<h1>Waiting for approval</h1><p class="auth-sub">You’ve asked to join <b>${escH(p ? p.name : 'the team')}</b> as <b>${escH(p && p.member_name || (user && user.email) || '')}</b>. An admin needs to approve you — this page opens by itself as soon as they do.</p>`
+      : kind === 'offline' ? `<h1>You’re offline</h1><p class="auth-sub">Connect to the internet once so the app can check your account.</p>`
+      : `<h1>Not part of a team yet</h1><p class="auth-sub">${lsG('bs-hub.badcode') ? 'That invite link isn’t valid any more. ' : ''}Open the invite link your admin sent you${user ? ` while signed in as <b>${escH(user.email)}</b>` : ''}, or paste it here.</p><label class="auth-paste">Invite link<input id="gate-code" autocomplete="off" placeholder="https://…?join=…"></label><button class="btn primary auth-go" type="button" data-g="join">Join</button>`;
+    el.innerHTML = `<div class="auth-card gate"><div class="auth-logo">${mark}</div>${body}<div class="gate-acts"><button class="btn" type="button" data-g="check">Check again</button><button class="btn ghost" type="button" data-g="out">Sign out</button></div></div>`;
+    document.body.appendChild(el);
+    const check = async () => { const res = await loadOrgs(); if (Array.isArray(res) && res.some(o => o.status === 'active')) { el.remove(); afterSignIn(); } else if (res === 'legacy') { el.remove(); afterSignIn(); } else if (Array.isArray(res) && kind !== 'none' && !res.some(o => o.status === 'pending')) { gate('none'); } else if (kind === 'offline' && Array.isArray(res)) { el.remove(); afterSignIn(); } };
+    el.addEventListener('click', async e => { const b = e.target.closest('[data-g]'); if (!b) return;
+      if (b.dataset.g === 'out') signOut();
+      else if (b.dataset.g === 'check') { b.disabled = true; await check(); b.disabled = false; }
+      else if (b.dataset.g === 'join') { const v = $('#gate-code').value.trim(); const m = v.match(/[?&]join=([\w-]+)/); const c = m ? m[1] : v; if (c) { lsS('bs-hub.join', c); lsS('bs-hub.badcode', null); el.remove(); afterSignIn(); } }
+    });
+    const t = setInterval(() => { if (!document.body.contains(el)) { clearInterval(t); return; } check(); }, 8000);
+  }
+  /* role changes reach this device right away */
+  function watchMe() {
+    if (!org || org.legacy) return;
+    try {
+      sb.channel('hub-me-' + Math.random().toString(36).slice(2, 7))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'members', filter: 'user_id=eq.' + user.id }, p => {
+          const m = p.new; if (!m || m.org_id !== org.org_id) return;
+          if (m.status !== 'active' || m.role !== org.role) { hooks.toast(m.status !== 'active' ? 'Your access was changed — reloading' : `You’re now ${m.role === 'admin' ? 'an admin' : m.role === 'manager' ? 'a manager' : 'a technician'} — reloading`); lsS('bs-hub.orgcache', null); setTimeout(() => location.reload(), 1500); }
+          else if (m.person_id !== org.person_id) { org.person_id = m.person_id; cacheOrg(); hooks.render && hooks.render(); }
+        }).subscribe();
+    } catch (e) {}
   }
 
   function connect() {
@@ -2608,15 +2748,21 @@ body.fv-full{overflow:hidden}
     const n = hooks.unsynced ? hooks.unsynced() : 0;
     hooks.openModal({
       title: 'Your account',
-      body: `<p>Signed in as <b>${escH(user ? user.email : '')}</b>.</p>
+      body: `<p>Signed in as <b>${escH(user ? user.email : '')}</b>${org && !org.legacy ? ` · ${escH(org.name || '')} · <b>${org.role === 'admin' ? 'Admin' : org.role === 'manager' ? 'Manager' : 'Technician'}</b>` : ''}.</p>
+        ${org && !org.legacy ? `<div class="field"><label for="acc-name">Your name</label><input id="acc-name" value="${escH(org.member_name || '')}" maxlength="120"></div><div class="field"><label for="acc-phone">Phone</label><input id="acc-phone" type="tel" value="${escH(org.phone || '')}" maxlength="60"></div>` : ''}
         <div class="field"><label for="acc-pass">New password</label><input id="acc-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
         ${n ? `<p style="color:var(--danger)">${n} change${n === 1 ? '' : 's'} haven’t reached the server yet. Signing out now would lose them.</p>` : ''}
         <p style="color:var(--muted);font-size:13px">Install the app: on a computer use the install icon in the address bar; on iPhone/iPad tap Share → Add to Home Screen; on Android tap ⋮ → Install app.</p>`,
       actions: [
         { label: 'Sign out', kind: 'danger', act: () => { signOut(); } },
         { label: 'Close' },
-        { label: 'Change password', kind: 'primary', act: w => {
+        { label: 'Save', kind: 'primary', act: w => {
+          const n = w.querySelector('#acc-name'), ph = w.querySelector('#acc-phone');
+          if (n && (n.value.trim() !== (org.member_name || '') || ph.value.trim() !== (org.phone || ''))) {
+            sb.rpc('update_my_profile', { p_org: ORG(), p_name: n.value.trim(), p_phone: ph.value.trim() }).then(({ error }) => { if (error) hooks.toast('Couldn’t save your profile'); else { org.member_name = n.value.trim(); org.phone = ph.value.trim(); cacheOrg(); hooks.toast('Profile saved'); } });
+          }
           const v = w.querySelector('#acc-pass').value;
+          if (!v) return;
           if (v.length < 8) { hooks.toast('Use at least 8 characters.'); return false; }
           sb.auth.updateUser({ password: v }).then(({ error }) => hooks.toast(error ? 'Couldn’t change it: ' + error.message : 'Password changed'));
         } },
@@ -2632,12 +2778,12 @@ body.fv-full{overflow:hidden}
 
   /* ---------- files: maps & drawings ('maps'), attachments & receipts ('files'), quote PDFs customers open ('quote-pdfs') ---------- */
   const files = {
-    path: name => user.id + '/' + name,
+    path: name => ORG() + '/' + name,
     async upload(name, blob, bucket = 'maps') {
       let r;
-      try { r = await sb.storage.from(bucket).upload(user.id + '/' + name, blob, { upsert: true, contentType: blob.type || 'application/octet-stream', cacheControl: bucket === 'quote-pdfs' ? '60' : '0' }); } catch (e) { fail(e); }
+      try { r = await sb.storage.from(bucket).upload(ORG() + '/' + name, blob, { upsert: true, contentType: blob.type || 'application/octet-stream', cacheControl: bucket === 'quote-pdfs' ? '60' : '0' }); } catch (e) { fail(e); }
       if (r.error) fail(r.error);
-      return user.id + '/' + name;
+      return ORG() + '/' + name;
     },
     async download(path, bucket = 'maps') {
       let r;
@@ -2655,18 +2801,18 @@ body.fv-full{overflow:hidden}
   const shares = {
     async put(row) {
       let r;
-      try { r = await sb.from('quote_shares').upsert({ ...row, user_id: user.id }, { onConflict: 'token' }); } catch (e) { fail(e); }
+      try { r = await sb.from('quote_shares').upsert({ ...row, user_id: ORG() }, { onConflict: 'token' }); } catch (e) { fail(e); }
       if (r.error) fail(r.error);
     },
     async list() {
       let r;
-      try { r = await sb.from('quote_shares').select('token,quote_id,status,viewed_at,responded_at,signer_name,signature,response_note,updated_at').eq('user_id', user.id); } catch (e) { fail(e); }
+      try { r = await sb.from('quote_shares').select('token,quote_id,status,viewed_at,responded_at,signer_name,signature,response_note,updated_at').eq('user_id', ORG()); } catch (e) { fail(e); }
       if (r.error) fail(r.error);
       return r.data || [];
     },
     watch(cb) {
       const ch = sb.channel('hub-shares-' + Math.random().toString(36).slice(2, 7))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_shares', filter: 'user_id=eq.' + user.id }, p => { if (p.new && p.new.token) cb(p.new); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_shares', filter: 'user_id=eq.' + ORG() }, p => { if (p.new && p.new.token) cb(p.new); })
         .subscribe();
       return () => { try { sb.removeChannel(ch); } catch (e) {} };
     },
@@ -2681,6 +2827,15 @@ body.fv-full{overflow:hidden}
     key: KEY,
     openAccount,
     signOut,
+    get org() { return org; },
+    get role() { return org ? org.role : null; },
+    inviteLink() { return org && org.join_code ? location.origin + location.pathname + '?join=' + encodeURIComponent(org.join_code) : ''; },
+    team: {
+      async list() { let r; try { r = await sb.from('members').select('*').eq('org_id', ORG()); } catch (e) { fail(e); } if (r.error) fail(r.error); return r.data || []; },
+      async set(uid, { role = null, status = null, person = null } = {}) { const r = await sb.rpc('set_member', { p_org: ORG(), p_user: uid, p_role: role, p_status: status, p_person: person }); if (r.error) fail(r.error); return r.data; },
+      async setOrg({ name = null, auto = null, newCode = false } = {}) { const r = await sb.rpc('set_org', { p_org: ORG(), p_name: name, p_auto: auto, p_new_code: !!newCode }); if (r.error) fail(r.error); Object.assign(org, { name: r.data.name, auto_approve: r.data.auto_approve, join_code: r.data.join_code }); cacheOrg(); return r.data; },
+      watch(cb) { const ch = sb.channel('hub-team-' + Math.random().toString(36).slice(2, 7)).on('postgres_changes', { event: '*', schema: 'public', table: 'members', filter: 'org_id=eq.' + ORG() }, p => cb(p.new)).subscribe(); return () => { try { sb.removeChannel(ch); } catch (e) {} }; },
+    },
     async start(h) {
       hooks = h;
       addEventListener('online', () => hooks.online && hooks.online());
@@ -2688,7 +2843,7 @@ body.fv-full{overflow:hidden}
       if (!sb) { authScreen('The sign-in service didn’t load. Check your connection and reload.'); return; }
       let session = null;
       try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
-      if (session && session.user) { user = session.user; connect(); }
+      if (session && session.user) { user = session.user; afterSignIn(); }
       else authScreen();
       sb.auth.onAuthStateChange((ev, s) => { if (ev === 'SIGNED_OUT' && started) location.reload(); if (s && s.user) user = s.user; });
     },
@@ -9786,8 +9941,8 @@ const Est={
   base(el,p);
   if(!Est.canSee()) return;
   const f=el.querySelector('.d-fields'); if(!f) return;
-  f.insertAdjacentHTML('beforeend',`<div class="d-label">${icon('money')}Pay rate</div><div class="d-val"><div class="money-in pr-in"><span>$</span><input id="p-pay" inputmode="decimal" value="${p.payRate?(+p.payRate).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="Pay rate per hour"><span>/hr</span></div><span class="view-sub">${p.payRate?'':'Uses your default labor cost until set · '}only managers see this</span></div>`);
-  const i=el.querySelector('#p-pay'); i.addEventListener('change',()=>{ patch('people',p.id,{payRate:parseMoney(i.value)}); refreshDetail(); });
+  f.insertAdjacentHTML('beforeend',`<div class="d-label">${icon('money')}Pay rate</div><div class="d-val"><div class="money-in pr-in"><span>$</span><input id="p-pay" inputmode="decimal" value="${payOf(p.id)?(+payOf(p.id)).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="Pay rate per hour"><span>/hr</span></div><span class="view-sub">${payOf(p.id)?'':'Uses your default labor cost until set · '}only managers see this</span></div>`);
+  const i=el.querySelector('#p-pay'); i.addEventListener('change',()=>{ Est.setRate(p.id,parseMoney(i.value)); refreshDetail(); });
 }; }
 /* picking an admin on a phone can ask for the manager PIN */
 { const base=Me.set.bind(Me); Me.set=function(pid){
@@ -9837,11 +9992,11 @@ VIEWS.estimating=()=>{
       <div class="sf"><label for="eg-day">Hours in a work day</label><input id="eg-day" data-est-gen="dayHrs" inputmode="decimal" value="${c.dayHrs??''}" placeholder="8"></div>
       <div class="sf"><label for="eg-slack">Extra cable for slack &amp; waste</label><div class="money-in r"><input id="eg-slack" data-est-gen="slack" inputmode="decimal" value="${c.slack??''}" placeholder="10"><span>%</span></div></div>
       <div class="sf"><label>Labor</label><p class="s-p">Cost ${fmtMoney(Est.laborCost())}/hr · charged ${fmtMoney(Est.laborRate())}/hr · markup ${Est.markup()}%<br><button class="linkish" data-act="nav" data-view="settings">Change in Settings › Quotes</button></p></div>
-      <div class="sf"><label for="eg-pin">Manager PIN</label><input id="eg-pin" data-est-gen="pin" type="password" inputmode="numeric" autocomplete="new-password" value="${esc(c.pin||'')}" placeholder="Optional"><small>Asked when someone picks a manager as “who’s using this phone”</small></div></div>
+      <div class="sf" ${Role.team()?'hidden':''}><label for="eg-pin">Manager PIN</label><input id="eg-pin" data-est-gen="pin" type="password" inputmode="numeric" autocomplete="new-password" value="${esc(c.pin||'')}" placeholder="Optional"><small>Asked when someone picks a manager as “who’s using this phone”</small></div></div>
       <h3 class="est-h">Crew pay rates <small>only managers see these</small></h3>
       <div class="est-tbl est-pay"><div class="et-row head"><span>Person</span><span>Access</span><span>Pay $/hr</span></div>
-      ${ppl.map(p=>`<div class="et-row"><span class="et-name">${av(p,'sm')}<b>${esc(p.name)}</b><small>${esc(p.role||'')}</small></span><span>${{admin:'Manager',edit:'Crew',view:'View only'}[p.access]}</span><span class="money-in sm"><span>$</span><input class="et-in" data-est-pay="${p.id}" inputmode="decimal" value="${p.payRate?(+p.payRate).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="${esc(p.name)} pay per hour"></span></div>`).join('')||'<div class="ip-empty">Add your crew on Schedule › Crew.</div>'}</div>
-      <p class="view-sub lay-note">Managers are people with <b>Admin</b> access (Schedule › Crew). Only they see pay rates, costs and progress reports.</p>`;
+      ${ppl.map(p=>`<div class="et-row"><span class="et-name">${av(p,'sm')}<b>${esc(p.name)}</b><small>${esc(p.role||'')}</small></span><span>${{admin:'Manager',edit:'Crew',view:'View only'}[p.access]}</span><span class="money-in sm"><span>$</span><input class="et-in" data-est-pay="${p.id}" inputmode="decimal" value="${payOf(p.id)?(+payOf(p.id)).toFixed(2):''}" placeholder="${Est.laborCost().toFixed(2)}" aria-label="${esc(p.name)} pay per hour"></span></div>`).join('')||'<div class="ip-empty">Add your crew on Schedule › Crew.</div>'}</div>
+      <p class="view-sub lay-note">${Role.team()?'Admins and managers (Settings › Team) are the only ones who see pay rates, costs and progress reports.':'Managers are people with <b>Admin</b> access (Schedule › Crew). Only they see pay rates, costs and progress reports.'}</p>`;
   } else {
     let ts=cat.types.filter(t=>t.system===sys); if(q) ts=cat.types.filter(t=>t.name.toLowerCase().includes(q));
     body=`<div class="est-tbl est-dev"><div class="et-row head"><span>Device</span><span>Time each<small>hours</small></span><span>Workers</span><span>Labor hrs</span><span>Material $</span><span>Sell $</span><span>Library item</span></div>
@@ -9864,7 +10019,7 @@ document.addEventListener('change',e=>{
   if(t.dataset.estType){ Est.setType(t.dataset.estType,{[t.dataset.k]:num_(t.value)}); }
   else if(t.dataset.estCable){ Est.setCable(t.dataset.estCable,{[t.dataset.k]:num_(t.value)}); }
   else if(t.dataset.estItem!==undefined){ Est.setType(t.dataset.estItem,{itemId:t.value||null}); }
-  else if(t.dataset.estPay){ patch('people',t.dataset.estPay,{payRate:parseMoney(t.value)}); }
+  else if(t.dataset.estPay){ Est.setRate(t.dataset.estPay,parseMoney(t.value)); }
   else if(t.dataset.estGen){ const k=t.dataset.estGen; Est.save({[k]:k==='pin'?t.value.trim().slice(0,12):num_(t.value)}); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='est-q'){ UI.estQ=e.target.value; scheduleRender(); } });
@@ -10063,7 +10218,7 @@ function reportHTML(R){
   const dev=`<section class="rp-sec"><h2>${icon('device')}Devices <small>labor hours each = time × workers</small></h2><div class="est-tbl rp-dev"><div class="et-row head"><span>Device</span><span>Installed</span><span>Est. each</span><span>Actual each</span><span>Est. total</span><span>Done</span><span>Left</span></div>${rows||'<div class="ip-empty">No devices on this job’s maps yet.</div>'}</div>
     ${E.types.some(x=>x.tracked>=2)?`<p class="view-sub">“Actual each” spreads the clocked hours over the devices finished each day. <button class="linkish" data-rp="learn">Save these as what this job learned</button> — they show next to the install times in Settings.</p>`:''}</section>`;
   const cab=E.cables.length?`<section class="rp-sec"><h2>${icon('link')}Cable</h2><div class="est-tbl rp-cab"><div class="et-row head"><span>Cable</span><span>Feet</span><span>Est. labor</span><span>Done (with devices)</span></div>${E.cables.map(c=>`<div class="et-row"><span class="et-name"><b>${esc(c.type)}</b><small>${c.runs} runs</small></span><span>${c.ft.toLocaleString()} ft</span><span>${fmtH(c.labor)}</span><span>${fmtH(c.labor*R.frac)}</span></div>`).join('')}</div></section>`:'';
-  const ppl=`<section class="rp-sec"><h2>${icon('team')}Crew</h2><div class="est-tbl rp-ppl"><div class="et-row head"><span>Person</span><span>Hours</span><span>Pay</span><span>Cost</span><span>Installed</span><span>Checked off</span></div>${R.people.map(p=>{ const pp=S.people[p.pid]; return `<div class="et-row"><span class="et-name">${pp?av(pp,'sm'):''}<b>${esc(pp?pp.name:'Someone')}</b></span><span>${fmtH(p.hrs)}</span><span>${fmtMoney(Est.pay(p.pid))}/h${pp&&pp.payRate?'':' <small>default</small>'}</span><span>${fmtMoney(p.cost,{cents:false})}</span><span>${p.installs}</span><span>${p.checks}</span></div>`; }).join('')||'<div class="ip-empty">No one has clocked in on this job’s visits yet.</div>'}</div></section>`;
+  const ppl=`<section class="rp-sec"><h2>${icon('team')}Crew</h2><div class="est-tbl rp-ppl"><div class="et-row head"><span>Person</span><span>Hours</span><span>Pay</span><span>Cost</span><span>Installed</span><span>Checked off</span></div>${R.people.map(p=>{ const pp=S.people[p.pid]; return `<div class="et-row"><span class="et-name">${pp?av(pp,'sm'):''}<b>${esc(pp?pp.name:'Someone')}</b></span><span>${fmtH(p.hrs)}</span><span>${fmtMoney(Est.pay(p.pid))}/h${payOf(p.pid)?'':' <small>default</small>'}</span><span>${fmtMoney(p.cost,{cents:false})}</span><span>${p.installs}</span><span>${p.checks}</span></div>`; }).join('')||'<div class="ip-empty">No one has clocked in on this job’s visits yet.</div>'}</div></section>`;
   const vs=R.visits.slice().sort((a,b)=>a.date.localeCompare(b.date));
   const vis=`<section class="rp-sec"><h2>${icon('sched')}Visits</h2><div class="est-tbl rp-vis"><div class="et-row head"><span>Visit</span><span>Crew</span><span>Clocked</span><span>Checklists</span></div>${vs.map(v=>{ const c=checkState(v), k=clockState(v); return `<div class="et-row"><span class="et-name"><b>${esc(entryLabel(v))}</b><small>${esc(fmtDay(v.date))}${v.endDate?' → '+esc(fmtDay(v.endDate)):''}</small></span><span>${esc(v.people.map(personName).filter(Boolean).join(', ')||'—')}</span><span>${fmtH(k.total/60)}</span><span>${c.total?`${c.done}/${c.total}`:'—'}</span></div>`; }).join('')||'<div class="ip-empty">No visits yet.</div>'}</div></section>`;
   const tr=R.snaps.length?`<section class="rp-sec"><h2>${icon('trend')}Trend <small>saved snapshots</small></h2><div class="est-tbl rp-trend"><div class="et-row head"><span>When</span><span>Complete</span><span>Worked</span><span>At completion</span><span>Projected cost</span></div>${R.snaps.map(s=>`<div class="et-row"><span>${esc(fmtStamp(s.at))}<small>${esc(s.byName||'')}</small></span><span>${Math.round(s.snap.pct||0)}%</span><span>${fmtH(s.snap.actualH)}</span><span>${fmtH(s.snap.projH)}</span><span>${fmtMoney(s.snap.projCost||0,{cents:false})}</span></div>`).join('')}</div></section>`:'';
@@ -10093,6 +10248,170 @@ function printReport(R){
   const box=el.querySelector('.sd-visit'); if(box) box.insertAdjacentHTML('afterend',`<div class="sd-cost"><div><span>Crew cost for this visit</span><b>${fmtH(h)} · ${fmtMoney(c,{cents:false})}</b><small>${parts.join(' · ')}${days>1?` · ${days} days`:''}</small></div>${visitJob(o)?`<button type="button" class="btn sm" data-sd-rp="${visitJob(o).id}">${icon('trend')}Job report</button>`:''}</div>`);
   const b=el.querySelector('[data-sd-rp]'); if(b) b.addEventListener('click',()=>openReport(b.dataset.sdRp));
 }; }
+
+/* ---- fm-team.js ---- */
+/* =========================================================
+   Team accounts: everyone signs in as themselves.
+   Roles: admin (everything + the team), manager (everything but the team), tech (field work, no money).
+   New accounts come in from the invite link as technicians waiting for an admin's approval.
+   ========================================================= */
+const Role={
+  org(){ return window.BSCloud&&window.BSCloud.org||null; },
+  team(){ const o=this.org(); return !!(o&&!o.legacy); },
+  get(){ const o=this.org(); return o?o.role:'admin'; },
+  mgr(){ return ['admin','manager'].includes(this.get()); },
+  admin(){ return this.get()==='admin'; },
+  tech(){ return this.get()==='tech'; },
+  name(r){ return {admin:'Admin',manager:'Manager',tech:'Technician'}[r]||'Technician'; },
+};
+const ROLE_INFO={admin:'Everything, plus approving people and setting their access',manager:'Jobs, schedule, quotes, invoices, costs and reports',tech:'Their schedule, visits, tasks, notes and maps — no prices or costs'};
+
+/* ---------- who "me" is: the signed-in account's crew card ---------- */
+{ const base=Me.id.bind(Me); Me.id=function(){ const o=Role.org(); if(Role.team()&&o.person_id&&S.people[o.person_id]) return o.person_id; if(Role.team()) return ''; return base(); }; }
+{ const base=Me.pick.bind(Me); Me.pick=function(anchor,then){ if(Role.team()){ if(!Me.id()) toast(Role.admin()?'Link your account to a crew card on Settings › Team':'Ask an admin to link your account to your crew card'); else then&&then(Me.id()); return; } return base(anchor,then); }; }
+Est.canSee=function(){ if(Role.team()) return Role.mgr(); const id=Me.id(); const p=S.people[id]; if(!p) return true; return p.access==='admin'; };
+
+/* ---------- pay rates live with the install data (managers only), not on crew cards everyone can read ---------- */
+Est.pay=function(pid){ const r=(this.cfg().rates||{})[pid]; if(r!=null&&+r>0) return +r; const p=S.people[pid]; return p&&p.payRate?+p.payRate:this.laborCost(); };
+Est.setRate=function(pid,v){ const rates={...(this.cfg().rates||{})}; if(v>0) rates[pid]=v; else delete rates[pid]; this.save({rates}); if(S.people[pid]&&S.people[pid].payRate&&Role.mgr()) patch('people',pid,{payRate:0}); };
+const payOf=pid=>{ const r=(Est.cfg().rates||{})[pid]; return r!=null?+r:(S.people[pid]&&S.people[pid].payRate)||0; };
+
+/* ---------- applying the role ---------- */
+const MONEY_WIDGETS=['quotes','finance','expenses','invoices'];
+let roleApplied=false;
+function applyRole(){
+  if(roleApplied||!Role.org()) return; roleApplied=true;
+  document.body.classList.toggle('role-tech',Role.tech());
+  document.body.classList.toggle('team-mode',Role.team());
+  if(Role.tech()){
+    for(const k of MONEY_WIDGETS) delete DASH_W[k];
+    for(const k of ['quotes','invoices','expenses']){ const i=JOB_TABS.findIndex(t=>t[0]===k); if(i>=0) JOB_TABS.splice(i,1); }
+  }
+  if(Role.admin()&&Role.team()) Team.load();
+  Maps.ensure&&setTimeout(()=>{ if(Maps.api&&Maps.api.setRole) Maps.api.setRole(Role.get()); },0);
+}
+{ const base=Maps._onReady.bind(Maps); Maps._onReady=function(){ base(); try{ this.api&&this.api.setRole&&this.api.setRole(Role.get()); }catch(e){} }; }
+{ const base=renderNav; renderNav=function(){ applyRole(); base();
+  if(!Role.mgr()){ for(const k of ['quotes','invoices','expenses']){ const t=$(`#nav .nav-top[data-area="${k}"]`); if(t){ const kids=t.nextElementSibling; if(kids&&kids.classList.contains('nav-kids')) kids.remove(); t.remove(); } } const bq=$('#hub-bottom [data-view="quotes"]'); if(bq){ bq.dataset.view='today'; bq.innerHTML=`${icon('check')}<span>Tasks</span>`; const bt=$$('#hub-bottom .hb').find(b=>b!==bq&&b.dataset.view==='today'); if(bt) bt.remove(); } }
+  const n=Team.pending().length; const st=$('#nav .nav-top[data-area="settings"] .nav-main'); if(st&&n&&Role.admin()){ const c=st.querySelector('.count'); if(c){ c.textContent=n; c.classList.add('alert'); } }
+}; }
+{ const base=newMenu; newMenu=function(anchor){ if(Role.mgr()) return base(anchor);
+  menu(anchor,[
+    {label:'Task',icon:'check',hint:'N',act:()=>newTaskFromContext()},
+    {label:'Note',icon:'note',act:()=>newNoteFromContext()},
+    {label:'Schedule entry',icon:'sched',act:()=>createSched({type:'job',date:today(),title:'',people:Me.id()?[Me.id()]:[],allDay:false,start:'07:00',end:'15:30'},{open:true})},
+    {sep:true},
+    {label:'Job',icon:'job',act:()=>newJobDialog('job')},
+  ]); }; }
+{ const base=DW.stats; DW.stats=()=>{ if(Role.mgr()) return base();
+  const t=today(); const open=Object.values(S.tasks).filter(x=>!x.done); const overdue=open.filter(x=>x.due&&x.due<t).length, due=open.filter(x=>x.due===t).length+overdue;
+  const mine=occurrences(t,t).filter(o=>!Me.id()||o.e.people.includes(Me.id()));
+  const jobs=Object.values(S.jobs).filter(j=>j.type!=='project'&&['active','scheduled'].includes(j.status)).length;
+  const tile=(n,label,act,bad)=>`<button class="kpi ${bad?'bad':''}" ${act}><b>${n}</b><span>${label}</span></button>`;
+  return `<div class="kpis">${tile(mine.length,Me.id()?'on your schedule today':'on the schedule today','data-act="nav" data-view="schedule"')}${tile(due,'tasks due','data-act="nav" data-view="today"',!!overdue)}${tile(jobs,'jobs in progress','data-act="nav-jobs" data-type="job"')}</div>`; }; }
+{ const base=itemJob; itemJob=function(j){ let h=base(j); if(Role.mgr()) return h;
+  return h.replace(/<button class="jsum-c[^"]*" data-act="job-tab" data-val="(invoices|quotes)">[\s\S]*?<\/button>/g,'').replace(/<button class="btn sm[^"]*" data-act="(quote-new|exp-new)"[^>]*>[\s\S]*?<\/button>/g,''); }; }
+{ const base=openEditor; openEditor=function(kind,id,opts={}){ if(kind==='people'&&Role.team()&&!Role.mgr()){ openItem('people',id); return; } return base(kind,id,opts); }; }
+{ const base=createPerson; createPerson=function(p={},opts={}){ if(Role.team()&&!Role.mgr()){ toast('Only managers can add people'); return null; } return base(p,opts); }; }
+/* each person keeps their own dashboard layout */
+const dashKey=()=>{ const o=Role.org(); return o&&!o.legacy&&!o.owner?'dash_'+window.BSCloud.user.id:'dashboard'; };
+{ const base=dashLayout; dashLayout=function(){ const k=dashKey(); if(k==='dashboard') return base(); const own=S.settings[k]; const keep=S.settings.dashboard; S.settings.dashboard=own||(keep&&Role.mgr()?keep:null); try{ return base(); }finally{ S.settings.dashboard=keep; } }; }
+saveDash=function(ws){ Store.put('settings',NORM.settings({id:dashKey(),type:'dashboard',widgets:ws.map(w=>({id:w.id,w:w.w,h:w.h||0})),updatedAt:Date.now()})); scheduleRender(); };
+/* crew cards show the account instead of the old access switch */
+{ const base=renderPersonDetail; renderPersonDetail=function(el,p){ base(el,p); if(!Role.team()) return;
+  const seg=el.querySelector('[data-acc]'); if(seg){ const val=seg.closest('.d-val'); const lab=val&&val.previousElementSibling; const m=Team.byPerson(p.id);
+    if(val) val.innerHTML=m?`<span class="acct">${icon('user')}<b>${esc(m.email)}</b> · ${Role.name(m.role)}${m.status==='pending'?' · waiting for approval':''}</span>${Role.admin()?`<button type="button" class="linkish" data-act="nav" data-view="team">Change on Team</button>`:''}`:`<span class="view-sub">No sign-in linked.${Role.admin()?' <button type="button" class="linkish" data-act="nav" data-view="team">Link one on Team</button>':''}</span>`;
+    if(lab) lab.innerHTML=`${icon('user')}Account`; }
+}; }
+
+/* ---------- the team: members, approvals ---------- */
+const Team={
+  list:[], loaded:false, loading:null, unwatch:null,
+  load(){ if(!Role.team()) return Promise.resolve([]); if(this.loading) return this.loading;
+    this.loading=window.BSCloud.team.list().then(l=>{ this.list=l; this.loaded=true; this.autoLink(); scheduleRender(); renderNav(); return l; }).catch(e=>{ console.warn('team',e); return []; }).finally(()=>{ this.loading=null; });
+    if(!this.unwatch&&Role.mgr()) this.unwatch=window.BSCloud.team.watch(m=>{ if(!m||!m.user_id) return; const i=this.list.findIndex(x=>x.user_id===m.user_id); if(i>=0) this.list[i]={...this.list[i],...m}; else{ this.list.push(m); if(Role.admin()&&m.status==='pending') toast(`${m.name||m.email} wants to join — approve them on Settings › Team`,{label:'Review',action:()=>go('team'),ms:12000}); } this.autoLink(); scheduleRender(); renderNav(); });
+    return this.loading; },
+  pending(){ return this.list.filter(m=>m.status==='pending'); },
+  /* people let straight in (or approved elsewhere) get a crew card so their phone knows who they are */
+  autoLink(){ if(!Role.admin()||!Store.ready) return; for(const m of this.list) if(m.status==='active'&&!m.person_id&&!this._linking.has(m.user_id)){ this._linking.add(m.user_id); const pid=personFor(m,'__auto'); if(pid) this.set(m.user_id,{person:pid}); } },
+  _linking:new Set(),
+  byPerson(pid){ return this.list.find(m=>m.person_id===pid&&m.status!=='removed'); },
+  async set(uid,p){ try{ const m=await window.BSCloud.team.set(uid,p); const i=this.list.findIndex(x=>x.user_id===uid); if(i>=0) this.list[i]={...this.list[i],...m}; scheduleRender(); renderNav(); return m; }catch(e){ toast(e.message||'Couldn’t change that'); return null; } },
+};
+NAV.push(['team','Team','team']);
+{ const base=navArea; navArea=function(){ return UI.view==='team'&&!UI.item&&!HUB.tool?'settings':base(); }; }
+function personFor(m,choice){
+  if(choice&&choice!=='__new'&&S.people[choice]) return choice;
+  if(choice==='__none') return '';
+  if(choice==='__auto'){ const mt=Object.values(S.people).find(p=>(m.email&&p.email&&p.email.toLowerCase()===m.email.toLowerCase())||(p.name&&m.name&&p.name.trim().toLowerCase()===m.name.trim().toLowerCase())); if(mt&&!Team.list.some(x=>x.person_id===mt.id&&x.user_id!==m.user_id)) return mt.id; }
+  const match=Object.values(S.people).find(p=>(m.email&&p.email&&p.email.toLowerCase()===m.email.toLowerCase())||(p.name&&m.name&&p.name.trim().toLowerCase()===m.name.trim().toLowerCase()));
+  if(match&&choice!=='__new') return match.id;
+  const p=createPerson({name:m.name||m.email.split('@')[0],email:m.email,phone:m.phone||'',role:Role.name(m.role)});
+  return p?p.id:'';
+}
+function personOptions(m,{allowNew=true,pend=false}={}){
+  const linked=new Set(Team.list.filter(x=>x.user_id!==m.user_id&&x.person_id&&x.status!=='removed').map(x=>x.person_id));
+  const match=Object.values(S.people).find(p=>(m.email&&p.email&&p.email.toLowerCase()===m.email.toLowerCase())||(p.name&&m.name&&p.name.trim().toLowerCase()===m.name.trim().toLowerCase()));
+  const cur=m.person_id&&S.people[m.person_id]?m.person_id:(match&&!linked.has(match.id)?match.id:'');
+  return `${allowNew?`<option value="__new" ${!cur&&pend?'selected':''}>New crew card: ${esc(m.name||m.email)}</option>`:''}<option value="__none" ${!cur&&!pend?'selected':''}>Not linked</option>${peopleList().filter(p=>!linked.has(p.id)||p.id===cur).map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${esc(p.name)}${p.role?' · '+esc(p.role):''}</option>`).join('')}`;
+}
+VIEWS.team=()=>{
+  if(!Role.team()) return `<div class="content-inner">${viewHead('Team')}${emptyState('Team accounts aren’t switched on yet','Once the database update is in, each person signs in with their own account from your invite link.')}</div>`;
+  if(!Role.mgr()) return `<div class="content-inner">${viewHead('Team')}${emptyState('Managers only','Ask an admin if you need something changed.')}</div>`;
+  if(!Team.loaded){ Team.load(); return `<div class="content-inner">${viewHead('Team')}<div class="ip-card"><div class="ip-empty"><span class="spin"></span> Loading the team…</div></div></div>`; }
+  const o=Role.org(), adm=Role.admin(), me=window.BSCloud.user.id;
+  const pend=Team.pending(), act=Team.list.filter(m=>m.status==='active').sort((a,b)=>({admin:0,manager:1,tech:2}[a.role]-{admin:0,manager:1,tech:2}[b.role])||(a.name||'').localeCompare(b.name||'')), gone=Team.list.filter(m=>m.status==='removed');
+  const roleSel=(m,dis)=>`<select class="tm-role" data-tm-role="${m.user_id}" ${dis?'disabled':''} aria-label="Access for ${esc(m.name||m.email)}">${['tech','manager','admin'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${Role.name(r)}</option>`).join('')}</select>`;
+  const invite=adm?`<section class="scard tm-invite"><h2>${icon('link')}Invite people</h2><p class="s-p">Send this link by text or email. People open it, make their own account, and show up below <b>waiting for your approval</b>. Everyone starts as a <b>Technician</b> — you choose who gets more.</p>
+      <div class="tm-link"><input id="tm-link" readonly value="${esc(window.BSCloud.inviteLink())}" aria-label="Invite link"><button class="btn primary" data-act="tm-copy">${icon('copy')}Copy link</button>${navigator.share?`<button class="btn" data-act="tm-share">${icon('send')}Share</button>`:''}</div>
+      <label class="tm-auto"><input type="checkbox" id="tm-auto" ${o.auto_approve?'checked':''}><span>Let new people straight in as technicians (no approval step)</span></label>
+      <div class="tm-small"><button class="linkish" data-act="tm-newlink">Make a new link</button> — the old link stops working (people already on the team aren’t affected).</div></section>`:'';
+  const pendHtml=pend.length?`<section class="scard tm-pend"><h2>${icon('user')}Waiting for approval <span class="count alert">${pend.length}</span></h2>${pend.map(m=>`<div class="tm-row pend" data-uid="${m.user_id}"><div class="tm-who"><b>${esc(m.name||'(no name)')}</b><small>${esc(m.email)} · asked ${esc(fmtStamp(Date.parse(m.created_at)||Date.now()))}</small></div>
+      ${adm?`<label class="tm-f"><span>Access</span>${roleSel(m,false)}</label><label class="tm-f"><span>Crew card</span><select data-tm-person="${m.user_id}">${personOptions(m,{pend:true})}</select></label><div class="tm-acts"><button class="btn primary" data-act="tm-approve" data-uid="${m.user_id}">${icon('done')}Approve</button><button class="btn ghost" data-act="tm-decline" data-uid="${m.user_id}">Decline</button></div>`:`<span class="view-sub">An admin needs to approve</span>`}</div>`).join('')}</section>`:'';
+  const rows=act.map(m=>{ const owner=m.user_id===o.org_id; const self=m.user_id===me; const p=m.person_id&&S.people[m.person_id];
+    return `<div class="tm-row" data-uid="${m.user_id}"><div class="tm-who">${p?av(p):`<span class="av" style="--c:var(--faint)">${esc(initials(m.name||m.email))}</span>`}<span><b>${esc(m.name||m.email)}${self?' <em>(you)</em>':''}${owner?' <em class="tm-own">owner</em>':''}</b><small>${esc(m.email)}${m.phone?' · '+esc(m.phone):''}</small></span></div>
+      <label class="tm-f"><span>Access</span>${roleSel(m,!adm||owner)}</label>
+      <label class="tm-f"><span>Crew card</span><select data-tm-link="${m.user_id}" ${adm?'':'disabled'}>${personOptions(m,{allowNew:adm})}</select></label>
+      <div class="tm-acts">${adm&&!owner&&!self?`<button class="btn ghost danger" data-act="tm-remove" data-uid="${m.user_id}">Remove</button>`:''}</div></div>`; }).join('');
+  const goneHtml=gone.length?`<details class="tm-gone" ${Team.goneOpen?'open':''}><summary>Removed (${gone.length})</summary>${gone.map(m=>`<div class="tm-row"><div class="tm-who"><span><b>${esc(m.name||m.email)}</b><small>${esc(m.email)}</small></span></div>${adm?`<div class="tm-acts"><button class="btn sm" data-act="tm-restore" data-uid="${m.user_id}">Let back in</button></div>`:''}</div>`).join('')}</details>`:'';
+  const roles=`<section class="scard tm-roles"><h2>${icon('views')}What each role can do</h2>${['tech','manager','admin'].map(r=>`<div class="tm-ri"><b>${Role.name(r)}</b><span>${ROLE_INFO[r]}</span></div>`).join('')}</section>`;
+  return `<div class="content-inner settings team-view">${viewHead('Team',{sub:`${act.length} with access${pend.length?` · ${pend.length} waiting`:''} · ${esc(o.name||'')}`,tools:`<button class="btn" data-act="nav" data-view="settings">${icon('gear')}Settings</button>`})}
+    ${pendHtml}${invite}<section class="scard tm-list"><h2>${icon('team')}People with access</h2>${rows}${goneHtml}</section>${roles}</div>`;
+};
+document.addEventListener('click',e=>{ const sm=e.target.closest&&e.target.closest('.tm-gone > summary'); if(sm) Team.goneOpen=!sm.parentElement.open; },true);
+document.addEventListener('change',async e=>{
+  const t=e.target; if(!t.dataset) return;
+  if(t.dataset.tmRole&&!t.closest('.pend')){ const uid=t.dataset.tmRole; const m=Team.list.find(x=>x.user_id===uid); if(!m) return; const r=t.value;
+    if(r==='admin'&&!confirm(`Make ${m.name||m.email} an admin? Admins can approve people and change everyone’s access.`)){ t.value=m.role; return; }
+    const ok=await Team.set(uid,{role:r}); if(ok) toast(`${m.name||m.email} is now ${Role.name(r).toLowerCase()==='admin'?'an admin':'a '+Role.name(r).toLowerCase()}`); else t.value=m.role; }
+  else if(t.dataset.tmLink){ const uid=t.dataset.tmLink; const m=Team.list.find(x=>x.user_id===uid); if(!m) return; const pid=personFor(m,t.value); await Team.set(uid,{person:pid||''}); toast(pid?`Linked to ${personName(pid)}`:'Unlinked'); }
+  else if(t.id==='tm-auto'){ try{ await window.BSCloud.team.setOrg({auto:t.checked}); toast(t.checked?'New people get in as technicians right away':'New people wait for your approval'); }catch(err){ toast(err.message||'Couldn’t change that'); t.checked=!t.checked; } }
+});
+async function teamAction(act,a){
+  const uid=a.dataset.uid; const m=uid&&Team.list.find(x=>x.user_id===uid);
+  switch(act){
+    case 'tm-copy': { const v=window.BSCloud.inviteLink(); try{ await navigator.clipboard.writeText(v); toast('Invite link copied — paste it into a text or email'); }catch(e){ const i=$('#tm-link'); i.select(); document.execCommand('copy'); toast('Invite link copied'); } return true; }
+    case 'tm-share': navigator.share({title:'Join us on B&S Office Hub',text:'Make your account for B&S Office Hub:',url:window.BSCloud.inviteLink()}).catch(()=>{}); return true;
+    case 'tm-newlink': openModal({title:'Make a new invite link?',body:'<p>The current link stops working. People already on the team keep their access.</p>',actions:[{label:'Cancel'},{label:'New link',kind:'primary',act:async()=>{ try{ await window.BSCloud.team.setOrg({newCode:true}); scheduleRender(); toast('New invite link ready'); }catch(e){ toast(e.message||'Couldn’t do that'); } }}]}); return true;
+    case 'tm-approve': { if(!m) return true; const row=a.closest('.tm-row'); const role=row.querySelector('[data-tm-role]').value; const pc=row.querySelector('[data-tm-person]').value; const pid=personFor({...m,role},pc);
+      const ok=await Team.set(uid,{role,status:'active',person:pid||''}); if(ok) toast(`${m.name||m.email} approved as ${Role.name(role).toLowerCase()==='admin'?'an admin':'a '+Role.name(role).toLowerCase()}`); return true; }
+    case 'tm-decline': if(!m) return true; openModal({title:`Decline ${esc(m.name||m.email)}?`,body:'<p>They won’t get in. You can let them back in later from the Removed list.</p>',actions:[{label:'Cancel'},{label:'Decline',kind:'danger',act:async()=>{ await Team.set(uid,{status:'removed'}); toast('Declined'); }}]}); return true;
+    case 'tm-remove': if(!m) return true; openModal({title:`Remove ${esc(m.name||m.email)}?`,body:'<p>They’re signed out of the company right away and can’t see anything. Their crew card, time and work stay.</p>',actions:[{label:'Cancel'},{label:'Remove',kind:'danger',act:async()=>{ await Team.set(uid,{status:'removed'}); toast(`${m.name||m.email} removed`); }}]}); return true;
+    case 'tm-restore': await Team.set(uid,{status:'active'}); toast('Back on the team'); return true;
+  }
+  return false;
+}
+{ const base=visitsAction; visitsAction=function(act,a,e){ if(/^tm-/.test(act)){ teamAction(act,a); return true; } return base(act,a,e); }; }
+
+/* ---------- Settings for each role ---------- */
+{ const base=VIEWS.settings; VIEWS.settings=()=>{
+  if(Role.team()&&!Role.mgr()){ const o=Role.org(); const p=Me.id()&&S.people[Me.id()];
+    return `<div class="content-inner settings">${viewHead('Settings',{sub:o.name||''})}<section class="scard"><h2>${icon('user')}Your account</h2><p class="s-p">Signed in as <b>${esc(window.BSCloud.user.email)}</b> · <b>${Role.name(o.role)}</b>${p?` · crew card: <b>${esc(p.name)}</b>`:''}</p><p class="s-p">${ROLE_INFO[o.role]}.</p><button class="btn sm" data-act="co-account">${icon('user')}Profile, password & sign out</button></section></div>`; }
+  let h=base();
+  if(Role.team()){ const n=Team.pending().length; h=h.replace('<section class="scard">',`<section class="scard tm-card"><h2>${icon('team')}Team${n?` <span class="count alert">${n} waiting</span>`:''}</h2><p class="s-p">${Role.admin()?'Invite people with a link, approve them, and choose who’s an admin, manager or technician.':'Who has access and what they can do.'}</p><button class="btn sm primary" data-act="nav" data-view="team">${icon('team')}Open Team</button></section><section class="scard">`); }
+  return h; }; }
+/* the dashboard tells admins when someone is waiting */
+{ const base=VIEWS.home; VIEWS.home=()=>{ const h=base(); const n=Role.admin()?Team.pending().length:0; if(!n) return h; return h.replace('<div class="content-inner','<div class="content-inner').replace(/(<div class="content-inner[^>]*>)/,`$1<div class="tm-banner">${icon('user')}<span><b>${n} ${n===1?'person is':'people are'} waiting for approval</b> — ${Team.pending().slice(0,3).map(m=>esc(m.name||m.email)).join(', ')}</span><button class="btn sm primary" data-act="nav" data-view="team">Review</button></div>`); }; }
 
 /* =========================================================
    Boot

@@ -842,6 +842,7 @@ html.in-hub .hub-only { display: inline-flex !important; }
 .cab-grid .fld:first-child { grid-column: 1 / -1; }
 .cab-total { margin: 2px 0 0; color: var(--text-2); }
 html.phone #ed-quote span { display: none; }
+html.hub-tech #ed-quote { display: none !important; }
 </style>
 </head>
 <body data-view="home">
@@ -9053,6 +9054,7 @@ if (HUB) {
       Home.syncHubHeader();
     },
     setTheme(t) { if (t === 'light' || t === 'dark') setTheme(t); },
+    setRole(r) { document.documentElement.classList.toggle('hub-tech', r === 'tech'); },
     async localInfo(id) {
       const d = await Drafts.get(id).catch(() => null);
       return d ? { savedAt: d.updatedAt || 0, dirty: !!d.dirty } : null;
