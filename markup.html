@@ -901,6 +901,22 @@ html.phone #editor.pbar-open .toolrail { border-top-color: var(--line-2); }
 .pb-ghost.ok::after { opacity: 1; }
 .pb-new { animation: pbNew .9s var(--ease); }
 @keyframes pbNew { 0% { opacity: .2; } 40% { opacity: 1; } 60% { opacity: .5; } 100% { opacity: 1; } }
+
+/* settings menus (Display, Layers, Snap) on phones: a sheet across the bottom that always fits */
+#btn-disp { display: none; }
+html.compact #btn-disp { display: inline-flex; }
+html.phone .menu.as-sheet { left: 8px !important; right: 8px !important; top: auto !important; bottom: calc(8px + env(safe-area-inset-bottom)) !important; width: auto !important; max-width: none; max-height: min(72vh, calc(100dvh - 90px)); overflow-y: auto; overscroll-behavior: contain; border-radius: 16px; padding: 8px 8px 0; z-index: 2600; }
+html.phone .menu.as-sheet .lp-slider { grid-template-columns: 100px 1fr 46px; }
+html.phone .menu.as-sheet .lp-slider input[type=range] { height: 32px; }
+html.phone .menu.as-sheet .dp-pal { display: none; }
+html.phone .menu.as-sheet .menu-sep:last-of-type { display: none; }
+.sheet-done { position: sticky; bottom: 0; margin: 6px -8px 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--elev); border-top: 1px solid var(--line); }
+.sheet-done .btn { width: 100%; height: 44px; justify-content: center; font-size: 15px; }
+.pb-set { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel-2); color: var(--text-2); font: 600 11px/1 inherit; }
+.pb-set .ic { width: 13px; height: 13px; }
+.pb-title em + .pb-set { margin-left: 8px; }
+.pb-tt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 430px) { .pb-title em { display: none; } }
 </style>
 </head>
 <body data-view="home">
@@ -1019,6 +1035,7 @@ html.phone #editor.pbar-open .toolrail { border-top-color: var(--line-2); }
       <button class="fab" id="fab-add" title="Add devices and layout items"><i data-ic="Plus"></i><span>Add</span></button>
       <div class="viewbar">
         <button class="btn sm glass" id="btn-layers" title="Choose what shows on the map"><i data-ic="Stack2"></i><span>Layers</span></button>
+        <button class="btn sm glass" id="btn-disp" title="Icon size, labels and coverage"><i data-ic="AdjustmentsHorizontal"></i><span>Display</span></button>
         <button class="btn sm glass" id="scale-chip"></button>
         <button class="btn sm glass" id="snap-chip" hidden title="Snapping options"><i data-ic="Magnet"></i><span>Snap</span></button>
       </div>
@@ -1507,6 +1524,15 @@ function promptDialog(title, label, value = '', { ok = 'OK', placeholder = '', t
 
 /* ---------- Menus (popovers) ---------- */
 let openMenuEl = null;
+/* on phones these settings menus open as a sheet across the bottom, with a Done button */
+function sheetDone(el) {
+  if (!Device.phone) return;
+  el.classList.add('as-sheet');
+  const d = document.createElement('div'); d.className = 'sheet-done';
+  d.innerHTML = `<button class="btn primary" type="button">Done</button>`;
+  d.querySelector('button').onclick = () => closeMenu();
+  el.appendChild(d);
+}
 function closeMenu() { if (openMenuEl) { openMenuEl.remove(); openMenuEl = null; } document.querySelectorAll('.pal-display.on').forEach(b => b.classList.remove('on')); }
 function showMenu(anchor, items, { align = 'left', x, y } = {}) {
   closeMenu();
@@ -3376,6 +3402,7 @@ const Editor = {
     $('#zoom-fit').onclick = () => MapView.fit();
     $('#zoom-pct').onclick = () => MapView.zoomTo(1);
     $('#btn-layers').onclick = (e) => this.layersPopover(e.currentTarget);
+    $('#btn-disp').onclick = (e) => this.displayMenu(e.currentTarget);
     $('#scale-chip').onclick = () => this.setTool('scale');
     $('#snap-chip').onclick = (e) => LayoutUI.snapPopover(e.currentTarget);
     $$('#pal-tabs button').forEach(b => b.onclick = () => this.setPalTab(b.dataset.pt));
@@ -4120,9 +4147,10 @@ const Editor = {
       <div class="menu-sep"></div>
       <div class="dp-btns"><button class="btn sm ghost" data-a="all-plans">${ic('Copy')}<span>Use these settings on every plan</span></button></div>
       <div class="menu-sep"></div>` : '';
-    el.innerHTML += `<div class="menu-head">Device list (this sidebar)</div>
-      <div class="seg sm" id="dp-ps">${[['s', 'Small'], ['m', 'Normal'], ['l', 'Large']].map(([v, l]) => `<button data-v="${v}" class="${ps === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+    el.innerHTML += `<div class="dp-pal"><div class="menu-head">Device list (this sidebar)</div>
+      <div class="seg sm" id="dp-ps">${[['s', 'Small'], ['m', 'Normal'], ['l', 'Large']].map(([v, l]) => `<button data-v="${v}" class="${ps === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
     document.body.appendChild(el);
+    sheetDone(el);
     const r = anchor.getBoundingClientRect();
     el.style.left = Math.max(8, r.left) + 'px';
     el.style.top = Math.min(r.bottom + 6, innerHeight - el.offsetHeight - 8) + 'px';
@@ -4192,6 +4220,7 @@ const Editor = {
       <div class="lp-slider"><span>Icon size</span><input type="range" min="0.3" max="3" step="0.05" value="${(this.plan.iconScale || 1) / defaultIconScale(this.plan)}" data-sl="iconScale"><em>${Math.round((this.plan.iconScale || 1) / defaultIconScale(this.plan) * 100)}%</em></div>
       <div class="lp-slider"><span>Label size</span><input type="range" min="0.5" max="2.5" step="0.05" value="${this.plan.labelScale || 1}" data-sl="labelScale"><em>${Math.round((this.plan.labelScale || 1) * 100)}%</em></div>` : ''}`;
     document.body.appendChild(el);
+    sheetDone(el);
     const r = anchor.getBoundingClientRect();
     el.style.left = r.left + 'px';
     el.style.top = Math.max(8, r.top - el.offsetHeight - 8) + 'px';
@@ -8865,6 +8894,7 @@ const LayoutUI = {
       <div class="menu-sep"></div>
       <div class="lp-none">Hold <kbd>Alt</kbd> while drawing or dragging to turn snapping off for a moment. Hold <kbd>Shift</kbd> to lock walls to 45°.</div>`;
     document.body.appendChild(el);
+    sheetDone(el);
     const r = anchor.getBoundingClientRect();
     el.style.left = r.left + 'px';
     el.style.top = Math.max(8, r.top - el.offsetHeight - 8) + 'px';
@@ -9135,7 +9165,7 @@ const PBar = {
     const row = $('#pb-row'), title = $('#pb-title'); if (!row) return;
     const [k, g] = this.path;
     const fm = g === '_find';
-    title.innerHTML = fm ? `<label class="pb-find">${ic('Search')}<input id="pb-q" placeholder="Type a device or item…" value="${esc(this.q)}" autocomplete="off" enterkeyhint="search"></label>` : esc(this.title()) + (g ? `<em>Drag one up onto the map</em>` : '');
+    title.innerHTML = fm ? `<label class="pb-find">${ic('Search')}<input id="pb-q" placeholder="Type a device or item…" value="${esc(this.q)}" autocomplete="off" enterkeyhint="search"></label>` : `<span class="pb-tt">${esc(this.title())}</span>` + (g ? `<em>Drag one up onto the map</em>` : '') + `<button class="pb-set" type="button" data-pb="disp" title="Icon size, labels and coverage">${ic('AdjustmentsHorizontal')}<span>Icon sizes</span></button>`;
     row.className = 'pb-row' + (!k ? ' root' : '');
     if (!k) {
       row.innerHTML = `<button class="pb-big" data-pb="lay">${ic('HomeEdit')}<span>Layout</span><small>Walls, rooms, doors, windows</small></button>
@@ -9160,6 +9190,7 @@ const PBar = {
     const b = e.target.closest('[data-pb]'); if (!b) return;
     const a = b.dataset.pb;
     if (a === 'back') return this.back();
+    if (a === 'disp') return Editor.displayMenu(b);
     if (a === 'lay' || a === 'dev') { this.path = [a]; return this.render(); }
     if (a === 'find') { this.path = [this.path[0] || 'dev', '_find']; this.q = ''; return this.render(); }
     if (a === 'grp') { this.path = [this.path[0], b.dataset.id]; return this.render(); }
