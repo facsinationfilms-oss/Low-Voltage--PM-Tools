@@ -2658,6 +2658,22 @@ body.fv-full{overflow:hidden}
 .account-view .swatches .sw{width:30px;height:30px;border-radius:50%}
 .chat .ch-search input,.chat .ch-search input:focus{background:none;border:0;box-shadow:none;padding:0}
 
+/* ---------- Back & Save ---------- */
+.app-back{flex:none;width:40px;height:40px;border-radius:12px}
+.app-back svg.i{width:22px;height:22px}
+.app-back[hidden]{display:none}
+@media (max-width:600px){ body.can-back .app-brand .brand-name{display:none} body.can-back .appbar .menu-btn{margin-right:-4px} }
+.d-savebar{display:flex;align-items:center;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--surface);flex:none;box-shadow:0 -10px 20px -16px rgba(0,0,0,.5)}
+.d-savebar .btn{min-height:42px;padding:0 18px;font-size:15px}
+.d-savebar .d-save{min-width:150px;justify-content:center}
+.d-back{display:none}
+@media (max-width:600px){ .d-back{display:inline-grid} .d-savebar .btn.primary{flex:1} }
+/* dialogs: the buttons stay in view at the bottom while the form scrolls */
+.modal{overscroll-behavior:contain}
+.modal-actions{position:sticky;bottom:-20px;margin:18px -20px -20px;padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);z-index:2}
+:root:not([data-bs-theme="light"]) .modal-actions{background:inherit}
+@media (max-width:600px){ .modal-actions .btn{flex:1;min-height:44px} }
+
 </style>
 </head>
 <body>
@@ -11170,6 +11186,146 @@ addEventListener('online',()=>{ if(Chat.enabled()&&Chat.loaded){ Chat.load(); fo
 /* "Message" on a crew card */
 { const base=renderPersonDetail; renderPersonDetail=function(el,p){ base(el,p); if(!Chat.enabled()||p.id===Who.pid()) return; const head=el.querySelector('.detail-head .spacer'); if(head&&!el.querySelector('[data-msg-person]')) head.insertAdjacentHTML('afterend',`<button class="btn sm" data-msg-person="${p.id}" title="Send ${esc(p.name)} a message">${icon('chat')}Message</button>`); }; }
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-msg-person]'); if(b){ Chat.open('p:'+b.dataset.msgPerson); } });
+
+/* ---- fm-back.js ---- */
+/* =========================================================
+   Getting back, and saving out of editors.
+   - A Back arrow in the top bar steps back through the pages you've been on.
+   - The phone's own back gesture / button does the same (and first closes whatever is open on top).
+   - Every editor (task, note, job, project, schedule entry, crew card) has a Save button at the bottom.
+   ========================================================= */
+const Nav={
+  stack:[], cur:null, busy:false, leaving:false, ready:false,
+  snap(){
+    return {view:UI.view, item:UI.item?{kind:UI.item.kind,id:UI.item.id}:null, ist:ITEM_STACK.map(x=>({kind:x.kind,id:x.id})),
+      x:{folderId:UI.folderId||null,folderTab:UI.folderTab||null,jobsType:UI.jobsType||null,savedId:UI.savedId||null,tag:UI.tag||null,query:UI.view==='search'?(UI.query||''):null},
+      tool:HUB.tool||null};
+  },
+  key(s){ return s?JSON.stringify([s.view,s.item,s.x,s.tool]):''; },
+  record(){
+    if(!this.ready||this.busy) return;
+    const s=this.snap(); if(this.key(s)===this.key(this.cur)) return;
+    const top=this.stack[this.stack.length-1];
+    if(top&&this.key(top)===this.key(s)) this.stack.pop();       // went back with an in-page Back link
+    else if(this.cur){ this.stack.push(this.cur); if(this.stack.length>80) this.stack.shift(); }
+    this.cur=s; renderBackBtn();
+  },
+  canBack(){ return this.stack.length>0||!!overlayOpen(); },
+  back(){
+    if(closeTopOverlay()) return true;
+    while(this.stack.length){ const s=this.stack.pop(); if(this.valid(s)){ this.restore(s); return true; } }
+    renderBackBtn(); return false;
+  },
+  valid(s){ return !s.item||!!(S[s.item.kind]&&S[s.item.kind][s.item.id]); },
+  restore(s){
+    this.busy=true;
+    try{
+      closePop(); if(MODAL) closeModal();
+      if(s.tool){ if(HUB.tool!==s.tool) hubShowTool(s.tool); }
+      else{
+        hubLeaveTool();
+        if(UI.view==='search'&&s.view!=='search'){ UI.query=''; const si=$('#search'); if(si) si.value=''; const sb=$('#search-box'); if(sb) sb.classList.remove('has-q'); }
+        Object.assign(UI,{view:s.view});
+        for(const [k,v] of Object.entries(s.x)) if(v!==null) UI[k]=v;
+        if(s.view==='search'&&s.x.query!=null){ UI.query=s.x.query; const si=$('#search'); if(si) si.value=s.x.query; }
+        if(s.item){ UI.item={...s.item}; ITEM_STACK=s.ist.filter(p=>S[p.kind]&&S[p.kind][p.id]).map(p=>({...p})); }
+        else leaveItem();
+        document.body.classList.remove('nav-open');
+        renderContent(); const c=$('#content'); if(c) c.scrollTop=0;
+        scheduleRender();
+      }
+    }finally{ this.busy=false; }
+    this.cur=this.snap(); renderBackBtn(); renderNav();
+  },
+};
+/* what's open on top of the page, most recent first */
+function overlayOpen(){
+  if(MODAL) return 'modal';
+  if(POP) return 'pop';
+  if(typeof SUB!=='undefined'&&SUB) return 'sub';
+  if(Screens.length) return 'screen';
+  if(typeof Chat!=='undefined'&&Chat.isOpen) return 'chat';
+  if(D) return 'detail';
+  if(document.body.classList.contains('nav-open')) return 'nav';
+  if(HUB.tool&&toolCanBack()) return 'tool';
+  return '';
+}
+function toolFrameDoc(){ try{ const f=$('#tool-wrap iframe'); return f&&f.contentDocument; }catch(e){ return null; } }
+function toolCanBack(){ const d=toolFrameDoc(); if(!d) return false; if(d.querySelector('.modal-back')) return true; const ed=d.getElementById('editor'); return !!(ed&&!ed.hidden); }
+function closeTopOverlay(){
+  const o=overlayOpen(); if(!o) return false;
+  switch(o){
+    case 'modal': closeModal(); break;
+    case 'pop': closePop(); break;
+    case 'sub': closeSubPanel(); break;
+    case 'screen': { const s=Screens[Screens.length-1]; const b=s.el.querySelector('[data-esc]'); if(b) b.click(); else closeScreen(s.el); break; }
+    case 'chat': if(Chat.pickOpen||Chat.conv){ Chat.pickOpen=false; Chat.conv=null; Chat.draw(); } else Chat.close(); break;
+    case 'detail': closeDetail(); break;
+    case 'nav': document.body.classList.remove('nav-open'); break;
+    case 'tool': { const d=toolFrameDoc(); if(d.querySelector('.modal-back')){ const x=d.querySelector('.modal-back .modal-x,.modal-back [data-close],.modal-back .modal-head .icon-btn'); if(x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } else { const h=d.getElementById('ed-home'); h&&h.click(); } break; }
+  }
+  setTimeout(renderBackBtn,50);
+  return true;
+}
+/* record where you are after each redraw and each trip into the map tools */
+{ const base=renderAll; renderAll=function(){ base(); Nav.record(); }; }
+{ const base=hubShowTool; hubShowTool=function(...a){ const r=base.apply(this,a); setTimeout(()=>Nav.record(),0); return r; }; }
+{ const base=hubLeaveTool; hubLeaveTool=function(...a){ const r=base.apply(this,a); setTimeout(()=>Nav.record(),0); return r; }; }
+{ const hr=hubReady; hubReady=function(){ hr(); if(!Nav.ready){ Nav.ready=true; Nav.cur=Nav.snap(); try{ history.pushState({bsnav:1},''); }catch(e){} renderBackBtn(); } }; }
+/* the phone's back gesture: step back inside the app; at the very start, leave as normal */
+addEventListener('popstate',()=>{
+  if(Nav.leaving) return;
+  if(Nav.back()){ try{ history.pushState({bsnav:1},''); }catch(e){} }
+  else{ Nav.leaving=true; history.back(); }
+});
+
+/* ---------- the Back arrow in the top bar ---------- */
+function renderBackBtn(){
+  const bar=$('#appbar'); if(!bar) return;
+  let b=$('#app-back');
+  if(!b){ b=document.createElement('button'); b.id='app-back'; b.className='icon-btn app-back'; b.type='button'; b.setAttribute('aria-label','Back'); b.title='Back'; b.innerHTML=icon('back'); b.addEventListener('click',()=>{ Nav.back(); });
+    const menu=$('#menu-btn'); if(menu) menu.after(b); else bar.prepend(b); }
+  const on=Nav.ready&&Nav.canBack();
+  b.hidden=!on; document.body.classList.toggle('can-back',on);
+}
+document.addEventListener('click',()=>setTimeout(renderBackBtn,0),true);
+
+/* ---------- Save at the bottom of every editor ---------- */
+const SAVE_WORD={tasks:'task',notes:'note',jobs:'job',sched:'entry',people:'crew card'};
+{ const base=renderDetail; renderDetail=function(...a){
+  base.apply(this,a);
+  if(!D) return;
+  const inner=$('#detail .detail-inner'); if(!inner||inner.querySelector('.d-savebar')) return;
+  const o=S[D.kind]&&S[D.kind][D.id]; if(!o) return;
+  const word=D.kind==='jobs'?(o.type==='project'?'project':'job'):SAVE_WORD[D.kind]||'';
+  const ro=D.kind==='people'&&Role.team()&&!Role.mgr();
+  inner.insertAdjacentHTML('beforeend',`<div class="d-savebar">${D.isNew&&!ro?`<button type="button" class="btn ghost" data-dsave="cancel">${D.kind==='tasks'||D.kind==='notes'?'Cancel':'Discard'}</button>`:''}<span class="spacer"></span>${ro?`<button type="button" class="btn primary" data-dsave="close">${icon('back')}Done</button>`:`<button type="button" class="btn primary d-save" data-dsave="save">${icon('check')}Save${word?' '+word:''}</button>`}</div>`);
+  const head=inner.querySelector('.detail-head');
+  if(head&&!head.querySelector('.d-back')) head.insertAdjacentHTML('afterbegin',`<button type="button" class="icon-btn d-back" data-dsave="close" aria-label="Back" title="Back">${icon('back')}</button>`);
+}; }
+function detailSave(){
+  if(!D) return;
+  const kind=D.kind, id=D.id;
+  const ae=document.activeElement; if(ae&&$('#detail').contains(ae)&&ae.blur) ae.blur();   // commits the field you were typing in
+  setTimeout(()=>{
+    if(!D||D.id!==id) return;
+    const o=S[kind]&&S[kind][id];
+    if(kind==='tasks'&&o&&!o.title.trim()&&!hasText(o.desc)&&!o.subtasks.length){ toast('Give the task a name first'); const t=$('#d-title'); t&&t.focus(); return; }
+    closeDetail();
+    Store.schedule&&Store.schedule(30);
+    if(S[kind]&&S[kind][id]) toast('Saved',{ms:2500});
+  },40);
+}
+function detailDiscard(){
+  if(!D) return; const kind=D.kind, id=D.id; const o=S[kind][id];
+  const blank=kind==='tasks'?(!o.title.trim()&&!hasText(o.desc)):kind==='notes'?(!o.title.trim()&&!hasText(o.body)):false;
+  const go=()=>{ closeDetail(true); Store.del(kind,id); scheduleRender(); toast('Discarded',{action:()=>{ Store.put(kind,o); scheduleRender(); }}); };
+  if(blank) go(); else go();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-dsave]'); if(!b) return; const a=b.dataset.dsave;
+  if(a==='save') detailSave(); else if(a==='cancel') detailDiscard(); else if(a==='close') closeDetail(); });
+
+/* the map tools: the screen's own Back already works; the top-bar Back also steps out of an open map */
 
 /* =========================================================
    Boot

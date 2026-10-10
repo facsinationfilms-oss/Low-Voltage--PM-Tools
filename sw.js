@@ -1,6 +1,6 @@
 /* B&S Office Hub — offline support. The app and the markup tools are cached so they open with no signal;
    your data syncs when you're back online. New versions load the next time you're online. */
-const CACHE = 'bs-hub-139c2bb8af';
+const CACHE = 'bs-hub-7ad6bf9e9d';
 const FILES = ['./', './index.html', './markup.html', './quote.html', './supabase.js', './pdf-lib.min.js', './pdf.min.mjs', './pdf.worker.min.mjs', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

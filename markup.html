@@ -167,13 +167,15 @@ input[type=date].inp { padding-right: 6px; }
 
 .modal-back { position: fixed; inset: 0; z-index: 1000; background: rgba(4,9,18,.55); display: grid; place-items: center; padding: 20px; opacity: 0; transition: opacity .16s; backdrop-filter: blur(2px); }
 .modal-back.show { opacity: 1; }
-.modal { width: min(520px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: var(--shadow); transform: translateY(8px) scale(.985); transition: transform .18s var(--ease); }
+.modal { width: min(520px, 100%); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: var(--shadow); transform: translateY(8px) scale(.985); transition: transform .18s var(--ease); }
 .modal-back.show .modal { transform: none; }
 .modal.wide { width: min(820px, 100%); }
 .modal-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px 6px; }
 .modal-head h2 { margin: 0; font-size: 17px; font-weight: 700; flex: 1; }
 .modal-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
-.modal-body { padding: 12px 18px 6px; overflow: auto; }
+.modal-body { padding: 12px 18px 6px; overflow: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }
+.modal-foot { border-top: 1px solid transparent; }
+.modal-body:not(:only-child) + .modal-foot { box-shadow: 0 -10px 18px -14px rgba(0,0,0,.45); }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px 16px; flex-wrap: wrap; }
 .dlg-msg { margin: 0 0 8px; color: var(--text-2); line-height: 1.55; }
 
@@ -763,7 +765,7 @@ html.phone #ly-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;
 html.phone #ly-chips .chip { flex: none; }
 html.phone body[data-view="home"] #toasts { bottom: calc(22px + env(safe-area-inset-bottom)); }
 html.phone .modal-back { padding: 0; place-items: end stretch; }
-html.phone .modal { width: 100%; max-height: calc(100% - 24px); border-radius: 18px 18px 0 0; border-bottom: 0; }
+html.phone .modal { width: 100%; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border-radius: 18px 18px 0 0; border-bottom: 0; }
 html.phone .modal-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 html.phone .modal-foot .btn { flex: 1; }
 html.phone .lib-modal { height: calc(100% - 24px); }
@@ -843,6 +845,11 @@ html.in-hub .hub-only { display: inline-flex !important; }
 .cab-total { margin: 2px 0 0; color: var(--text-2); }
 html.phone #ed-quote span { display: none; }
 html.hub-tech #ed-quote { display: none !important; }
+
+/* the Save button always says Save (phones too) */
+.ed-right #ed-save span { display: inline !important; }
+html.phone #ed-save { width: auto; padding: 0 12px; gap: 6px; }
+html.phone .logo.sm { display: none; }
 </style>
 </head>
 <body data-view="home">
@@ -902,7 +909,7 @@ html.hub-tech #ed-quote { display: none !important; }
 <!-- ================= EDITOR ================= -->
 <section id="editor" hidden>
   <header class="ed-top">
-    <button class="icon-btn" id="ed-home" title="Back to projects"><i data-ic="Home"></i></button>
+    <button class="icon-btn" id="ed-home" title="Back" aria-label="Back to the list"><i data-ic="ArrowLeft"></i></button>
     <span class="logo sm">B&amp;S</span>
     <div class="ed-title">
       <input class="title-inp" id="ed-name" spellcheck="false" placeholder="Project name" title="Project name — click to rename">
