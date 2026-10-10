@@ -2673,6 +2673,9 @@ body.fv-full{overflow:hidden}
 .modal-actions{position:sticky;bottom:-20px;margin:18px -20px -20px;padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);z-index:2}
 :root:not([data-bs-theme="light"]) .modal-actions{background:inherit}
 @media (max-width:600px){ .modal-actions .btn{flex:1;min-height:44px} }
+.upd-bar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--accent);box-shadow:var(--shadow-2);max-width:calc(100vw - 20px);font-size:14px}
+.upd-bar>svg.i{color:var(--accent);flex:none}
+.upd-bar span{flex:1;min-width:0}
 
 </style>
 </head>
@@ -11252,6 +11255,7 @@ function overlayOpen(){
 }
 function toolFrameDoc(){ try{ const f=$('#tool-wrap iframe'); return f&&f.contentDocument; }catch(e){ return null; } }
 function toolCanBack(){ const d=toolFrameDoc(); if(!d) return false; if(d.querySelector('.modal-back')) return true; const ed=d.getElementById('editor'); return !!(ed&&!ed.hidden); }
+function toolSideOpen(d){ const sd=d.getElementById('side'); return sd&&sd.classList.contains('open')&&d.getElementById('sd-close'); }
 function closeTopOverlay(){
   const o=overlayOpen(); if(!o) return false;
   switch(o){
@@ -11262,7 +11266,7 @@ function closeTopOverlay(){
     case 'chat': if(Chat.pickOpen||Chat.conv){ Chat.pickOpen=false; Chat.conv=null; Chat.draw(); } else Chat.close(); break;
     case 'detail': closeDetail(); break;
     case 'nav': document.body.classList.remove('nav-open'); break;
-    case 'tool': { const d=toolFrameDoc(); if(d.querySelector('.modal-back')){ const x=d.querySelector('.modal-back .modal-x,.modal-back [data-close],.modal-back .modal-head .icon-btn'); if(x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } else { const h=d.getElementById('ed-home'); h&&h.click(); } break; }
+    case 'tool': { const d=toolFrameDoc(); if(d.querySelector('.modal-back')){ const x=d.querySelector('.modal-back .modal-x,.modal-back [data-close],.modal-back .modal-head .icon-btn'); if(x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } else if(toolSideOpen(d)){ d.getElementById('sd-close').click(); } else if(d.querySelector('#pbar:not([hidden])')){ d.querySelector('#pbar .pb-back').click(); } else { const h=d.getElementById('ed-home'); h&&h.click(); } break; }
   }
   setTimeout(renderBackBtn,50);
   return true;
@@ -11326,6 +11330,31 @@ document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closes
   if(a==='save') detailSave(); else if(a==='cancel') detailDiscard(); else if(a==='close') closeDetail(); });
 
 /* the map tools: the screen's own Back already works; the top-bar Back also steps out of an open map */
+
+/* ---------- new versions: phones keep the app open for days, so check when you come back to it ---------- */
+const AppVer={
+  mine:null, ready:false,
+  async latest(){ try{ const r=await fetch('./sw.js?check='+Date.now(),{cache:'no-store'}); if(!r.ok) return null; const t=await r.text(); const m=t.match(/bs-hub-([0-9a-f]{6,})/); return m?m[1]:null; }catch(e){ return null; } },
+  async start(){ this.mine=await this.latest(); setInterval(()=>this.check(),30*60*1000); },
+  async check(){ if(!this.mine||this.ready||!navigator.onLine) return; const v=await this.latest(); if(v&&v!==this.mine){ this.ready=true; this.banner(); } },
+  banner(){
+    if($('#upd-bar')) return;
+    const b=document.createElement('div'); b.id='upd-bar'; b.className='upd-bar';
+    b.innerHTML=`${icon('download')}<span><b>A new version is ready.</b> Reload to get it.</span><button class="btn sm primary" type="button" data-upd="go">Reload</button><button class="icon-btn sm" type="button" data-upd="later" aria-label="Later" title="Later">${icon('close')}</button>`;
+    document.body.appendChild(b);
+    b.addEventListener('click',async e=>{ const a=e.target.closest('[data-upd]'); if(!a) return;
+      if(a.dataset.upd==='later'){ b.remove(); return; }
+      const cur=Maps.api&&Maps.api.current&&Maps.api.current();
+      if(cur&&cur.dirty){ toast('Tap Save on your map first, then Reload'); return; }
+      if(Store.pending.size||Store.inflight.size){ Store.schedule(0); a.textContent='Saving…'; let n=0; while((Store.pending.size||Store.inflight.size)&&n++<40) await new Promise(r=>setTimeout(r,250)); }
+      try{ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.update().catch(()=>{}))); }catch(err){}
+      location.reload();
+    });
+  },
+};
+{ const hr=hubReady; hubReady=function(){ hr(); if(!AppVer.mine&&!AppVer._s){ AppVer._s=1; AppVer.start(); } }; }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') AppVer.check(); });
+addEventListener('online',()=>AppVer.check());
 
 /* =========================================================
    Boot
