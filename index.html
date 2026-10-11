@@ -1322,6 +1322,21 @@ body.tool-mode .appbar .search,body.tool-mode .appbar .top-actions{visibility:hi
 .auth-card.gate{text-align:left}
 .gate-acts{display:flex;gap:8px;margin-top:6px}
 .auth-paste{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink-2)}
+/* Jobs / Projects as bars */
+.jbars{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.jbar{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);text-align:left;cursor:pointer;min-height:46px}
+.jbar:last-child{border-bottom:0}
+.jbar:hover{background:var(--surface-2)}
+.jb-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--c)}
+.jb-name{flex:1;min-width:0;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.jbar .jc-st{flex:none}
+.jbar.wide{padding:12px 14px;min-height:60px}
+.jb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.jb-main small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jb-meta{flex:none;display:flex;gap:12px;color:var(--muted);font-size:12.5px}
+.jb-meta span{display:inline-flex;align-items:center;gap:4px}.jb-meta svg.i{width:14px;height:14px}
+.jlay button{display:inline-flex;align-items:center;gap:5px}.jlay svg.i{width:15px;height:15px}
+@media (max-width:700px){.jlay span{display:none}.jb-meta{display:none}.jbar.wide .jb-main small{white-space:normal}}
 
 /* ===================== Field management ===================== */
 :root{--c-rev:#2a78d6;--c-exp:#eb6834;--c-prof:#1baf7a;--ok-ink:#157347}
@@ -6673,6 +6688,14 @@ function jobCard(j,{compact=false}={}){
       ${j.client||j.address?`<div class="jc-sub">${esc([j.client,j.address].filter(Boolean).join(' · '))}</div>`:''}
       <div class="jc-meta">${nx?`<span>${icon('sched')}${esc(fmtDay(nx.date))}</span>`:''}<span>${icon('check')}${n} open</span>${compact&&ms.length?`<span>${icon('map')}${ms.length}</span>`:''}</div></div></button>`;
 }
+/* a job as a bar: "list" = name + status only; "wide" = also client, address, next visit, open tasks */
+function jobBar(j,wide){
+  const si=statusInfo(j.status); const c=j.color||si[2];
+  if(!wide) return `<button class="jbar" style="--c:${c}" data-act="open-job" data-id="${j.id}"><span class="jb-dot"></span><span class="jb-name">${esc(j.name)}</span>${j.pinned?`<span class="jc-pin">${icon('pin')}</span>`:''}<span class="jc-st" style="--c:${si[2]}">${esc(si[1])}</span></button>`;
+  const n=jobTasks(j).length; const nx=jobNext(j);
+  return `<button class="jbar wide" style="--c:${c}" data-act="open-job" data-id="${j.id}"><span class="jb-dot"></span><span class="jb-main"><span class="jb-name">${esc(j.name)}${j.pinned?`<span class="jc-pin">${icon('pin')}</span>`:''}</span>${j.client||j.address?`<small>${esc([j.client,j.address].filter(Boolean).join(' · '))}</small>`:''}</span>
+    <span class="jb-meta">${nx?`<span>${icon('sched')}${esc(fmtDay(nx.date))}</span>`:''}<span>${icon('check')}${n} open</span></span><span class="jc-st" style="--c:${si[2]}">${esc(si[1])}</span></button>`;
+}
 /* =========================================================
    Jobs & projects list
    ========================================================= */
@@ -6686,8 +6709,9 @@ VIEWS.jobs=()=>{
   list=sortJobs(list);
   const seg=`<div class="seg" role="group" aria-label="Show">${[['job','Jobs'],['project','Projects']].map(([k,l])=>`<button data-act="nav-jobs" data-type="${k}" aria-pressed="${type===k}">${l} <span class="count">${jobsOf(k).length}</span></button>`).join('')}</div>`;
   const chips=[['open','Open'],...JOB_STATUS.map(s=>[s[0],s[1]]),['all','All']].map(([k,l])=>{ const n=k==='all'?all.length:k==='open'?all.filter(j=>j.status!=='done').length:all.filter(j=>j.status===k).length; return `<button class="fchip ${st===k?'on':''}" data-act="jobs-status" data-val="${k}">${esc(l)}${n?` <span>${n}</span>`:''}</button>`; }).join('');
-  const tools=`${seg}<label class="search sm jobs-q">${icon('search')}<input id="jobs-q" placeholder="Find a ${type}…" value="${esc(UI.jobsQ||'')}" autocomplete="off"></label><span class="spacer"></span><button class="btn primary" data-act="new-job" data-type="${type}">${icon('plus')}New ${type}</button>`;
-  const body=list.length?`<div class="jgrid">${list.map(j=>jobCard(j)).join('')}</div>`:emptyState(all.length?'Nothing matches':`No ${type==='project'?'projects':'jobs'} yet`,all.length?'Try another filter.':`A ${type} page keeps the client, address, schedule, tasks, notes and maps for the ${type} in one place.`);
+  const tools=`${seg}<label class="search sm jobs-q">${icon('search')}<input id="jobs-q" placeholder="Find a ${type}…" value="${esc(UI.jobsQ||'')}" autocomplete="off"></label><span class="spacer"></span>${jobsLayoutSeg()}<button class="btn primary" data-act="new-job" data-type="${type}">${icon('plus')}New ${type}</button>`;
+  const lay=UI.jobsLayout||'list';
+  const body=list.length?(lay==='cards'?`<div class="jgrid">${list.map(j=>jobCard(j)).join('')}</div>`:`<div class="jbars ${lay}">${list.map(j=>jobBar(j,lay==='wide')).join('')}</div>`):emptyState(all.length?'Nothing matches':`No ${type==='project'?'projects':'jobs'} yet`,all.length?'Try another filter.':`A ${type} page keeps the client, address, schedule, tasks, notes and maps for the ${type} in one place.`);
   return `<div class="content-inner wide jobs-view">${viewHead(type==='project'?'Projects':'Jobs',{tools,after:`<div class="fchips">${chips}</div>`})}${body}</div>`;
 };
 
@@ -6952,6 +6976,7 @@ function hubAction(act,a,e){
     case 'open-job': if(e.target.closest('[data-stop]')&&a.dataset.stop===undefined) return true; e.stopPropagation(); hubLeaveTool(); if(UI.view==='search'){ $('#search').value=''; onSearch(''); } openItem('jobs',id); renderNav(); return true;
     case 'nav-jobs': go('jobs',{jobsType:a.dataset.type==='project'?'project':'job'}); return true;
     case 'nav-team': go('schedule',{schedView:'team'}); return true;
+    case 'jobs-layout': UI.jobsLayout=a.dataset.val; savePrefs(); scheduleRender(); return true;
     case 'jobs-status': UI.jobsStatus=a.dataset.val; savePrefs(); scheduleRender(); return true;
     case 'new-job': newJobDialog(a.dataset.type==='project'?'project':'job'); return true;
     case 'job-pin': patch('jobs',id,{pinned:!S.jobs[id].pinned}); return true;
@@ -6978,6 +7003,10 @@ document.addEventListener('click',e=>{
 /* theme follows into the tools */
 document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('[data-act="theme"]'); if(a&&Maps.api) setTimeout(()=>{ try{ Maps.api.setTheme(UI.theme==='light'?'light':'dark'); }catch(_){} },0); });
 addEventListener('online',()=>Maps.retryPending());
+
+/* the view switch on the Jobs / Projects page: List (names + status) · Detailed · Cards (with maps & pictures) */
+function jobsLayoutSeg(){ const v=UI.jobsLayout||'list';
+  return `<div class="seg jlay" role="group" aria-label="View">${[['list','List','menu'],['wide','Detailed','text'],['cards','Cards','photo']].map(([k,l,ic])=>`<button data-act="jobs-layout" data-val="${k}" aria-pressed="${v===k}" title="${l}">${icon(ic)}<span>${l}</span></button>`).join('')}</div>`; }
 
 /* ---- fm-core.js ---- */
 /* =========================================================
