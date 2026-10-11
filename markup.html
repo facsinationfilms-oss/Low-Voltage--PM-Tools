@@ -917,6 +917,27 @@ html.phone .menu.as-sheet .menu-sep:last-of-type { display: none; }
 .pb-title em + .pb-set { margin-left: 8px; }
 .pb-tt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 430px) { .pb-title em { display: none; } }
+
+/* ===== pick-or-type boxes (device Manufacturer / Model #) ===== */
+.combo { position: relative; display: block; }
+.combo > .inp { padding-right: 40px; }
+.combo-btn { position: absolute; right: 1px; top: 1px; bottom: 1px; width: 38px; display: grid; place-items: center; border: 0; border-left: 1px solid var(--line); border-radius: 0 var(--r-sm) var(--r-sm) 0; background: transparent; color: var(--muted); cursor: pointer; }
+.combo-btn:hover { color: var(--text); background: var(--hover); }
+.combo-btn svg { width: 18px; height: 18px; }
+.combo-list { position: fixed; z-index: 1600; overflow-y: auto; overscroll-behavior: contain; padding: 5px; border-radius: 11px; background: var(--panel); border: 1px solid var(--line-2); box-shadow: var(--shadow); -webkit-overflow-scrolling: touch; }
+.combo-h { padding: 6px 9px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.combo-o { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 7px 9px; border: 0; border-radius: 7px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.combo-o:hover, .combo-o.on { background: var(--hover); }
+.combo-o.on { box-shadow: inset 3px 0 0 var(--accent); }
+.combo-n { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.combo-n b { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-n small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-r { flex: none; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-2); text-align: right; }
+.combo-r small { display: block; font-size: 10.5px; font-weight: 500; color: var(--warn); }
+.combo-empty, .combo-hint { padding: 8px 9px; font-size: 12px; color: var(--muted); }
+.combo-hint { border-top: 1px solid var(--line); margin-top: 4px; }
+html.phone .combo-o { min-height: 48px; }
+html.phone .combo-btn { width: 44px; }
 </style>
 </head>
 <body data-view="home">
@@ -1106,6 +1127,8 @@ const COMMON_FIELDS = {
     ['mountHeight', 'Mount height', 'text'],
     ['manufacturer', 'Manufacturer', 'text'],
     ['model', 'Model #', 'text'],
+    ['description', 'Description', 'text'],
+    ['msrp', 'MSRP ($)', 'number'],
     ['serial', 'Serial #', 'text'],
   ],
   cabling: [
@@ -5630,6 +5653,7 @@ const Side = {
       });
     });
     $('#sd-notes').addEventListener('input', e => { d.notes = e.target.value; touch(); });
+    DevCatUI.wire(this.el, d);
 
     // photos
     $('#sd-addph').onclick = async () => {
@@ -6055,6 +6079,208 @@ const Lightbox = {
     setTimeout(() => { el.hidden = true; }, 150);
     if (Side.mode === 'device') Side.renderDevice(true);
     if (Side.mode === 'layout') Side.renderLayout(true);
+  },
+};
+
+/* ---- 10a-combo.js ---- */
+/* ===== Pick-or-type boxes for a device's Manufacturer and Model # =====
+   The list shows the brands for that kind of device, then that brand's models. In the B&S Office Hub the lists come
+   from the team's device catalog (and anything new typed here is added to it); on its own the app suggests what's
+   already used in this project. */
+
+const CatSrc = {
+  hub() { return HUB && Hub.bridge && typeof Hub.bridge.catalogMfrs === 'function'; },
+  /* what this project already uses for a device type */
+  used(type) {
+    const out = [];
+    for (const pl of (App.project && App.project.plans) || []) for (const d of pl.devices || []) {
+      const f = d.fields || {};
+      if (d.type === type && String(f.manufacturer || '').trim()) out.push({ mfr: String(f.manufacturer).trim(), model: String(f.model || '').trim(), desc: f.description || '', msrp: +f.msrp || 0 });
+    }
+    return out;
+  },
+  key: s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''),
+  mfrs(type) {
+    const m = new Map();
+    for (const x of (this.hub() ? Hub.notify('catalogMfrs', type) || [] : [])) m.set(this.key(x.name), { name: x.name, n: x.n || 0 });
+    for (const u of this.used(type)) { const k = this.key(u.mfr); if (!m.has(k)) m.set(k, { name: u.mfr, n: 0 }); }
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  },
+  models(type, mfr) {
+    const m = new Map(), mk = this.key(mfr);
+    for (const x of (this.hub() ? Hub.notify('catalogModels', type, mfr) || [] : [])) m.set(this.key(x.mfr) + '|' + this.key(x.model), x);
+    for (const u of this.used(type)) {
+      if (!u.model || (mk && this.key(u.mfr) !== mk)) continue;
+      const k = this.key(u.mfr) + '|' + this.key(u.model);
+      if (!m.has(k)) m.set(k, { mfr: u.mfr, model: u.model, desc: u.desc, msrp: u.msrp, est: false });
+    }
+    return [...m.values()].sort((a, b) => a.mfr.localeCompare(b.mfr, undefined, { sensitivity: 'base' }) || a.model.localeCompare(b.model, undefined, { numeric: true, sensitivity: 'base' }));
+  },
+  find(type, mfr, model) {
+    if (!this.key(model)) return null;
+    const h = this.hub() ? Hub.notify('catalogFind', type, mfr, model) : null;
+    if (h) return h;
+    return this.models(type, mfr).find(x => this.key(x.model) === this.key(model) && (!this.key(mfr) || this.key(x.mfr) === this.key(mfr))) || null;
+  },
+  add(e) { if (this.hub()) return Hub.notify('catalogAdd', e); },
+};
+
+const Combo = {
+  cur: null,
+  money: v => v ? '$' + (+v).toLocaleString(undefined, { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '',
+  /* turn a text box into pick-or-type: items() → [{value, label, sub, right, data}] */
+  attach(inp, { title, items, onPick, hint }) {
+    if (!inp || inp.dataset.combo) return;
+    inp.dataset.combo = '1';
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('autocorrect', 'off');
+    inp.setAttribute('autocapitalize', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    const wrap = document.createElement('span');
+    wrap.className = 'combo';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'combo-btn'; btn.tabIndex = -1;
+    btn.setAttribute('aria-label', 'Show the list');
+    btn.innerHTML = ic('ChevronDown');
+    wrap.appendChild(btn);
+    const c = { inp, wrap, btn, title, items, onPick, hint, filter: false };
+    inp._combo = c;
+    btn.addEventListener('pointerdown', e => e.preventDefault());   // keep the keyboard closed on phones
+    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (this.cur && this.cur.c === c) this.close(); else this.open(c, false); });
+    inp.addEventListener('focus', () => { if (!Device.touch) this.open(c, false); });
+    inp.addEventListener('input', () => { if (inp.dataset.picking) return; this.open(c, true); });
+    inp.addEventListener('keydown', e => {
+      const L = this.cur && this.cur.c === c ? this.cur : null;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!L) { this.open(c, false); return; }
+        const n = L.opts.length; if (!n) return;
+        L.i = (L.i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; this.mark();
+      } else if (e.key === 'Enter') {
+        if (L && L.i >= 0 && L.opts[L.i]) { e.preventDefault(); this.pick(L.opts[L.i]); }
+        else { this.close(); inp.blur(); }
+      } else if (e.key === 'Escape' && L) { e.stopPropagation(); this.close(); }
+      else if (e.key === 'Tab') this.close();
+    });
+    inp.addEventListener('blur', () => setTimeout(() => { if (this.cur && this.cur.c === c && document.activeElement !== inp && !this.cur.el.matches(':hover')) this.close(); }, 150));
+  },
+  open(c, filter) {
+    if (this.cur && this.cur.c !== c) this.close();
+    let L = this.cur;
+    if (!L) {
+      const el = document.createElement('div');
+      el.className = 'combo-list';
+      el.setAttribute('role', 'listbox');
+      document.body.appendChild(el);
+      el.addEventListener('pointerdown', e => e.preventDefault());
+      el.addEventListener('click', e => { const b = e.target.closest('.combo-o'); if (b) this.pick(L.opts[+b.dataset.i]); });
+      const reflow = () => this.place();
+      L = this.cur = { c, el, i: -1, opts: [], reflow };
+      window.addEventListener('resize', reflow);
+      if (window.visualViewport) { visualViewport.addEventListener('resize', reflow); visualViewport.addEventListener('scroll', reflow); }
+      document.addEventListener('scroll', reflow, true);
+      setTimeout(() => document.addEventListener('pointerdown', this.outside = e => { if (!L.el.contains(e.target) && !c.wrap.contains(e.target)) this.close(); }, true), 0);
+    }
+    L.filter = filter;
+    this.draw();
+  },
+  draw() {
+    const L = this.cur; if (!L) return;
+    const c = L.c, q = CatSrc.key(c.inp.value);
+    let all = c.items() || [];
+    const exact = all.some(o => CatSrc.key(o.value) === q);
+    const list = L.filter && q && !exact ? all.filter(o => CatSrc.key(o.value + ' ' + (o.sub || '')).includes(q)) : all;
+    L.opts = list.slice(0, 200);
+    L.i = L.opts.findIndex(o => CatSrc.key(o.value) === q && q);
+    const head = typeof c.title === 'function' ? c.title() : c.title;
+    const hint = typeof c.hint === 'function' ? c.hint(q, exact) : '';
+    L.el.innerHTML = `${head ? `<div class="combo-h">${esc(head)}</div>` : ''}${L.opts.map((o, i) => `<button type="button" class="combo-o ${i === L.i ? 'on' : ''}" role="option" data-i="${i}"><span class="combo-n"><b>${esc(o.label || o.value)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>${o.right ? `<span class="combo-r">${o.right}</span>` : ''}</button>`).join('')}${!L.opts.length ? `<div class="combo-empty">${all.length ? 'Nothing matches — keep typing to add a new one.' : 'Nothing saved yet — type it in.'}</div>` : ''}${hint ? `<div class="combo-hint">${hint}</div>` : ''}`;
+    this.place();
+  },
+  mark() { const L = this.cur; $$('.combo-o', L.el).forEach((b, i) => b.classList.toggle('on', i === L.i)); const b = $('.combo-o.on', L.el); if (b) b.scrollIntoView({ block: 'nearest' }); },
+  place() {
+    const L = this.cur; if (!L) return;
+    if (!L.c.inp.isConnected) { this.close(); return; }
+    const r = L.c.wrap.getBoundingClientRect();
+    const vv = window.visualViewport;
+    const vTop = vv ? vv.offsetTop : 0, vH = vv ? vv.height : innerHeight, vW = innerWidth;
+    const below = vTop + vH - r.bottom - 8, above = r.top - vTop - 8;
+    const w = Math.min(vW - 16, Math.max(r.width, 260));
+    const left = Math.max(8, Math.min(r.left, vW - w - 8));
+    const up = below < 200 && above > below;
+    const maxH = Math.max(120, Math.min(340, up ? above : below));
+    Object.assign(L.el.style, { left: left + 'px', width: w + 'px', maxHeight: maxH + 'px', top: up ? '' : (r.bottom + 4) + 'px', bottom: up ? (innerHeight - r.top + 4) + 'px' : '' });
+  },
+  pick(o) {
+    const L = this.cur; if (!L || !o) return;
+    const c = L.c;
+    this.close();
+    c.inp.dataset.picking = '1';
+    c.inp.value = o.value;
+    c.inp.dispatchEvent(new Event('input', { bubbles: true }));
+    delete c.inp.dataset.picking;
+    c.onPick && c.onPick(o);
+    c.inp.dispatchEvent(new Event('change', { bubbles: true }));
+    if (Device.touch) c.inp.blur();
+  },
+  close() {
+    const L = this.cur; if (!L) return;
+    this.cur = null;
+    L.el.remove();
+    window.removeEventListener('resize', L.reflow);
+    if (window.visualViewport) { visualViewport.removeEventListener('resize', L.reflow); visualViewport.removeEventListener('scroll', L.reflow); }
+    document.removeEventListener('scroll', L.reflow, true);
+    if (this.outside) document.removeEventListener('pointerdown', this.outside, true);
+  },
+};
+
+/* the device panel: Manufacturer → Model # → Description + MSRP */
+const DevCatUI = {
+  wire(root, d) {
+    const mfr = $('#f-manufacturer', root), model = $('#f-model', root), desc = $('#f-description', root), msrp = $('#f-msrp', root);
+    if (!mfr || !model) return;
+    if (msrp) msrp.setAttribute('inputmode', 'decimal');
+    const tname = () => (Reg.type(d.type) || {}).name || 'this device';
+    const hub = CatSrc.hub();
+    const set = (inp, v) => { if (!inp) return; inp.value = v == null ? '' : v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
+    Combo.attach(mfr, {
+      title: () => `Brands for ${tname()}`,
+      items: () => CatSrc.mfrs(d.type).map(b => ({ value: b.name, sub: b.n ? `${b.n} model${b.n === 1 ? '' : 's'}` : '' })),
+      hint: (q, exact) => hub && q && !exact ? `New brand? Keep typing — it’s saved for next time.` : '',
+      onPick: () => {
+        // a model that belonged to the old brand doesn't go with the new one
+        const m = model.value.trim();
+        if (m && !CatSrc.find(d.type, mfr.value, m) && CatSrc.find(d.type, '', m)) { set(model, ''); set(desc, ''); set(msrp, ''); }
+        setTimeout(() => { if (!model.value.trim()) { if (!model.isConnected) return; if (Device.touch) Combo.open(model._combo, false); else model.focus(); } }, 60);
+      },
+    });
+    Combo.attach(model, {
+      title: () => mfr.value.trim() ? `${mfr.value.trim()} models` : `Models for ${tname()}`,
+      items: () => CatSrc.models(d.type, mfr.value.trim()).map(x => ({ value: x.model, sub: mfr.value.trim() ? x.desc : [x.mfr, x.desc].filter(Boolean).join(' · '), right: x.msrp ? `${Combo.money(x.msrp)}${x.est ? '<small>est.</small>' : ''}` : '', data: x })),
+      hint: (q, exact) => hub && q && !exact ? `New model? Keep typing — it’s saved to the catalog.` : '',
+      onPick: o => {
+        const x = o.data || {};
+        if (x.mfr && CatSrc.key(x.mfr) !== CatSrc.key(mfr.value)) set(mfr, x.mfr);
+        if (x.desc) set(desc, x.desc);
+        if (x.msrp) set(msrp, x.msrp);
+      },
+    });
+    // typed (not picked): fill in what the catalog knows
+    model.addEventListener('change', () => {
+      const x = CatSrc.find(d.type, mfr.value, model.value);
+      if (!x) return;
+      if (desc && !desc.value.trim() && x.desc) set(desc, x.desc);
+      if (msrp && !msrp.value.trim() && x.msrp) set(msrp, x.msrp);
+    });
+    // keep anything new for next time
+    let t = 0;
+    const save = () => { clearTimeout(t); t = setTimeout(() => {
+      const f = d.fields || {};
+      if (String(f.manufacturer || '').trim()) CatSrc.add({ cat: d.type, mfr: f.manufacturer, model: f.model || '', desc: f.description || '', msrp: +f.msrp || 0 });
+    }, 700); };
+    for (const el of [mfr, model, desc, msrp]) if (el) el.addEventListener('change', save);
   },
 };
 
@@ -9473,7 +9699,7 @@ if (HUB) {
         return {
           id: pl.id, name: pl.name || 'Plan', scaled: !!ppf,
           devices: pl.devices.map(d => { const t = HubField.typeOf(p, d.type); const s = HubField.sysOf(p, t.system);
-            return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '' }; }),
+            return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0 }; }),
           cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
             const n = Math.max(1, m.count || 1);
             const ft = ppf ? Math.round((polyLength(m.points) / ppf + (m.extraFt || 0)) * n) : null;
