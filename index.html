@@ -11393,7 +11393,7 @@ function closeTopOverlay(){
     case 'chat': if(Chat.pickOpen||Chat.conv){ Chat.pickOpen=false; Chat.conv=null; Chat.draw(); } else Chat.close(); break;
     case 'detail': closeDetail(); break;
     case 'nav': document.body.classList.remove('nav-open'); break;
-    case 'tool': { const d=toolFrameDoc(); if(d.querySelector('.modal-back')){ const x=d.querySelector('.modal-back .modal-x,.modal-back [data-close],.modal-back .modal-head .icon-btn'); if(x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } else if(toolSideOpen(d)){ d.getElementById('sd-close').click(); } else if(d.querySelector('#pbar:not([hidden])')){ d.querySelector('#pbar .pb-back').click(); } else { const h=d.getElementById('ed-home'); h&&h.click(); } break; }
+    case 'tool': { const d=toolFrameDoc(); if(d.querySelector('.modal-back')){ const x=d.querySelector('.modal-back .modal-x,.modal-back [data-close],.modal-back .modal-head .icon-btn'); if(x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); } else if(d.querySelector('#overview:not([hidden])')){ d.getElementById('ov-close').click(); } else if(toolSideOpen(d)){ d.getElementById('sd-close').click(); } else if(d.querySelector('#pbar:not([hidden])')){ d.querySelector('#pbar .pb-back').click(); } else { const h=d.getElementById('ed-home'); h&&h.click(); } break; }
   }
   setTimeout(renderBackBtn,50);
   return true;

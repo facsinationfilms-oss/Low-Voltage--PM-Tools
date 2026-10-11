@@ -938,6 +938,64 @@ html.phone .menu.as-sheet .menu-sep:last-of-type { display: none; }
 .combo-hint { border-top: 1px solid var(--line); margin-top: 4px; }
 html.phone .combo-o { min-height: 48px; }
 html.phone .combo-btn { width: 44px; }
+
+/* ===== Overview (fill in many devices at once) ===== */
+.ov-screen { position: fixed; inset: 0; z-index: 900; display: flex; flex-direction: column; background: var(--bg); color: var(--text); }
+.ov-screen[hidden] { display: none; }
+.ov-head { flex: none; display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.ov-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ov-title b { font-size: 17px; } .ov-title small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-head .inp.sm { width: auto; max-width: 180px; height: 34px; }
+.ov-body { flex: 1; overflow-y: auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+.ov-body > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.ov-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.ov-tiles > div { padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.ov-tiles span { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.ov-tiles b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.ov-tiles small { font-size: 11.5px; color: var(--muted); }
+.ov-tiles .warn b { color: var(--warn); } .ov-tiles .ok b { color: var(--ok); }
+.ov-tip { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); margin: 0 auto 12px; }
+.ov-tip svg { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.ov-empty { padding: 30px 16px; text-align: center; color: var(--muted); }
+.ov-sec { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+.ov-sec-h { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.ov-sec-h b { font-size: 15.5px; }
+.ov-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
+.ov-n { color: var(--muted); font-size: 13px; flex: 1; }
+.ov-todo { font-size: 11.5px; font-weight: 700; color: var(--warn); background: var(--warn-soft); padding: 2px 8px; border-radius: 99px; }
+.ov-ok { font-size: 11.5px; font-weight: 700; color: var(--ok); display: inline-flex; gap: 3px; align-items: center; } .ov-ok svg { width: 13px; height: 13px; }
+.ov-sec-h .chev { width: 18px; height: 18px; color: var(--muted); transition: transform .15s; transform: rotate(-90deg); }
+.ov-sec.open .ov-sec-h .chev { transform: none; }
+.ov-sec-b { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
+.ov-g { border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 10px; padding: 10px 12px; background: var(--bg-2); }
+.ov-g.todo { border-left-color: var(--warn); }
+.ov-g-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ov-ico { flex: none; }
+.ov-g-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ov-g-t b { font-size: 14.5px; } .ov-x { color: var(--muted); font-weight: 600; }
+.ov-g-t small { font-size: 12px; color: var(--muted); }
+.ov-g.set .ov-g-t small { color: var(--text-2); font-weight: 600; }
+.ov-g-p { flex: none; text-align: right; display: flex; flex-direction: column; }
+.ov-g-p b { font-variant-numeric: tabular-nums; } .ov-g-p small { font-size: 11px; color: var(--muted); }
+.ov-fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.ov-fields .fld { margin: 0; } .ov-fields .fld > span { font-size: 11.5px; }
+.ov-devs-t { display: flex; align-items: center; gap: 6px; margin-top: 8px; width: 100%; padding: 4px 0; border: 0; background: transparent; color: var(--accent-text, var(--accent)); text-align: left; cursor: pointer; font-size: 12.5px; font-weight: 600; }
+.ov-devs-t small { color: var(--muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.ov-devs-t .chev { width: 15px; height: 15px; flex: none; transition: transform .15s; } .ov-devs-t[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.ov-devs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ov-dev { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel); color: var(--text); cursor: pointer; }
+.ov-dev small { color: var(--muted); font-size: 11.5px; } .ov-dev svg { width: 14px; height: 14px; color: var(--muted); }
+.ov-rooms { display: flex; flex-wrap: wrap; gap: 6px; } .ov-rooms span { padding: 3px 9px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); font-size: 12.5px; }
+.ov-lrows { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 16px; }
+.ov-lr { display: flex; justify-content: space-between; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+@media (max-width: 900px) { .ov-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html.phone #ed-overview span { display: none; }
+html.phone .ov-head #ov-quote span { display: none; }
+html.phone .ov-body { padding: 12px 10px calc(40px + env(safe-area-inset-bottom)); }
+.ov-short { display: none; } .ov-todo, .ov-ok { white-space: nowrap; }
+.ov-todo { font-size: 11.5px; }
+html.phone .ov-long { display: none; } html.phone .ov-short { display: inline; }
+html.phone .ov-sec-h { gap: 8px; }
 </style>
 </head>
 <body data-view="home">
@@ -1009,6 +1067,7 @@ html.phone .combo-btn { width: 44px; }
       <button class="icon-btn" id="ed-redo" title="Redo (Ctrl+Y)"><i data-ic="ArrowForwardUp"></i></button>
     </div>
     <div class="ed-right">
+      <button class="btn ghost" id="ed-overview" title="Overview: fill in make, model and cable for many devices at once"><i data-ic="ClipboardList"></i><span>Overview</span></button>
       <button class="btn ghost" id="ed-devices" title="Device list (Ctrl+L)"><i data-ic="ListDetails"></i><span>Devices</span></button>
       <button class="btn ghost hub-only" id="ed-quote" title="Estimate the time and cost, and make a quote"><i data-ic="Report"></i><span>Make quote</span></button>
       <button class="btn ghost" id="ed-export"><i data-ic="FileExport"></i><span>Export</span></button>
@@ -3407,6 +3466,7 @@ const Editor = {
     $('#ed-redo').onclick = () => this.doRedo();
     $('#ed-devices').onclick = () => Side.toggleList();
     $('#ed-export').onclick = (e) => this.exportMenu(e.currentTarget);
+    $('#ed-overview').onclick = () => Overview.show();
     $('#ed-quote').onclick = () => { if (!App.project) return; App.writeDraftNow && App.writeDraftNow(); Hub.notify('makeQuote', App.project.id); };
     $('#ed-more').onclick = (e) => this.moreMenu(e.currentTarget);
     const nameInp = $('#ed-name');
@@ -9502,6 +9562,255 @@ const PBar = {
   },
   flash(id) { requestAnimationFrame(() => { const g = $(`[data-dev="${CSS.escape(id)}"]`); if (g) { g.classList.add('pb-new'); setTimeout(() => g.classList.remove('pb-new'), 900); } }); },
 };
+
+/* ---- 17b-overview.js ---- */
+/* ===== Overview: everything on the project at a glance, and fill in many devices at once =====
+   Sections per system (Alarm, Access, Video…), each listing its kinds of device grouped by make & model.
+   Fill in Manufacturer, Model #, cable, length, mount height or status on a group and every device in it gets it.
+   Plus the layout (rooms, walls, doors, windows…) and totals. */
+
+const Overview = {
+  el: null,
+  plan: 'all',          // 'all' or a plan id
+  open: {},             // which sections are open (system id → bool)
+  shown: {},            // which groups show their device list
+
+  plans() { const p = App.project; return p ? (this.plan === 'all' ? p.plans : p.plans.filter(pl => pl.id === this.plan)) : []; },
+  devices() { const out = []; for (const pl of this.plans()) for (const d of pl.devices || []) out.push({ d, pl }); return out; },
+  key: s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''),
+  money: v => v ? '$' + (+v).toLocaleString(undefined, { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '',
+
+  show() {
+    if (!App.project) return;
+    if (this.plan !== 'all' && !App.project.plans.some(p => p.id === this.plan)) this.plan = 'all';
+    if (!this.el) {
+      this.el = document.createElement('div');
+      this.el.className = 'ov-screen';
+      this.el.id = 'overview';
+      this.el.setAttribute('role', 'dialog');
+      this.el.setAttribute('aria-label', 'Project overview');
+      document.body.appendChild(this.el);
+    }
+    this.render();
+    this.el.hidden = false;
+    document.documentElement.classList.add('ov-open');
+  },
+  close() {
+    Combo.close();
+    if (this.el) this.el.hidden = true;
+    document.documentElement.classList.remove('ov-open');
+    try { MapView.renderDevs(); Side.refresh(); } catch (e) {}
+  },
+  isOpen() { return !!(this.el && !this.el.hidden); },
+
+  /* groups: per kind of device, per make + model */
+  groups() {
+    const bySys = new Map();
+    for (const { d, pl } of this.devices()) {
+      const t = Reg.type(d.type); const f = d.fields || {};
+      const sys = t.system || 'other';
+      if (!bySys.has(sys)) bySys.set(sys, new Map());
+      const k = d.type + '|' + this.key(f.manufacturer) + '|' + this.key(f.model);
+      const types = bySys.get(sys);
+      let g = types.get(k);
+      if (!g) { g = { key: k, type: t, mfr: String(f.manufacturer || '').trim(), model: String(f.model || '').trim(), items: [] }; types.set(k, g); }
+      g.items.push({ d, pl });
+    }
+    const order = Reg.systemList().map(s => s.id);
+    return [...bySys.entries()].sort((a, b) => (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99)).map(([sys, m]) => {
+      const gs = [...m.values()].sort((a, b) => a.type.name.localeCompare(b.type.name) || (!a.model) - (!b.model) || a.mfr.localeCompare(b.mfr) || a.model.localeCompare(b.model, undefined, { numeric: true }));
+      return { sys: Reg.system(sys) || { id: sys, name: sys, color: '#64748b' }, groups: gs };
+    });
+  },
+  common(items, k) { const vals = new Set(items.map(x => String((x.d.fields || {})[k] ?? ''))); return vals.size === 1 ? [...vals][0] : null; },
+  unitPrice(g) {
+    const m = this.common(g.items, 'msrp'); if (m && +m) return +m;
+    const x = g.model ? CatSrc.find(g.type.id, g.mfr, g.model) : null; return x && x.msrp ? +x.msrp : 0;
+  },
+
+  render() {
+    const p = App.project; if (!p || !this.el) return;
+    const sysList = this.groups();
+    const tiles = this.tilesHtml(sysList);
+    const planOpts = p.plans.length > 1 ? `<select class="inp sm" id="ov-plan" aria-label="Plan"><option value="all">All plans (${p.plans.length})</option>${p.plans.map(pl => `<option value="${pl.id}" ${this.plan === pl.id ? 'selected' : ''}>${esc(pl.name || 'Plan')}</option>`).join('')}</select>` : '';
+    const sections = sysList.map(({ sys, groups }) => {
+      const n = groups.reduce((a, g) => a + g.items.length, 0);
+      const open = this.open[sys.id] !== false;
+      const todo = groups.filter(g => !g.model).reduce((a, g) => a + g.items.length, 0);
+      return `<section class="ov-sec ${open ? 'open' : ''}" data-sys="${esc(sys.id)}" style="--c:${sys.color}">
+        <button class="ov-sec-h" data-ov="sec" aria-expanded="${open}"><span class="ov-dot"></span><b class="ov-long">${esc(sys.name)}</b><b class="ov-short">${esc(sys.short || sys.name)}</b><span class="ov-n">${n} device${n === 1 ? '' : 's'}</span>${todo ? `<span class="ov-todo">${todo} <span class="ov-long">need a model</span><span class="ov-short">to fill in</span></span>` : `<span class="ov-ok">${ic('Check')}ready</span>`}${ic('ChevronDown', 'chev')}</button>
+        ${open ? `<div class="ov-sec-b">${groups.map(g => this.groupHtml(g)).join('')}</div>` : ''}</section>`;
+    }).join('');
+    const lay = this.layoutHtml();
+    this.el.innerHTML = `<div class="ov-head">
+        <button class="icon-btn" id="ov-close" title="Back to the map" aria-label="Back to the map">${ic('ArrowLeft')}</button>
+        <div class="ov-title"><b>Overview</b><small>${esc(p.name)}</small></div>
+        ${planOpts}
+        ${HUB ? `<button class="btn primary hub-only" id="ov-quote">${ic('Report')}<span>Make quote</span></button>` : ''}
+      </div>
+      <div class="ov-body">
+        ${tiles}
+        <p class="ov-tip">${ic('InfoCircle')}Each line is one kind of device with the same make &amp; model. Fill it in once — every device on the line gets it. Pick a model and its description and price come along.</p>
+        ${sections || `<div class="ov-empty">No devices on ${this.plan === 'all' ? 'this project' : 'this plan'} yet. Add some on the map, then come back here to fill in their make, model and cable at once.</div>`}
+        ${lay}
+      </div>`;
+    this.wire();
+  },
+
+  tilesHtml(sysList = this.groups()) {
+    const devs = this.devices();
+    const withModel = devs.filter(x => String((x.d.fields || {}).model || '').trim()).length;
+    let msrp = 0, priced = 0;
+    for (const s of sysList) for (const g of s.groups) { const u = this.unitPrice(g); if (u) { msrp += u * g.items.length; priced += g.items.length; } }
+    // cable: drawn runs (feet need the plan scale) + the cable length typed on devices
+    const cab = new Map(); let unscaled = 0;
+    for (const pl of this.plans()) {
+      const ppf = pl.scale && pl.scale.pxPerFt;
+      for (const m of pl.markups || []) {
+        if (m.kind !== 'cable' || !m.points || m.points.length < 2) continue;
+        if (!ppf) { unscaled++; continue; }
+        const ft = (polyLength(m.points) / ppf + (m.extraFt || 0)) * Math.max(1, m.count || 1);
+        const t = m.cableType || 'No type'; cab.set(t, (cab.get(t) || 0) + ft);
+      }
+      for (const d of pl.devices || []) { const f = d.fields || {}; if (+f.cableLength > 0) { const t = f.cableType || 'No type'; cab.set(t, (cab.get(t) || 0) + +f.cableLength); } }
+    }
+    return `<div class="ov-tiles">
+        <div><span>Devices</span><b>${devs.length}</b><small>${sysList.length} system${sysList.length === 1 ? '' : 's'}</small></div>
+        <div class="${withModel < devs.length ? 'warn' : 'ok'}"><span>Make &amp; model set</span><b>${withModel}/${devs.length}</b><small>${devs.length - withModel ? `${devs.length - withModel} still to fill in` : 'all done'}</small></div>
+        <div><span>Equipment (MSRP)</span><b>${msrp ? this.money(Math.round(msrp)) : '—'}</b><small>${priced < devs.length ? `${devs.length - priced} without a price` : 'every device priced'}</small></div>
+        <div><span>Cable</span><b>${cab.size ? Math.round([...cab.values()].reduce((a, b) => a + b, 0)).toLocaleString() + ' ft' : '—'}</b><small>${cab.size ? [...cab.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, f]) => `${esc(t)} ${Math.round(f).toLocaleString()}`).join(' · ') : unscaled ? 'set the plan scale to measure runs' : 'none drawn or typed yet'}</small></div>
+      </div>`;
+  },
+
+  groupHtml(g) {
+    const n = g.items.length;
+    const f = k => this.common(g.items, k);
+    const unit = this.unitPrice(g);
+    const shown = !!this.shown[g.key];
+    const names = g.items.map(x => x.d.label || g.type.prefix || 'Device');
+    const id = 'ovg-' + cssId(g.key);
+    const cableOpts = ['', ...CABLE_TYPES].map(c => `<option value="${esc(c)}" ${f('cableType') === c ? 'selected' : ''}>${c || (f('cableType') === null ? '— mixed —' : '')}</option>`).join('');
+    const sts = new Set(g.items.map(x => x.d.status || 'planned')); const stVal = sts.size === 1 ? [...sts][0] : null;
+    return `<div class="ov-g ${g.model ? 'set' : 'todo'}" data-g="${esc(g.key)}" id="${id}">
+      <div class="ov-g-h">
+        <span class="ov-ico">${typeIconHtml(g.type, 34)}</span>
+        <span class="ov-g-t"><b>${esc(g.type.name)} <span class="ov-x">× ${n}</span></b><small class="ov-g-mm">${g.model ? esc([g.mfr, g.model].filter(Boolean).join(' ')) : g.mfr ? esc(g.mfr) + ' · no model yet' : 'No make or model yet'}</small></span>
+        <span class="ov-g-p">${unit ? `<b>${this.money(unit * n)}</b><small>${this.money(unit)} each</small>` : ''}</span>
+      </div>
+      <div class="ov-fields">
+        <label class="fld"><span>Manufacturer</span><input class="inp" data-ovf="manufacturer" value="${esc(f('manufacturer') ?? '')}" placeholder="${f('manufacturer') === null ? 'Mixed — type to set all' : 'Pick or type'}"></label>
+        <label class="fld"><span>Model #</span><input class="inp" data-ovf="model" value="${esc(f('model') ?? '')}" placeholder="${f('model') === null ? 'Mixed — type to set all' : 'Pick or type'}"></label>
+        <label class="fld"><span>Cable type</span><select class="inp" data-ovf="cableType">${cableOpts}</select></label>
+        <label class="fld"><span>Cable length each (ft)</span><input class="inp" data-ovf="cableLength" type="number" step="any" inputmode="decimal" value="${esc(f('cableLength') ?? '')}" placeholder="${f('cableLength') === null ? 'Mixed' : ''}"></label>
+        <label class="fld"><span>Mount height</span><input class="inp" data-ovf="mountHeight" value="${esc(f('mountHeight') ?? '')}" placeholder="${f('mountHeight') === null ? 'Mixed' : 'e.g. 9 ft'}"></label>
+        <label class="fld"><span>Status</span><select class="inp" data-ovs="status">${stVal === null ? '<option value="">— mixed —</option>' : ''}${STATUSES.map(s => `<option value="${s.id}" ${stVal === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
+      </div>
+      <button class="ov-devs-t" data-ov="devs" aria-expanded="${shown}">${ic('ChevronRight', 'chev')}<span>${shown ? 'Hide' : 'Show'} the ${n} device${n === 1 ? '' : 's'}</span><small>${esc(names.slice(0, 6).join(', '))}${n > 6 ? '…' : ''}</small></button>
+      ${shown ? `<div class="ov-devs">${g.items.map(({ d, pl }) => `<button class="ov-dev" data-dev="${d.id}" data-plan="${pl.id}" title="Show it on the map"><b>${esc(d.label || 'Device')}</b><small>${esc([(d.fields || {}).location, this.plan === 'all' && App.project.plans.length > 1 ? pl.name : ''].filter(Boolean).join(' · ') || 'No location')}</small>${ic('Crosshair')}</button>`).join('')}</div>` : ''}
+    </div>`;
+  },
+
+  layoutHtml() {
+    const rows = [], rooms = [];
+    let wallFt = 0, hasWalls = false;
+    const counts = new Map();
+    for (const pl of this.plans()) {
+      if (!Layout.is(pl)) continue;
+      const L = pl.layout; const ppf = pl.scale && pl.scale.pxPerFt;
+      for (const w of L.walls || []) { hasWalls = true; if (ppf) wallFt += dist(w.a, w.b) / ppf; }
+      for (const r of L.rooms || []) rooms.push(r.name || 'Room');
+      for (const x of [...(L.openings || []), ...(L.items || [])]) { const c = LAYOUT_BY_ID[x.type]; const nm = c ? c[2] : x.type; counts.set(nm, (counts.get(nm) || 0) + 1); }
+    }
+    if (!hasWalls && !rooms.length && !counts.size) return '';
+    for (const [nm, n] of [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))) rows.push(`<div class="ov-lr"><span>${esc(nm)}</span><b>${n}</b></div>`);
+    const open = this.open.__layout !== false;
+    return `<section class="ov-sec ov-lay ${open ? 'open' : ''}" data-sys="__layout" style="--c:#475569">
+      <button class="ov-sec-h" data-ov="sec" aria-expanded="${open}"><span class="ov-dot"></span><b>Layout</b><span class="ov-n">${rooms.length} room${rooms.length === 1 ? '' : 's'}${wallFt ? ` · ${Math.round(wallFt).toLocaleString()} ft of wall` : ''}</span>${ic('ChevronDown', 'chev')}</button>
+      ${open ? `<div class="ov-sec-b">${rooms.length ? `<div class="ov-rooms">${rooms.map(r => `<span>${esc(r)}</span>`).join('')}</div>` : ''}${rows.length ? `<div class="ov-lrows">${rows.join('')}</div>` : ''}</div>` : ''}</section>`;
+  },
+
+  /* apply one field to every device in a group */
+  apply(g, k, v, { status = false } = {}) {
+    for (const { d } of g.items) {
+      if (status) { d.status = v; }
+      else { d.fields = d.fields || {}; if (v === '' || v == null) delete d.fields[k]; else d.fields[k] = v; }
+      d.updatedAt = Date.now();
+    }
+    Editor.changed({ commit: 'now' });
+  },
+
+  wire() {
+    const el = this.el;
+    $('#ov-close', el).onclick = () => this.close();
+    if ($('#ov-quote', el)) $('#ov-quote', el).onclick = () => { App.writeDraftNow && App.writeDraftNow(); Hub.notify('makeQuote', App.project.id); };
+    if ($('#ov-plan', el)) $('#ov-plan', el).onchange = e => { this.plan = e.target.value; this.render(); };
+    $$('[data-ov="sec"]', el).forEach(b => b.onclick = () => { const s = b.closest('.ov-sec').dataset.sys; this.open[s] = this.open[s] === false; this.render(); });
+    const all = this.groups().flatMap(s => s.groups);
+    const byKey = new Map(all.map(g => [g.key, g]));
+    $$('.ov-g', el).forEach(box => {
+      const g = byKey.get(box.dataset.g); if (!g) return;
+      const t = g.type;
+      box.querySelector('[data-ov="devs"]').onclick = () => { this.shown[g.key] = !this.shown[g.key]; this.render(); };
+      $$('.ov-dev', box).forEach(b => b.onclick = () => this.goTo(b.dataset.plan, b.dataset.dev));
+      const mfr = box.querySelector('[data-ovf="manufacturer"]'), model = box.querySelector('[data-ovf="model"]');
+      const refreshHead = () => {
+        const mm = box.querySelector('.ov-g-mm'); const m = model.value.trim(), b = mfr.value.trim();
+        if (mm) mm.textContent = m ? [b, m].filter(Boolean).join(' ') : b ? b + ' · no model yet' : 'No make or model yet';
+        const u = this.unitPrice(g); const p = box.querySelector('.ov-g-p'); if (p) p.innerHTML = u ? `<b>${this.money(u * g.items.length)}</b><small>${this.money(u)} each</small>` : '';
+        box.classList.toggle('set', !!m); box.classList.toggle('todo', !m);
+      };
+      // text and number fields: typed values go to every device when you leave the box
+      $$('[data-ovf]', box).forEach(inp => {
+        const k = inp.dataset.ovf;
+        inp.addEventListener('change', () => {
+          let v = inp.value.trim();
+          if (inp.type === 'number' && v !== '') v = Number(v);
+          if (inp.tagName === 'SELECT' && v === '' && this.common(g.items, k) === null) return;   // "mixed" left alone
+          if (v === '' && inp.placeholder.startsWith('Mixed')) return;
+          this.apply(g, k, v);
+          if (k === 'model' || k === 'manufacturer') {
+            const x = CatSrc.find(t.id, mfr.value, model.value);
+            if (x) { if (x.desc) this.apply(g, 'description', x.desc); if (x.msrp) this.apply(g, 'msrp', +x.msrp); }
+            if (mfr.value.trim()) CatSrc.add({ cat: t.id, mfr: mfr.value.trim(), model: model.value.trim(), desc: x ? x.desc : '', msrp: x ? x.msrp : 0 });
+          }
+          refreshHead(); this.renderTiles();
+        });
+      });
+      box.querySelector('[data-ovs="status"]').addEventListener('change', e => { if (e.target.value) { this.apply(g, 'status', e.target.value, { status: true }); this.renderTiles(); } });
+      // pick-or-type lists, the same as on a single device
+      const hub = CatSrc.hub();
+      Combo.attach(mfr, {
+        title: () => `Brands for ${t.name}`,
+        items: () => CatSrc.mfrs(t.id).map(b => ({ value: b.name, sub: b.n ? `${b.n} model${b.n === 1 ? '' : 's'}` : '' })),
+        hint: (q, exact) => hub && q && !exact ? 'New brand? Keep typing — it’s saved for next time.' : '',
+        onPick: () => { setTimeout(() => { if (!model.value.trim() && model.isConnected) { if (Device.touch) Combo.open(model._combo, false); else model.focus(); } }, 60); },
+      });
+      Combo.attach(model, {
+        title: () => mfr.value.trim() ? `${mfr.value.trim()} models` : `Models for ${t.name}`,
+        items: () => CatSrc.models(t.id, mfr.value.trim()).map(x => ({ value: x.model, sub: mfr.value.trim() ? x.desc : [x.mfr, x.desc].filter(Boolean).join(' · '), right: x.msrp ? `${Combo.money(x.msrp)}${x.est ? '<small>est.</small>' : ''}` : '', data: x })),
+        hint: (q, exact) => hub && q && !exact ? 'New model? Keep typing — it’s saved to the catalog.' : '',
+        onPick: o => { const x = o.data || {}; if (x.mfr && CatSrc.key(x.mfr) !== CatSrc.key(mfr.value)) { mfr.value = x.mfr; mfr.dispatchEvent(new Event('change', { bubbles: true })); } },
+      });
+    });
+  },
+  renderTiles() {
+    const t = this.el && this.el.querySelector('.ov-tiles'); if (!t) return;
+    t.outerHTML = this.tilesHtml();
+  },
+  goTo(planId, devId) {
+    this.close();
+    if (Editor.plan && Editor.plan.id !== planId) Editor.switchPlan(planId);
+    const d = Editor.findItem(devId); if (!d) return;
+    MapView.sel = new Set([devId]); MapView.renderSelState();
+    MapView.centerOn(d.x, d.y, MapView.fitK() * 2.5);
+    Side.showDevice(devId);
+  },
+};
+/* undo / redo put back older copies of the plans: rebuild the Overview so it edits the current ones */
+for (const fn of ['doUndo', 'doRedo']) {
+  const base = Editor[fn];
+  if (typeof base === 'function') Editor[fn] = function (...a) { const r = base.apply(this, a); if (Overview.isOpen()) Overview.render(); return r; };
+}
 
 /* ---- 18-install.js ---- */
 /* ===== Install as an app (phones, tablets, computers) + offline support + opening .bsmap files ===== */
