@@ -7172,7 +7172,7 @@ Object.assign(IC,{invoice:'<path d="M6 3.5h12a.5.5 0 0 1 .5.5v16.5l-2.2-1.4-2.1 
 NAV.push(['home','Dashboard','dash'],['quotes','Quotes','quote'],['items','Item library','box'],['invoices','Invoices','invoice'],['payments','Payments','coins'],['expenses','Expenses','receipt'],['settings','Settings','gear']);
 const TASK_VIEWS=['today','upcoming','inbox','all','starred','done','folder','tag','saved','search'];
 function navArea(){
-  if(HUB.tool) return 'tool-'+HUB.tool;
+  if(HUB.tool) return 'tools';
   if(UI.item){ const k=UI.item.kind, o=S[k]&&S[k][UI.item.id];
     if(k==='jobs') return o&&o.type==='project'?'projects':'jobs';
     if(k==='sched'||k==='people') return 'schedule';
@@ -7188,9 +7188,12 @@ function navArea(){
   if(TASK_VIEWS.includes(v)) return 'tasks';
   return v;
 }
-function navOpen(key,area){ const k='nav-'+key; if(k in UI.collapsed) return !UI.collapsed[k]; return area===key; }
+/* a drop-down shows only for the area you're in (or one you opened with its arrow / the Tools button, until you go somewhere) */
+function navOpen(key,area){ if(key==='tools'&&UI.navTools) return true; if(UI.navPeek===key) return true; const k='nav-'+key; if(area!==key) return false; return !UI.collapsed[k]; }
+let navLastArea=null;
 function renderNav(){
   const c=counts(); const t0=today(); const area=navArea();
+  if(area!==navLastArea){ if(navLastArea!==null){ UI.navPeek=null; if(area!=='tools') UI.navTools=false; } navLastArea=area; }
   const lists=$('#side-lists'); if(lists) lists.remove();          // keep the lists tree; it moves under Tasks
   const isOn=(v,extra=true)=>UI.view===v&&!UI.item&&!HUB.tool&&extra;
   const cnt=(n,alert)=>`<span class="count ${alert?'alert':''}">${n===''||n===undefined||n===0?'':n}</span>`;
@@ -7218,19 +7221,20 @@ function renderNav(){
     top('dash','Dashboard','dash',{view:'home'})+
     top('schedule','Schedule','sched',{n:todayN||'',kids:
       sub('schedule','Crew board','sched','',{on:isOn('schedule',UI.schedView!=='team')})+sub('calendar','Calendar','cal','')+sub('schedule','Crew','crew',peopleList().length||'',{act:'nav-team',on:isOn('schedule',UI.schedView==='team')})})+
-    top('jobs','Jobs','job',{act:'nav-jobs',extra:'data-type="job"',n:jobsOf('job').filter(j=>j.status!=='done').length||'',kids:jobKids('job')})+
-    top('projects','Projects','project',{act:'nav-jobs',extra:'data-type="project"',n:jobsOf('project').filter(j=>j.status!=='done').length||'',kids:jobKids('project')})+
+    top('jobs','Jobs','job',{act:'nav-jobs',extra:'data-type="job"',n:jobsOf('job').filter(j=>j.status!=='done').length||'',kids:
+      sub('jobs','All jobs','all',jobsOf('job').length||'',{act:'nav-jobs',extra:'data-type="job"',on:isOn('jobs',UI.jobsType!=='project')})+sub('contacts','Contacts','contact',Object.keys(S.contacts).length||'')})+
+    top('projects','Projects','project',{act:'nav-jobs',extra:'data-type="project"',n:jobsOf('project').filter(j=>j.status!=='done').length||''})+
     top('quotes','Quotes','quote',{view:'quotes',n:waiting||'',kids:
-      sub('quotes','All quotes','quote',qs.length||'')+sub('items','Item library','box',Object.keys(S.items).length||'')+`<button class="nav-item sub add" data-act="quote-new">${icon('plus')}<span>New quote</span></button>`})+
+      sub('quotes','All quotes','quote',qs.length||'')+sub('items','Item library','box',Object.keys(S.items).length||'')})+
     top('invoices','Invoices','invoice',{view:'invoices',n:unpaid.length||'',alert:!!overdueN,kids:
-      sub('invoices','All invoices','invoice',invs.length||'')+sub('payments','Payments','coins',Object.keys(S.payments).length||'')+`<button class="nav-item sub add" data-act="inv-new">${icon('plus')}<span>New invoice</span></button>`})+
+      sub('invoices','All invoices','invoice',invs.length||'')+sub('payments','Payments','coins',Object.keys(S.payments).length||'')})+
     top('tasks','Tasks','check',{view:'today',n:c.today,alert:!!c.overdue,kids:
-      sub('today','Today','sun',c.today,{alert:!!c.overdue,extra:'data-drop="nav-today"'})+sub('upcoming','Upcoming','upcoming',c.upcoming)+sub('inbox','Inbox','inbox',c.inbox,{extra:'data-drop="nav-inbox"'})+sub('all','All tasks','all',c.all)+sub('starred','Starred','star',c.starred,{extra:'data-drop="nav-starred"'})+sub('done','Completed','done','')+'<div class="nav-lists-slot"></div>'})+
+      sub('today','Today','sun',c.today,{alert:!!c.overdue,extra:'data-drop="nav-today"'})+sub('upcoming','Upcoming','upcoming',c.upcoming)+sub('inbox','Inbox','inbox',c.inbox,{extra:'data-drop="nav-inbox"'})+sub('all','All tasks','all',c.all)+sub('starred','Starred','star',c.starred,{extra:'data-drop="nav-starred"'})+sub('done','Completed','done','')+`<button class="nav-item sub ${UI.view==='folder'&&!UI.item&&!HUB.tool?'active':''}" data-act="nav-lists-menu">${icon('folder')}<span>Lists</span>${cnt(Object.keys(S.folders).length||'')}</button>`})+
     top('notes','Notes','note',{n:c.notes})+
     top('expenses','Expenses','receipt',{n:expN||''})+
-    `<div class="nav-label">Tools</div>`+
-    `<div class="nav-top ${area==='tool-markup'?'here':''}"><button class="nav-item nav-main ${HUB.tool==='markup'?'active':''}" data-act="hub-tab" data-tab="markup">${icon('markup')}<span>Markup</span></button></div>`+
-    `<div class="nav-top ${area==='tool-layout'?'here':''}"><button class="nav-item nav-main ${HUB.tool==='layout'?'active':''}" data-act="hub-tab" data-tab="layout">${icon('layout')}<span>B&amp;S Layout</span></button></div>`+
+    top('tools','Tools','markup',{act:'nav-tools',kids:
+      `<button class="nav-item sub ${HUB.tool==='markup'?'active':''}" data-act="hub-tab" data-tab="markup">${icon('markup')}<span>Markup</span></button>`+
+      `<button class="nav-item sub ${HUB.tool==='layout'?'active':''}" data-act="hub-tab" data-tab="layout">${icon('layout')}<span>B&amp;S Layout</span></button>`})+
     `<div class="nav-sep"></div>`+
     top('settings','Settings','gear');
   const slot=$('#nav .nav-lists-slot');
@@ -7243,7 +7247,7 @@ function renderHubTabs(){
   const el=$('#hub-tabs'); if(el) el.innerHTML=tab('home','Dashboard','dash')+tab('markup','Markup','markup')+tab('layout','Layout','layout');
   const bb=$('#hub-bottom'); if(bb){
     const area=navArea();
-    const b=(k,label,ic,act,extra='')=>`<button class="hb ${k===area||(k==='tools'&&area.startsWith('tool-'))?'on':''}" data-act="${act}" ${extra}>${icon(ic)}<span>${label}</span></button>`;
+    const b=(k,label,ic,act,extra='')=>`<button class="hb ${k===area||(k==='tools'&&area==='tools')?'on':''}" data-act="${act}" ${extra}>${icon(ic)}<span>${label}</span></button>`;
     bb.innerHTML=b('dash','Dashboard','dash','nav','data-view="home"')+b('schedule','Schedule','sched','nav','data-view="schedule"')+b('jobs','Jobs','job','nav-jobs','data-type="job"')+b('quotes','Quotes','quote','nav','data-view="quotes"')+b('tasks','Tasks','check','nav','data-view="today"')+b('tools','Tools','markup','tools-menu');
   }
 }
@@ -7273,6 +7277,16 @@ function fmBootNav(){
   ta.insertAdjacentHTML('afterbegin',`<button class="btn primary" data-act="new-menu" id="new-btn" aria-haspopup="menu" title="Create something new">${icon('plus')}<span class="lbl">New</span></button>`);
   for(const id of ['#new-task-btn','#new-note-btn']){ const b=$(id); if(b) b.classList.add('fm-hide'); }
 }
+
+/* Tools: clicking it just opens the list of tools; Lists (under Tasks): a menu of your task lists */
+{ const base=visitsAction; visitsAction=function(act,a,e){
+  if(act==='nav-tools'){ UI.navTools=!UI.navTools; renderNav(); return true; }
+  if(act==='nav-lists-menu'){ e&&e.stopPropagation&&e.stopPropagation();
+    const fs=childrenOf(null);
+    menu(a,[{heading:'Lists'},...fs.map(f=>({label:f.name||'List',icon:'folder',act:()=>{ UI.navTools=false; go('folder',{folderId:f.id,folderTab:'tasks'}); }})),...(fs.length?[{sep:true}]:[]),{label:'New list…',icon:'plus',act:()=>openModal({title:'New list',body:'<div class="field"><label for="nl-name">Name</label><input id="nl-name" maxlength="120" placeholder="e.g. Office, Truck stock, Follow-ups"></div>',actions:[{label:'Cancel'},{label:'Add',kind:'primary',act:w=>{ const f=createFolder({name:w.querySelector('#nl-name').value.trim()||'New list'}); go('folder',{folderId:f.id,folderTab:'tasks'}); }}]})}]);
+    return true; }
+  if(act==='nav-caret'){ const key=a.dataset.key; if(navArea()!==key){ UI.navPeek=UI.navPeek===key?null:key; if(key==='tools') UI.navTools=!!UI.navPeek; renderNav(); return true; } }
+  return base(act,a,e); }; }
 
 /* ---- fm-dash.js ---- */
 /* =========================================================
