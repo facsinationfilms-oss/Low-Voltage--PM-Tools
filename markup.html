@@ -9709,6 +9709,28 @@ if (HUB) {
       });
       return { id: p.id, name: p.name, client: p.client || '', address: p.address || '', plans };
     },
+    /* drawings for a quote: one image per plan, with its devices, layout and a legend of what's on it */
+    async planImages({ id = '', text = '', legend = true, maxPx = 2600 } = {}) {
+      let p = null, open = false;
+      if (App.project && App.project.id === id && !text) { p = App.project; open = true; }
+      else if (text) p = parseProjectFile(text).project;
+      else { const d = await Drafts.get(id).catch(() => null); p = d && d.project; }
+      if (!p) return null;
+      if (!open) { p = clone(p); normalizeProject(p); }
+      const prev = App.project;
+      const out = [];
+      for (const pl of p.plans) {
+        if (!pl.bg || !pl.bg.w) continue;
+        let x;
+        // build the drawing with this project in place (sync), then put the open one back
+        try { if (!open) { App.project = p; Reg.rebuild(p); } x = Exporter.planSvg(pl, { legend, title: true }); }
+        finally { if (!open) { App.project = prev; Reg.rebuild(prev || null); } }
+        const scale = Math.min(1.5, maxPx / Math.max(x.w, x.h));
+        const blob = await Exporter.rasterize(x.svg, x.w, x.h, scale, 'image/jpeg', 0.88);
+        if (blob) out.push({ name: `${p.name} – ${pl.name || 'Plan'}.jpg`, blob, plan: pl.name || 'Plan', layout: pl.kind === 'layout' });
+      }
+      return out;
+    },
     /* the crew's answers (status, install info, notes, photos) go into the original project */
     async applyField(id, updates, { text = '', jobId = '' } = {}) {
       let p, open = false, draft = null;

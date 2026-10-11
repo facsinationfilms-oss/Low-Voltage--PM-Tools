@@ -2709,6 +2709,24 @@ body.fv-full{overflow:hidden}
 .dc-c .money-in{width:100px}
 .dc-p .dc-adi{font-size:10.5px;color:var(--faint)}
 @media (max-width:600px){.dc-row{grid-template-columns:minmax(0,1fr) auto auto;row-gap:6px}.dc-row>.dc-n{grid-column:1/-1}.dc-c .money-in{width:88px}}
+/* item names on the quote */
+.qnames{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.qnames-h{font:700 11px/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.qnames .tgl small{color:var(--muted);font-weight:400;margin-left:4px}
+.qnames-ex{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
+.qnames-ex span{font-size:11px;color:var(--muted)}.qnames-ex b{font-size:13.5px}.qnames-ex small{font-size:11px;color:var(--faint)}
+.qnames-p{font-size:11.5px;color:var(--muted);margin:0}
+.ql-cust{display:inline-flex;align-items:center;gap:4px;border:0;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--ink);border-radius:6px;padding:1px 7px;font-size:11.5px;cursor:pointer}
+.ql-cust svg.i{width:13px;height:13px}
+.est-dw{margin-top:10px}.est-dw small{color:var(--muted)}
+.dw-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.dw-list small{color:var(--muted)}
+/* moving checklist lines (Edit list) */
+.cl-grip{flex:none;align-self:center;display:grid;place-items:center;width:30px;height:34px;margin-left:-6px;border:0;background:transparent;color:var(--faint);cursor:grab;touch-action:none}
+.cl-grip svg.i{width:18px;height:18px}
+.cl-item.editing{align-items:center}
+.cl-item .cl-mv{flex:none}
+.cl-item.dragging{background:var(--surface-2);box-shadow:0 6px 18px rgba(0,0,0,.25);border-radius:8px;position:relative;z-index:2}
+@media (max-width:600px){.cl-item .cl-mv{width:34px;height:34px}}
 
 </style>
 </head>
@@ -7004,7 +7022,7 @@ const money=v=>{ const n=Number(v); return isFinite(n)?Math.round(n*100)/100:0; 
 const posNum=(v,d=0)=>{ const n=Number(v); return isFinite(n)&&n>=0?n:d; };
 const finNum=(v,d=0)=>{ const n=Number(v); return isFinite(n)?n:d; };
 const cleanFile=f=>f&&typeof f==='object'&&validId(f.id)?{id:f.id,name:str(f.name).slice(0,200)||'file',size:num(f.size),type:str(f.type).slice(0,100),path:str(f.path).slice(0,400),include:!!f.include,thumb:typeof f.thumb==='string'&&f.thumb.startsWith('data:image/')&&f.thumb.length<120000?f.thumb:'',addedAt:num(f.addedAt)}:null;
-const cleanLine=l=>({id:validId(l.id)?l.id:uid('l'),type:['item','labor','text'].includes(l.type)?l.type:'item',itemId:validId(l.itemId)?l.itemId:'',name:str(l.name).slice(0,300),desc:str(l.desc).slice(0,4000),sku:str(l.sku).slice(0,80),mfr:str(l.mfr).slice(0,120),unit:str(l.unit).slice(0,20)||'ea',qty:finNum(l.qty,1),price:finNum(l.price),cost:finNum(l.cost),taxable:l.taxable!==false,labor:posNum(l.labor),optional:!!l.optional});
+const cleanLine=l=>({id:validId(l.id)?l.id:uid('l'),type:['item','labor','text'].includes(l.type)?l.type:'item',itemId:validId(l.itemId)?l.itemId:'',name:str(l.name).slice(0,300),desc:str(l.desc).slice(0,4000),sku:str(l.sku).slice(0,80),generic:str(l.generic).slice(0,200),mfr:str(l.mfr).slice(0,120),unit:str(l.unit).slice(0,20)||'ea',qty:finNum(l.qty,1),price:finNum(l.price),cost:finNum(l.cost),taxable:l.taxable!==false,labor:posNum(l.labor),optional:!!l.optional});
 const cleanSection=s=>({id:validId(s.id)?s.id:uid('sec'),name:str(s.name).slice(0,160),desc:str(s.desc).slice(0,2000),lines:Array.isArray(s.lines)?s.lines.filter(l=>l&&typeof l==='object').slice(0,500).map(cleanLine):[]});
 KINDS.push('quotes','items','expenses','settings');
 Object.assign(S,{quotes:{},items:{},expenses:{},settings:{}});
@@ -7017,7 +7035,7 @@ Object.assign(NORM,{
     contracts:Array.isArray(o.contracts)?o.contracts.filter(c=>c&&typeof c==='object').slice(0,20).map(c=>({id:validId(c.id)?c.id:uid('ct'),title:str(c.title).slice(0,200),body:str(c.body).slice(0,100000),tplId:validId(c.tplId)?c.tplId:''})):[],
     files:Array.isArray(o.files)?o.files.map(cleanFile).filter(Boolean).slice(0,60):[],
     discType:o.discType==='amt'?'amt':'pct',disc:posNum(o.disc),taxRate:posNum(o.taxRate),depositPct:Math.min(100,posNum(o.depositPct)),
-    show:{prices:!(o.show&&o.show.prices===false),qty:!(o.show&&o.show.qty===false),desc:!(o.show&&o.show.desc===false),sku:!!(o.show&&o.show.sku),mfr:!!(o.show&&o.show.mfr),secTotals:!(o.show&&o.show.secTotals===false)},
+    show:{prices:!(o.show&&o.show.prices===false),qty:!(o.show&&o.show.qty===false),desc:!(o.show&&o.show.desc===false),sku:!!(o.show&&o.show.sku),mfr:!!(o.show&&o.show.mfr),full:!(o.show&&o.show.full===false),generic:!!(o.show&&o.show.generic),secTotals:!(o.show&&o.show.secTotals===false)},
     cc:Array.isArray(o.cc)?o.cc.filter(x=>typeof x==='string').map(x=>x.slice(0,200)).slice(0,20):[],
     share:o.share&&typeof o.share==='object'?{token:str(o.share.token).slice(0,80),pdfPath:str(o.share.pdfPath).slice(0,400),sentAt:num(o.share.sentAt),sentTo:str(o.share.sentTo).slice(0,600),hash:str(o.share.hash).slice(0,64)}:null,
     viewedAt:num(o.viewedAt),acceptedAt:num(o.acceptedAt),acceptedBy:str(o.acceptedBy).slice(0,120),signature:typeof o.signature==='string'&&o.signature.startsWith('data:image/png;base64,')&&o.signature.length<400000?o.signature:'',declinedAt:num(o.declinedAt),responseNote:str(o.responseNote).slice(0,2000),
@@ -7866,7 +7884,7 @@ function customerFromJob(j){ return j?{name:j.contact||j.client||'',company:j.co
 function createQuote({jobId='',title='',tplId=''}={}){
   const co=company(); const j=S.jobs[jobId]; const now=Date.now(); const n=nextQuoteNum();
   const tpl=tplId&&S.quotes[tplId];
-  const base=tpl?clone(tpl):{sections:[blankSection()],contracts:savedContracts().filter(c=>c.auto).map(c=>({id:uid('ct'),title:c.title,body:c.body,tplId:c.id})),intro:'',notes:'',discType:'pct',disc:0,taxRate:+co.taxRate||0,depositPct:+co.depositPct||0,show:{}};
+  const base=tpl?clone(tpl):{sections:[blankSection()],contracts:savedContracts().filter(c=>c.auto).map(c=>({id:uid('ct'),title:c.title,body:c.body,tplId:c.id})),intro:'',notes:'',discType:'pct',disc:0,taxRate:+co.taxRate||0,depositPct:+co.depositPct||0,show:{full:false,mfr:true,generic:true}};
   if(tpl){ for(const s of base.sections){ s.id=uid('sec'); for(const l of s.lines) l.id=uid('l'); } for(const c of base.contracts) c.id=uid('ct'); }
   const q=NORM.quotes({...base,id:uid('q'),num:n,number:(co.prefix||'')+n,title:title||(tpl&&!j?tpl.title:'')||(j?j.name:''),jobId,status:'draft',template:false,files:[],share:null,cc:[],
     customer:customerFromJob(j),site:{name:j?j.name:'',address:j?j.address:''},date:today(),validUntil:addDays(today(),+co.validDays||30),
@@ -7969,7 +7987,7 @@ function qbLine(l,s,c){
     <button class="ql-grip" data-qdrag="line" aria-label="Drag to reorder" title="Drag to reorder">${icon('grip')}</button>
     <div class="ql-item"><input class="ql-name" data-f="name" value="${esc(l.name)}" placeholder="${l.type==='labor'?'Labor':'Item name'}" aria-label="Item name">
       <textarea class="ql-desc" data-f="desc" rows="1" placeholder="Description (optional)" aria-label="Description">${esc(l.desc)}</textarea>
-      <div class="ql-meta">${l.type==='labor'?`<span class="ql-tag">${icon('labor')}Labor</span>`:''}${l.sku?`<span>#${esc(l.sku)}</span>`:''}${l.mfr?`<span>${esc(l.mfr)}</span>`:''}${l.optional?'<span class="ql-tag opt">Optional — not in the total</span>':''}${it?`<span class="ql-lib" title="From the item library">${icon('box')}Library</span>`:''}${!l.taxable?'<span>No tax</span>':''}${l.labor&&l.type!=='labor'?`<span>${fmtQty(l.labor)} hr labor each</span>`:''}</div></div>
+      <div class="ql-meta">${l.type==='labor'?`<span class="ql-tag">${icon('labor')}Labor</span>`:''}${l.sku?`<span>#${esc(l.sku)}</span>`:''}${l.mfr?`<span>${esc(l.mfr)}</span>`:''}${(()=>{ if(l.type!=='item') return ''; const cn=custLine(l,QB.q.show).name; return cn!==(l.name||'Item')?`<button type="button" class="ql-cust" data-qa="line-generic" title="What the customer sees — tap to change">${icon('eye')}Customer sees: <b>${esc(cn)}</b></button>`:''; })()}${l.optional?'<span class="ql-tag opt">Optional — not in the total</span>':''}${it?`<span class="ql-lib" title="From the item library">${icon('box')}Library</span>`:''}${!l.taxable?'<span>No tax</span>':''}${l.labor&&l.type!=='labor'?`<span>${fmtQty(l.labor)} hr labor each</span>`:''}</div></div>
     <label class="ql-c ql-qty"><span>Qty</span><input data-f="qty" inputmode="decimal" value="${fmtQty(l.qty)}" aria-label="Quantity"></label>
     <label class="ql-c ql-unit"><span>Unit</span><input data-f="unit" value="${esc(l.unit)}" list="ql-units" aria-label="Unit"></label>
     <label class="ql-c ql-price"><span>Price</span><span class="money-in sm"><span>$</span><input data-f="price" inputmode="decimal" value="${l.price.toFixed(2)}" aria-label="Unit price"></span></label>
@@ -7996,7 +8014,7 @@ function qbRenderMain(){
     <div class="qsec-add"><button class="btn" data-qa="add-sec">${icon('plus')}Add section</button><span class="qsec-sug">${SEC_SUGGEST().filter(n=>!used.has(n.toLowerCase())).slice(0,7).map(n=>`<button type="button" data-qa="add-sec" data-name="${esc(n)}">${esc(n)}</button>`).join('')}</span></div>
     <datalist id="ql-units">${UNITS.map(u=>`<option value="${u}">`).join('')}</datalist></section>`;
   const notes=`<section class="qcard"><h2>${icon('note')}Notes for the customer</h2><textarea class="qnotes" data-q="notes" rows="3" placeholder="Exclusions, assumptions, schedule, anything the customer should know">${esc(q.notes)}</textarea></section>`;
-  const files=`<section class="qcard qfiles-card"><h2>${icon('attach')}Files<span class="spacer"></span><button class="btn sm" data-qa="add-files">${icon('upload')}Add files</button></h2>
+  const files=`<section class="qcard qfiles-card"><h2>${icon('attach')}Files<span class="spacer"></span><button class="btn sm" data-qa="add-drawings">${icon('place')}Drawings</button><button class="btn sm" data-qa="add-files">${icon('upload')}Add files</button></h2>
     <div class="qdrop" data-qdrop>${q.files.length?`<div class="qfiles">${q.files.map(f=>qbFile(f)).join('')}</div>`:''}<div class="qdrop-hint">${icon('upload')}<span>Drop drawings, spec sheets, photos or a signed contract here${Files.can()?'':' (sign in to add files)'}.</span><small>Images and PDFs can be added to the end of the customer’s PDF.</small></div><div class="qup"></div></div></section>`;
   const cts=`<section class="qcard qcts"><h2>${icon('sign')}Terms & contracts<span class="spacer"></span><button class="btn sm" data-qa="add-ct">${icon('plus')}Add</button></h2>
     ${q.contracts.length?q.contracts.map(ct=>`<div class="qct" data-ct="${ct.id}"><div class="qct-h"><input class="qct-title" data-cf="title" value="${esc(ct.title)}" placeholder="Title, e.g. Terms & conditions" aria-label="Contract title"><button class="btn sm ghost" data-qa="ct-save" title="${ct.tplId&&S.settings[ct.tplId]?'Update the saved copy in the library':'Save to the library to reuse it'}">${icon('download')}${ct.tplId&&S.settings[ct.tplId]?'Update saved':'Save to library'}</button><button class="icon-btn sm" data-qa="ct-del" aria-label="Remove ${esc(ct.title)}" title="Remove from this quote">${icon('trash')}</button></div>${rteBar()}<div class="rte rt qct-body" contenteditable="${qbLocked()?'false':'true'}" role="textbox" aria-multiline="true" aria-label="Contract text" data-placeholder="Type or paste the terms…"></div></div>`).join('')
@@ -8027,7 +8045,7 @@ function qbRenderSide(){
     </fieldset>${isInv(q)?invPaymentsCard(q):''}<fieldset class="qb-fs" ${qbLocked()?'disabled':''}>
     <section class="qcard qint"><h2>${icon('chart')}Your numbers <small>only you see these</small></h2>
       <div class="qt-row"><span>Cost</span><b data-t="cost"></b></div><div class="qt-row"><span>Profit</span><b data-t="profit"></b></div><div class="qt-row"><span>Margin</span><b data-t="margin"></b></div><div class="qt-row"><span>Labor</span><b data-t="labor"></b></div></section>
-    <section class="qcard qshow"><h2>${icon('eye')}What the customer sees</h2>${tg('prices','Price on each line')}${tg('qty','Quantities')}${tg('desc','Item descriptions')}${tg('secTotals','Section subtotals')}${tg('sku','Part numbers')}${tg('mfr','Manufacturers')}</section></fieldset>
+    <section class="qcard qshow"><h2>${icon('eye')}What the customer sees</h2>${tg('prices','Price on each line')}${tg('qty','Quantities')}${tg('desc','Item descriptions')}${tg('secTotals','Section subtotals')}${qbNamesCard(q,tg)}</section></fieldset>
     ${q.template?'':`<section class="qcard qhist"><h2>${icon('clock')}Activity</h2>${q.history.slice().reverse().slice(0,12).map(h=>`<div class="qh"><span>${esc(h.what)}</span><small>${esc(shortStamp(h.at))}</small></div>`).join('')||'<div class="qh"><span>Nothing yet</span></div>'}</section>`}`;
   qbTotals();
 }
@@ -8133,7 +8151,7 @@ function qbLineMenu(a,lid){
       it?{label:differs?'Update the library item with these details':'In the library ✓',icon:'box',act:()=>{ if(!differs) return; Store.put('items',NORM.items({...it,name:l.name,desc:l.desc,price:l.price,cost:l.cost,unit:l.unit,updatedAt:Date.now()})); toast('Library item updated'); }}
         :{label:'Save to the item library…',icon:'box',act:()=>itemDialog(null,{preset:{name:l.name,desc:l.desc,unit:l.unit,price:l.price,cost:l.cost,sku:l.sku,mfr:l.mfr,labor:l.labor,kind:l.type==='labor'?'labor':'item',category:s.name},onSave:o=>{ if(!QB) return; const ff=findLine(lid); if(ff){ ff.l.itemId=o.id; ff.l.sku=o.sku; ff.l.mfr=o.mfr; ff.l.cost=o.cost; qbChanged({rerender:true}); } }})},
       ...(it?[{label:'Reset to the library price',icon:'undo',act:()=>{ l.price=it.price; l.cost=it.cost; qbChanged({rerender:true}); }}]:[]),
-      {label:'Cost & part details…',icon:'edit',act:()=>qbLineDetails(lid)}]:[]),
+      {label:'Generic name, cost & part details…',icon:'edit',act:()=>qbLineDetails(lid)}]:[]),
     {label:'Duplicate',icon:'copy',act:()=>{ s.lines.splice(f.i+1,0,{...clone(l),id:uid('l')}); qbChanged({rerender:true}); }},
     ...others.map(o=>({label:`Move to ${o.name||'untitled section'}`,icon:'move',act:()=>{ s.lines.splice(f.i,1); o.lines.push(l); qbChanged({rerender:true}); qbFlash(l.id); }})),
     {sep:true},
@@ -8143,10 +8161,11 @@ function qbLineMenu(a,lid){
 function qbLineDetails(lid){
   const f=findLine(lid); if(!f) return; const l=f.l;
   bigModal({title:'Line details',size:'mid',body:`<div class="iform">
+    <div class="field if-wide"><label for="ld-gen">Generic name <small>(what the customer sees when you hide model names, e.g. “Motion Detector”)</small></label><input id="ld-gen" maxlength="200" value="${esc(l.generic||lineGeneric(l))}" placeholder="e.g. Door Contact"></div>
     <div class="field"><label for="ld-sku">Part # / SKU</label><input id="ld-sku" value="${esc(l.sku)}"></div><div class="field"><label for="ld-mfr">Manufacturer</label><input id="ld-mfr" value="${esc(l.mfr)}"></div>
     <div class="field"><label for="ld-cost">Your cost each</label><div class="money-in"><span>$</span><input id="ld-cost" inputmode="decimal" value="${l.cost?l.cost.toFixed(2):''}"></div></div>
     <div class="field"><label for="ld-labor">Labor hours each</label><input id="ld-labor" inputmode="decimal" value="${l.labor||''}"></div></div>`,
-    actions:[{label:'Cancel'},{label:'Save',kind:'primary',act:w=>{ l.sku=w.querySelector('#ld-sku').value.trim(); l.mfr=w.querySelector('#ld-mfr').value.trim(); l.cost=parseMoney(w.querySelector('#ld-cost').value); l.labor=parseMoney(w.querySelector('#ld-labor').value); qbChanged({rerender:true}); }}]});
+    actions:[{label:'Cancel'},{label:'Save',kind:'primary',act:w=>{ l.generic=w.querySelector('#ld-gen').value.trim(); l.sku=w.querySelector('#ld-sku').value.trim(); l.mfr=w.querySelector('#ld-mfr').value.trim(); l.cost=parseMoney(w.querySelector('#ld-cost').value); l.labor=parseMoney(w.querySelector('#ld-labor').value); qbChanged({rerender:true}); }}]});
 }
 function qbSecMenu(a,sid){
   const qs=QB.q.sections; const i=qs.findIndex(s=>s.id===sid); const s=qs[i];
@@ -8166,6 +8185,7 @@ function qbMenu(a){
   menu(a,[
     {label:'Download PDF',icon:'pdf',act:()=>quotePdfDownload(q.id)},
     {label:'Print',icon:'print',act:()=>quotePrint(q.id)},
+    {label:'Add map drawings…',icon:'place',act:()=>drawingsDialog(q)},
     {label:'Materials list (CSV)',icon:'download',act:()=>materialsCsv(q)},
     {sep:true},
     {label:'Duplicate quote',icon:'copy',act:()=>{ qbFlush(); const n=duplicateQuote(q.id); if(n) openQuote(n.id); }},
@@ -8256,7 +8276,7 @@ function qbBind(el){
     const t=e.target; if(!QB) return; const q=QB.q;
     if(t.dataset.q==='jobId'){ const j=S.jobs[t.value]; q.jobId=t.value; if(j){ const c=customerFromJob(j); for(const k of Object.keys(c)) if(!q.customer[k]) q.customer[k]=c[k]; if(!q.site.address) q.site.address=j.address; q.site.name=j.name; if(!q.title) q.title=j.name; } qbChanged({rerender:true}); qbRefreshHead(); return; }
     if(t.dataset.q==='validUntil'||t.dataset.q==='date'){ qbRenderMain(); return; }
-    if(t.dataset.show){ q.show[t.dataset.show]=t.checked; qbChanged({totals:false}); return; }
+    if(t.dataset.show){ q.show[t.dataset.show]=t.checked; const nm=['full','mfr','generic','sku'].includes(t.dataset.show); qbChanged({totals:false,rerender:nm}); if(nm) qbRenderSide(); return; }
     if(t.dataset.finc){ const f=q.files.find(x=>x.id===t.dataset.finc); if(f){ f.include=t.checked; qbChanged({totals:false}); } return; }
     if(t.dataset.f==='price'||t.dataset.f==='qty'){ const f=findLine(t.closest('[data-line]').dataset.line); if(f) t.value=t.dataset.f==='price'?f.l.price.toFixed(2):fmtQty(f.l.qty); }
     if(t.dataset.q==='customer.name'){ const prev=Object.values(S.quotes).find(x=>x.id!==q.id&&x.customer.name&&x.customer.name.toLowerCase()===t.value.trim().toLowerCase()); if(prev&&!q.customer.email&&!q.customer.phone){ q.customer={...prev.customer}; qbChanged({rerender:true}); toast('Filled in the customer’s details from an earlier quote',{ms:3000}); } }
@@ -8289,6 +8309,7 @@ function qbBind(el){
       case 'preview': qbFlush(); quotePreview(q.id); return;
       case 'send': qbFlush(); sendQuoteDialog(q.id); return;
       case 'menu': e.stopPropagation(); qbMenu(b); return;
+      case 'add-drawings': drawingsDialog(q); return;
       case 'unlock': QB.unlocked=true; qbRender(); return;
       case 'revise': { qbFlush(); const n=duplicateQuote(q.id,{revision:true}); if(n){ openQuote(n.id); toast(`Started ${n.number}`); } return; }
       case 'valid': q.validUntil=addDays(q.date,+b.dataset.n); qbChanged({rerender:true}); return;
@@ -8444,10 +8465,11 @@ async function buildQuotePdf(q,{forCustomer=true}={}){
       if(s.desc&&s.desc.trim()){ y-=2; para(s.desc,{f:F.i,sz:8.8,color:MUTED,x:M+2,w:CW-4,lh:1.32}); } }
     for(const l of s.lines){
       if(l.type==='text'){ if(!l.desc.trim()) continue; const ls=wrap(l.desc,F.i,9,descW+((sh.qty||sh.prices)?150:0)); need(ls.length*12+8,tableHead); y-=6; for(const ln of ls){ y-=12; text(ln,M+8,y,{f:F.i,sz:9,color:rgb(.25,.27,.3)}); } y-=4; continue; }
-      const nameL=wrap(l.name||'Item',F.b,9.6,descW);
-      const metaS=[sh.sku&&l.sku?'Part # '+l.sku:'',sh.mfr&&l.mfr?l.mfr:''].filter(Boolean).join('  ·  ');
+      const cl=custLine(l,sh);
+      const nameL=wrap(cl.name,F.b,9.6,descW);
+      const metaS=[sh.sku&&l.sku?'Part # '+l.sku:'',cl.mfrMeta&&l.mfr?l.mfr:''].filter(Boolean).join('  ·  ');
       const metaL=metaS?wrap(metaS,F.r,7.8,descW):[];
-      const descL=sh.desc&&l.desc.trim()?wrap(l.desc,F.r,8.6,descW):[];
+      const descL=sh.desc&&cl.desc.trim()?wrap(cl.desc,F.r,8.6,descW):[];
       const h=nameL.length*12.5+metaL.length*10.5+descL.length*11.2+12;
       need(Math.min(h,300),tableHead);
       let yy=y-13;
@@ -9254,7 +9276,7 @@ function visitChecklists(e,c){
     const open=UIV.open[l.id]!==undefined?UIV.open[l.id]:i===0;
     const editing=UIV.editList===l.id;
     const items=l.items.map(it=>{ const r=c.rows.get(it.id); const d=r&&r.done;
-      return `<div class="cl-item ${d?'done':''}"><button type="button" class="cl-check" role="checkbox" aria-checked="${!!d}" data-act="v-check" data-id="${e.id}" data-item="${it.id}" aria-label="${esc(it.text)}">${icon('done')}</button><div class="cl-t"><span>${esc(it.text)}</span>${d?`<small>${esc(whoName(r))} · ${esc(fmtDay(msDate(r.at)))} ${esc(msTime(r.at))}</small>`:''}</div>${editing?`<button type="button" class="icon-btn sm" data-act="v-item-del" data-id="${e.id}" data-list="${l.id}" data-item="${it.id}" aria-label="Remove ${esc(it.text)}">${icon('trash')}</button>`:''}</div>`; }).join('');
+      return `<div class="cl-item ${d?'done':''} ${editing?'editing':''}" data-item="${it.id}">${editing?`<button type="button" class="cl-grip" data-cl-drag="${l.id}" data-id="${e.id}" aria-label="Drag to move ${esc(it.text)}" title="Drag to move">${icon('grip')}</button>`:''}<button type="button" class="cl-check" role="checkbox" aria-checked="${!!d}" data-act="v-check" data-id="${e.id}" data-item="${it.id}" aria-label="${esc(it.text)}">${icon('done')}</button><div class="cl-t"><span>${esc(it.text)}</span>${d?`<small>${esc(whoName(r))} · ${esc(fmtDay(msDate(r.at)))} ${esc(msTime(r.at))}</small>`:''}</div>${editing?`<button type="button" class="icon-btn sm cl-mv" data-act="v-item-move" data-dir="-1" data-id="${e.id}" data-list="${l.id}" data-item="${it.id}" aria-label="Move up" title="Move up">${icon('up')}</button><button type="button" class="icon-btn sm cl-mv" data-act="v-item-move" data-dir="1" data-id="${e.id}" data-list="${l.id}" data-item="${it.id}" aria-label="Move down" title="Move down">${icon('down')}</button>`:''}${editing?`<button type="button" class="icon-btn sm" data-act="v-item-del" data-id="${e.id}" data-list="${l.id}" data-item="${it.id}" aria-label="Remove ${esc(it.text)}">${icon('trash')}</button>`:''}</div>`; }).join('');
     return `<div class="cl-box ${open?'open':''} ${n&&done===n?'complete':''}" data-list="${l.id}">
       <button type="button" class="cl-head" data-act="v-list-toggle" data-list="${l.id}" aria-expanded="${open}"><span class="cl-caret">${icon('caret')}</span><b>${esc(l.name||'Checklist')}</b><span class="cl-n">${done}/${n}</span><span class="cl-bar"><i style="width:${n?Math.round(done/n*100):0}%"></i></span></button>
       ${open?`<div class="cl-body">${items||'<p class="cl-empty">No items yet — add the first one below.</p>'}
@@ -9355,6 +9377,7 @@ function visitsAction(act,a,e){
     case 'v-list-edit': UIV.editList=UIV.editList===a.dataset.list?null:a.dataset.list; scheduleRender(); return true;
     case 'v-list-rename': { const l=S.sched[id].checklists.find(x=>x.id===a.dataset.list); const n=prompt('Checklist name',l?l.name:''); if(n!==null&&n.trim()) setLists(id,ls=>{ const x=ls.find(y=>y.id===a.dataset.list); if(x) x.name=n.trim().slice(0,120); return ls; }); return true; }
     case 'v-list-del': { const before=clone(S.sched[id].checklists); setLists(id,ls=>ls.filter(x=>x.id!==a.dataset.list)); UIV.editList=null; toast('Checklist deleted',{action:()=>patch('sched',id,{checklists:before})}); return true; }
+    case 'v-item-move': setLists(id,ls=>{ const x=ls.find(y=>y.id===a.dataset.list); if(!x) return ls; const i=x.items.findIndex(t=>t.id===a.dataset.item), j=i+(+a.dataset.dir); if(i<0||j<0||j>=x.items.length) return ls; const [t]=x.items.splice(i,1); x.items.splice(j,0,t); return ls; }); return true;
     case 'v-item-del': setLists(id,ls=>{ const x=ls.find(y=>y.id===a.dataset.list); if(x) x.items=x.items.filter(i=>i.id!==a.dataset.item); return ls; }); return true;
     case 'v-photo': showPhoto(id); return true;
     case 'v-maps-add': visitMapsPick(S.sched[id]); return true;
@@ -9364,6 +9387,22 @@ function visitsAction(act,a,e){
 }
 /* live minutes for people on the clock */
 setInterval(()=>{ for(const el of $$('[data-since]')) el.textContent=hm((Date.now()-(+el.dataset.since))/60000); },30000);
+
+/* drag a checklist line by its handle (edit mode) to move it */
+document.addEventListener('pointerdown',ev=>{
+  const g=ev.target.closest('.cl-grip'); if(!g) return;
+  ev.preventDefault();
+  const row=g.closest('.cl-item'), body=row.parentElement, lid=g.dataset.clDrag, vid=g.dataset.id;
+  const before=[...body.querySelectorAll(':scope>.cl-item')].map(r=>r.dataset.item);
+  row.classList.add('dragging'); try{ g.setPointerCapture(ev.pointerId); }catch(e){}
+  const move=e2=>{ const rows=[...body.querySelectorAll(':scope>.cl-item')].filter(r=>r!==row);
+    let after=null; for(const r of rows){ const b=r.getBoundingClientRect(); if(e2.clientY<b.top+b.height/2){ after=r; break; } }
+    if(after) body.insertBefore(row,after); else { const last=rows[rows.length-1]; if(last) last.after(row); } };
+  const up=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); row.classList.remove('dragging');
+    const order=[...body.querySelectorAll(':scope>.cl-item')].map(r=>r.dataset.item);
+    if(order.join()!==before.join()) setLists(vid,ls=>{ const x=ls.find(y=>y.id===lid); if(x){ const m=new Map(x.items.map(t=>[t.id,t])); x.items=order.map(k=>m.get(k)).filter(Boolean); } return ls; }); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+});
 
 /* ---- fm-field.js ---- */
 /* =========================================================
@@ -10369,8 +10408,9 @@ async function estimateDialog(mapId){
   const m=S.maps[mapId]; const jobId=(m&&m.jobId)||'';
   let crew=Est.crew();
   const w=bigModal({title:'Estimate & quote',size:'wide',body:`<div class="est-dlg"><div class="est-dlg-top"><div><b>${esc(tk.name)}</b><small>${esc([S.jobs[jobId]?S.jobs[jobId].name:'Not on a job yet',`${tk.plans.length} plan${tk.plans.length===1?'':'s'}`].join(' · '))}</small></div>
-      <label class="est-crew">Crew size <input id="ed-crew" type="number" min="1" max="20" value="${crew}"></label></div><div id="ed-body"></div></div>`,
-    actions:[{label:'Cancel'},{label:'Edit install times',act:()=>{ closeAllScreens(); hubLeaveTool&&hubLeaveTool(); go('estimating'); }},{label:'Create quote',kind:'primary',act:w=>{ const q=quoteFromEstimate(tk,estimateFrom([tk],{crew}),{jobId,mapId}); hubLeaveTool&&hubLeaveTool(); openQuote(q.id); toast(`Quote ${q.number} made from ${tk.name}`); }}]});
+      <label class="est-crew">Crew size <input id="ed-crew" type="number" min="1" max="20" value="${crew}"></label></div>
+      <label class="tgl est-dw"><input type="checkbox" id="ed-dw"><span></span>Add the drawings to the quote <small>(each plan as a page at the end of the PDF)</small></label><div id="ed-body"></div></div>`,
+    actions:[{label:'Cancel'},{label:'Edit install times',act:()=>{ closeAllScreens(); hubLeaveTool&&hubLeaveTool(); go('estimating'); }},{label:'Create quote',kind:'primary',act:w=>{ const dw=!!(w.querySelector('#ed-dw')&&w.querySelector('#ed-dw').checked); const q=quoteFromEstimate(tk,estimateFrom([tk],{crew}),{jobId,mapId}); hubLeaveTool&&hubLeaveTool(); openQuote(q.id); toast(`Quote ${q.number} made from ${tk.name}`); if(dw) addDrawingsToQuote(q.id,[mapId]); }}]});
   if(!w) return;
   const draw=()=>{ const E=estimateFrom([tk],{crew}); const t=E.totals;
     w.querySelector('#ed-body').innerHTML=`<div class="qtiles est-tiles"><div><span>Labor</span><b>${fmtH(t.labor)}</b><small>${fmtH(t.devLabor)} devices · ${fmtH(t.cabLabor)} cable</small></div><div><span>Time on site</span><b>${fmtDays(t.days)}</b><small>with ${crew} worker${crew>1?'s':''}, ${Est.dayHrs()} h days</small></div><div><span>Your cost</span><b>${fmtMoney(t.cost,{cents:false})}</b><small>${fmtMoney(t.laborCost,{cents:false})} labor · ${fmtMoney(t.mat,{cents:false})} material</small></div><div><span>Quote price</span><b>${fmtMoney(t.price,{cents:false})}</b><small>${t.price?Math.round((t.price-t.cost)/t.price*100)+'% margin':''} before tax</small></div></div>${estWarnings(E)}${estTables(E)}`; };
@@ -11568,12 +11608,11 @@ const DevCat={
 { const base=qsRender; qsRender=function(inp){
   base(inp);
   const v=inp.value.trim(); if(v.length<2) return;
-  const terms=v.toLowerCase().split(/\s+/).filter(Boolean);
   const lib=new Set(Object.values(S.items).map(i=>dcK(i.sku)).filter(Boolean));
-  const hits=DevCat.live().filter(e=>e.model&&!lib.has(dcK(e.model))&&terms.every(t=>(e.mfr+' '+e.model+' '+e.desc).toLowerCase().includes(t))).slice(0,5);
+  const hits=dcSearch(v,{limit:12}).filter(e=>!lib.has(dcK(e.model))).slice(0,6);
   if(!hits.length) return;
   const drop=inp.parentElement.querySelector('.qs-drop');
-  const html=`<div class="qs-head">Device catalog</div>`+hits.map(e=>`<button type="button" class="qs-o" role="option" data-k="dcat" data-id="${esc(e.id)}"><span class="qs-n"><b>${esc(e.mfr)} ${esc(e.model)}</b><small>${esc(e.desc)}</small></span><span class="qs-p">${DevCat.sell(e)?fmtMoney(DevCat.sell(e)):'—'}<small>${e.msrp?(e.est?' est.':' MSRP'):DevCat.costOf(e.id)?' cost+':''}</small></span></button>`).join('');
+  const html=`<div class="qs-head">Device catalog</div>`+hits.map(e=>`<button type="button" class="qs-o" role="option" data-k="dcat" data-id="${esc(e.id)}"><span class="qs-n"><b>${esc(e.mfr)} ${esc(e.model)}</b><small>${esc([(Catalog.type(e.cat)||{}).name,e.desc].filter(Boolean).join(' · '))}</small></span><span class="qs-p">${DevCat.sell(e)?fmtMoney(DevCat.sell(e)):'—'}<small>${e.msrp?(e.est?' est.':' MSRP'):DevCat.costOf(e.id)?' cost+':''}</small></span></button>`).join('');
   const custom=drop.querySelector('[data-k="custom"]');
   if(custom) custom.insertAdjacentHTML('beforebegin',html); else drop.insertAdjacentHTML('beforeend',html);
   drop.hidden=false;
@@ -11583,7 +11622,7 @@ const DevCat={
   const sid=inp.closest('[data-sec]').dataset.sec; const e=DevCat.get(btn.dataset.id);
   inp.value=''; inp.parentElement.querySelector('.qs-drop').hidden=true;
   const s=findSec(sid); if(!s||!e) return;
-  const l=cleanLine({id:uid('l'),type:'item',name:`${e.mfr} ${e.model}`,desc:e.desc,sku:e.model,mfr:e.mfr,unit:'ea',qty:1,price:DevCat.sell(e),cost:DevCat.costFor(e.model,e.mfr,e.msrp,DevCat.costOf(e.id)),taxable:true,labor:Est.type(e.cat,'').labor});
+  const l=cleanLine({id:uid('l'),type:'item',name:`${e.mfr} ${e.model}`,generic:(Catalog.type(e.cat)||{}).name||'',desc:e.desc,sku:e.model,mfr:e.mfr,unit:'ea',qty:1,price:DevCat.sell(e),cost:DevCat.costFor(e.model,e.mfr,e.msrp,DevCat.costOf(e.id)),taxable:true,labor:Est.type(e.cat,'').labor});
   s.lines.push(l); qbChanged({rerender:true}); qbFlash(l.id);
   const again=QB&&QB.el.querySelector(`[data-sec="${sid}"] .qs-in`); if(again) again.focus();
 }; }
@@ -11602,7 +11641,7 @@ VIEWS.devcat=()=>{
   const typeOf=id=>cat.types.find(t=>t.id===id);
   const hiddenN=all.filter(e=>e.hidden).length;
   let list;
-  if(terms.length) list=all.filter(e=>!e.hidden&&terms.every(t=>(e.mfr+' '+e.model+' '+e.desc+' '+((typeOf(e.cat)||{}).name||'')).toLowerCase().includes(t)));
+  if(terms.length){ const hit=new Set(dcSearch(q,{limit:5000}).map(e=>e.id)); list=all.filter(e=>!e.hidden&&hit.has(e.id)); }
   else if(sys==='hidden') list=all.filter(e=>e.hidden);
   else { const ids=new Set(cat.types.filter(t=>t.system===sys).map(t=>t.id)); list=all.filter(e=>!e.hidden&&ids.has(e.cat)); }
   const order=new Map(cat.types.map((t,i)=>[t.id,i]));
@@ -11724,6 +11763,117 @@ function dcExport(){
 { const base=VIEWS.settings; VIEWS.settings=()=>{ const h=base(); const n=DevCat.live().filter(e=>e.model).length;
   const card=`<section class="scard dc-scard"><h2>${icon('box')}Device catalog</h2><p class="s-p">${n.toLocaleString()} models with descriptions and list prices (MSRP). They fill the Manufacturer and Model # boxes on map devices, and Make quote uses the prices.</p><button class="btn sm" data-act="nav" data-view="devcat">${icon('box')}Open device catalog</button></section>`;
   return h.includes('<section class="scard est-card">')?h.replace('<section class="scard est-card">',card+'<section class="scard est-card">'):h.replace('<section class="scard">',card+'<section class="scard">'); }; }
+
+/* ---- fm-qnames.js ---- */
+/* =========================================================
+   What the customer sees for each line: the real name and model ("Bosch ISC-BDL2-WP12G"),
+   or a brand + generic name ("Bosch Motion Detector"), or just the generic name.
+   Quote / invoice options: Full name & model #, Manufacturer, Generic name, Part numbers.
+   Only the PDF (which is also what the customer link shows) uses the customer name; you always see the real one.
+   Also: the map's drawings can be added to a quote as pages.
+   ========================================================= */
+
+/* the generic name of a line: typed on the line, else the kind of device its model is in the catalog */
+function lineGeneric(l){
+  if(!l||l.type!=='item') return '';
+  if(l.generic) return l.generic;
+  const mk=dcK(l.sku); if(!mk||typeof DevCat==='undefined') return '';
+  const e=DevCat.live().find(x=>x.model&&dcK(x.model)===mk&&(!l.mfr||dcK(x.mfr)===dcK(l.mfr)))||DevCat.live().find(x=>x.model&&dcK(x.model)===mk);
+  const t=e&&Catalog.type(e.cat);
+  return t?t.name:'';
+}
+const rxEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+/* the customer's version of a line (for the PDF): {name, mfrMeta (brand under the name), desc} */
+function custLine(l,sh){
+  const real={name:l.name||'Item',mfrMeta:!!sh.mfr,desc:l.desc||''};
+  if(l.type!=='item'||sh.full!==false) return real;
+  const g=lineGeneric(l);
+  if(!g) return real;   // nothing generic to show (custom lines keep their name)
+  const parts=[sh.mfr&&l.mfr?l.mfr:'',sh.generic?g:''].filter(Boolean);
+  const name=parts.join(' ')||g;
+  // keep model numbers out of the description too
+  let desc=l.desc||'';
+  const hide=[l.sku,(l.name||'').replace(l.mfr||'','').trim()].filter(x=>x&&x.length>=3);
+  for(const h of hide) desc=desc.replace(new RegExp('\\s*\\(?'+rxEsc(h)+'\\)?','gi'),'');
+  desc=desc.replace(/^[\s,;–-]+/,'').replace(/\s{2,}/g,' ').trim();
+  return {name,mfrMeta:false,desc};
+}
+/* the generic name is worked out from the device catalog, which comes from the map tools: make sure it's loaded for the PDF */
+{ const base=buildQuotePdf; buildQuotePdf=async function(q,...a){ if(!Catalog.data){ try{ await Catalog.load(); }catch(e){} } return base(q,...a); }; }
+
+/* ---------- the "Item names" options on a quote / invoice ---------- */
+function qbNamesCard(q,tg){
+  const sh=q.show;
+  const ex=q.sections.flatMap(s=>s.lines).find(l=>l.type==='item'&&lineGeneric(l))||null;
+  const exName=ex?custLine(ex,sh).name+(sh.full!==false&&sh.mfr&&ex.mfr?` · ${ex.mfr}`:''):'';
+  return `<div class="qnames"><div class="qnames-h">Item names</div>
+    ${tg('full','Full name &amp; model # <small>exactly as you see it</small>')}
+    ${sh.full!==false?'':`${tg('mfr','Manufacturer <small>e.g. “Bosch”</small>')}${tg('generic','Generic name <small>e.g. “Motion Detector”</small>')}`}
+    ${tg('sku','Part numbers')}
+    ${sh.full!==false?tg('mfr','Manufacturer under the name'):''}
+    ${ex?`<div class="qnames-ex"><span>Customer sees</span><b>${esc(exName)}</b><small>for ${esc(ex.name)}</small></div>`:''}
+    <p class="qnames-p">${sh.full!==false?'The customer sees your exact item names and model numbers.':'Model numbers are hidden from the customer — on the PDF and the quote link. You still see them here.'}</p></div>`;
+}
+/* editing the generic name from the line's “Customer sees” chip */
+{ const base=qbBind; qbBind=function(el){ base(el);
+  el.addEventListener('click',e=>{ const b=e.target.closest('[data-qa="line-generic"]'); if(!b||!QB) return; e.stopPropagation(); const row=b.closest('[data-line]'); if(row) qbLineDetails(row.dataset.line); },true);
+}; }
+/* catalog lines and library items carry their generic name onto the quote */
+{ const base=lineFromItem; lineFromItem=function(it,qty=1){ const l=base(it,qty); if(!l.generic){ const g=lineGeneric(l); if(g) l.generic=g; } return l; }; }
+
+/* ---------- search the catalog by anything: brand, model, description, kind of device, ADI item # ---------- */
+function dcSearchText(e){ const t=Catalog.type(e.cat); const cr=DevCat.costRow(e.id); return [e.mfr,e.model,e.desc,t?t.name:'',e.cat,cr&&cr.adi].filter(Boolean).join(' ').toLowerCase(); }
+function dcSearch(q,{limit=50}={}){
+  const terms=String(q||'').toLowerCase().split(/\s+/).filter(Boolean); if(!terms.length) return [];
+  const key=s=>s.replace(/[^a-z0-9]+/g,'');
+  const out=[];
+  for(const e of DevCat.live()){ if(!e.model) continue; const txt=dcSearchText(e), k=key(txt);
+    let sc=0, ok=true;
+    for(const t of terms){ if(txt.includes(t)) sc+=(dcK(e.model).startsWith(key(t))?5:dcK(e.mfr)===key(t)?3:1); else if(key(t).length>=3&&k.includes(key(t))) sc+=2; else { ok=false; break; } }
+    if(ok) out.push([sc,e]); }
+  return out.sort((a,b)=>b[0]-a[0]||dcNat(a[1].mfr,b[1].mfr)||dcNat(a[1].model,b[1].model)).slice(0,limit).map(x=>x[1]);
+}
+
+/* ---------- the map's drawings on a quote ---------- */
+async function mapDrawingFiles(mapId){
+  const m=S.maps[mapId]; const api=await Maps.ensure();
+  let imgs=null;
+  const local=await api.localInfo(mapId).catch(()=>null);
+  if(local&&(!m||!m.path||m.path.startsWith('local:')||local.savedAt>=(m.savedAt||0)-2000)) imgs=await api.planImages({id:mapId});
+  if(!imgs&&m&&m.path&&!m.path.startsWith('local:')) imgs=await api.planImages({text:await Maps.fetchText(m)});
+  return imgs||[];
+}
+async function addDrawingsToQuote(qid,mapIds){
+  const ids=[...new Set(mapIds.filter(Boolean))]; if(!ids.length) return 0;
+  if(!Files.can()){ toast('Sign in to add drawings'); return 0; }
+  const t=toast(`Adding the drawing${ids.length>1?'s':''} to the quote…`,{ms:60000});
+  let n=0;
+  try{
+    for(const mid of ids){
+      let imgs=[]; try{ imgs=await mapDrawingFiles(mid); }catch(e){ console.warn('drawings',e); }
+      if(!imgs.length){ toast(`Couldn’t draw ${(S.maps[mid]||{}).name||'that map'}`); continue; }
+      for(const im of imgs){
+        const file=new File([im.blob],im.name,{type:'image/jpeg'});
+        const f=await Files.put('quotes/'+qid,file); f.include=true; f.drawing=mid;
+        if(QB&&QB.id===qid){ QB.q.files.push(f); QB.q.history=qHist(QB.q,`Added drawing ${f.name}`); qbChanged({rerender:true}); }
+        else { const q=docById(qid); if(q) patch(docKind(qid),qid,{files:[...q.files,f],history:qHist(q,`Added drawing ${f.name}`)}); }
+        n++;
+      }
+    }
+  }catch(e){ toast('Couldn’t add the drawings: '+(e.message||e)); }
+  try{ t&&t.remove&&t.remove(); }catch(e){}
+  if(n) toast(`Added ${n} drawing page${n===1?'':'s'} — they go at the end of the customer’s PDF`,{ms:5000});
+  return n;
+}
+/* pick which of the job's maps to add */
+function drawingsDialog(q){
+  const ms=Object.values(S.maps).filter(m=>(q.jobId&&m.jobId===q.jobId)||(q.estimate&&q.estimate.mapIds.includes(m.id)));
+  if(!ms.length){ toast(q.jobId?'This job has no maps or layouts yet':'Put the quote on a job to add its maps'); return; }
+  const pre=new Set(q.estimate?q.estimate.mapIds:[]);
+  const w=bigModal({title:'Add drawings to the quote',size:'mid',body:`<p class="s-p">Each plan becomes a page at the end of the customer’s PDF, with the devices, the layout and a legend. Device labels and kinds show; model numbers don’t.</p>
+    <div class="dw-list">${ms.map(m=>`<label class="tgl"><input type="checkbox" value="${m.id}" ${pre.has(m.id)||ms.length===1?'checked':''}><span></span>${esc(m.name||'Map')}${m.kind==='layout'?' <small>(layout)</small>':''}</label>`).join('')}</div>`,
+    actions:[{label:'Cancel'},{label:'Add drawings',kind:'primary',act:w=>{ const ids=[...w.querySelectorAll('.dw-list input:checked')].map(i=>i.value); if(!ids.length){ toast('Pick a map'); return false; } addDrawingsToQuote(q.id,ids); }}]});
+}
 
 /* =========================================================
    Boot
