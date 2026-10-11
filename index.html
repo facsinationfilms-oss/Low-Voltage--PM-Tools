@@ -1881,7 +1881,11 @@ fieldset:disabled .tgl{opacity:.6;cursor:default}
   .kpi b{font-size:20px}
   .fin-area{left:40px}
   .qb-top{padding:8px 10px;gap:6px;min-height:54px}
-  .qb-back span,.qb-acts .btn span,.qb-saved{display:none}
+  .qb-back span,.qb-acts .btn span{display:none}
+  .qb-acts .qb-savebtn span{display:inline}
+  .qb-acts .qb-savebtn{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+  .qb-saved{font-size:11px;color:var(--muted);white-space:nowrap}
+  .qb-saved.busy{color:var(--signal,#d97706)}
   .qb-back{padding:0 4px}
   .qb-acts .btn{padding:0 10px}
   .qb-acts [data-qa="preview"],.qb-acts [data-qa="send"]{display:none}
@@ -2698,6 +2702,9 @@ body.fv-full{overflow:hidden}
 .dc-p .dc-est{color:var(--signal,#d97706)}.dc-p .dc-set{color:var(--ok,#16a34a)}
 .dc-form select{width:100%}
 @media (max-width:600px){.dc-p .money-in{width:92px}.dc-row{padding-left:12px;gap:8px}}
+
+.qb-savebtn{font-weight:600}.qb-saved{font-size:12px;color:var(--ok,#16a34a)}.qb-saved.busy{color:var(--muted)}
+.qbb-save{min-width:0}
 
 </style>
 </head>
@@ -7882,6 +7889,10 @@ function openQuote(id){
   el.focus({preventScroll:true});
 }
 function closeQuote(){ if(QB) closeScreen(QB.el); }
+/* never lose work: save the moment the app is hidden, closed or loses its connection to the page */
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&QB) qbFlush(); });
+window.addEventListener('pagehide',()=>{ if(QB) qbFlush(); });
+window.addEventListener('blur',()=>{ if(QB) qbFlush(); });
 const qbLocked=()=>QB&&!QB.unlocked&&(isInv(QB.q)?(QB.q.status==='void'||invState(QB.q)==='paid'):(QB.q.status==='accepted'&&!QB.q.template));
 function qbCalc(){ return quoteCalc(QB.q); }
 function qbChanged({rerender=false,totals=true}={}){
@@ -7912,8 +7923,8 @@ function qbRefreshHead(){
   el.classList.toggle('is-inv',inv);
   el.querySelector('.qb-top').innerHTML=`<button class="qb-back" data-qa="close" data-esc title="Back (Esc)">${icon('back')}<span>${esc(j?j.name:inv?'Invoices':'Quotes')}</span></button>
     <div class="qb-id"><span class="qb-num">${esc(q.template?'Template':q.number)}</span><input class="qb-title" data-q="title" value="${esc(q.title)}" placeholder="${q.template?'Template name':inv?'Invoice title':'Quote title'}" aria-label="${inv?'Invoice':'Quote'} title" ${qbLocked()?'disabled':''}>${q.template?'':inv?invPill(q):qStatusPill(q)}<span class="qb-saved">${QB.saved?'Saved':'Saving…'}</span></div>
-    <div class="qb-acts">${inv&&q.status!=='void'&&invState(q)!=='paid'?`<button class="btn" data-qa="pay-add">${icon('coins')}<span>Record payment</span></button>`:''}<button class="btn" data-qa="preview">${icon('eye')}<span>Finished view</span></button>${q.template||q.status==='void'?'':`<button class="btn primary" data-qa="send">${icon('send')}<span>${q.status==='draft'?'Send':inv?'Send again':'Send again'}</span></button>`}<button class="icon-btn" data-qa="menu" aria-label="More" title="More">${icon('more')}</button></div>`;
-  el.querySelector('.qb-bottom').innerHTML=`<div class="qbb-tot"><span>${inv?'Balance due':'Total'}</span><b data-t="${inv?'bal':'total'}">${fmtMoney(inv?invCalc(q).balance:c.total)}</b></div>${inv&&q.status!=='void'&&invState(q)!=='paid'?`<button class="btn" data-qa="pay-add">${icon('coins')}Payment</button>`:`<button class="btn" data-qa="preview">${icon('eye')}Finished view</button>`}${q.template||q.status==='void'?'':`<button class="btn primary" data-qa="send">${icon('send')}Send</button>`}`;
+    <div class="qb-acts"><button class="btn qb-savebtn" data-qa="savedone" title="Save and close">${icon('check')}<span>${q.status==='draft'&&!q.template?'Save draft':'Save'}</span></button>${inv&&q.status!=='void'&&invState(q)!=='paid'?`<button class="btn" data-qa="pay-add">${icon('coins')}<span>Record payment</span></button>`:''}<button class="btn" data-qa="preview">${icon('eye')}<span>Finished view</span></button>${q.template||q.status==='void'?'':`<button class="btn primary" data-qa="send">${icon('send')}<span>${q.status==='draft'?'Send':inv?'Send again':'Send again'}</span></button>`}<button class="icon-btn" data-qa="menu" aria-label="More" title="More">${icon('more')}</button></div>`;
+  el.querySelector('.qb-bottom').innerHTML=`<div class="qbb-tot"><span>${inv?'Balance due':'Total'}</span><b data-t="${inv?'bal':'total'}">${fmtMoney(inv?invCalc(q).balance:c.total)}</b></div>${inv&&q.status!=='void'&&invState(q)!=='paid'?`<button class="btn" data-qa="pay-add">${icon('coins')}Payment</button>`:`<button class="btn" data-qa="preview">${icon('eye')}Finished view</button>`}<button class="btn qbb-save" data-qa="savedone">${icon('check')}${q.status==='draft'&&!q.template&&!inv?'Save draft':'Save'}</button>${q.template||q.status==='void'?'':`<button class="btn primary" data-qa="send">${icon('send')}Send</button>`}`;
   qbBanner();
 }
 function qbBanner(){
@@ -8270,6 +8281,7 @@ function qbBind(el){
     if(invBuilderAction(a,b,q,e)) return;
     switch(a){
       case 'close': closeQuote(); return;
+      case 'savedone': qbFlush(); toast(QB&&QB.q.status==='draft'&&!QB.q.template&&!isInv(QB.q)?'Draft saved — find it under Quotes':'Saved',{ms:2500}); closeQuote(); return;
       case 'preview': qbFlush(); quotePreview(q.id); return;
       case 'send': qbFlush(); sendQuoteDialog(q.id); return;
       case 'menu': e.stopPropagation(); qbMenu(b); return;
@@ -11726,7 +11738,7 @@ window.__punch={S,UI,Store,parseQuick,sanitize,runSearch,parseSched,occurrences,
 boot();
 if('launchQueue' in window){ window.launchQueue.setConsumer(async p=>{ const h=p.files&&p.files[0]; if(!h) return; try{ const f=await h.getFile(); const text=await f.text(); Maps.withApi(api=>api.openText(text,{}),{show:'markup'}); }catch(e){ toast('Couldn’t open that file'); } }); }
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(e=>console.warn('offline support unavailable',e&&e.message));
-window.__hub={S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
+window.__hub={S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),newQuote:()=>{ const q=createQuote({title:""}); openQuote(q.id); return q.id; },fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
 })();
 
 </script>
