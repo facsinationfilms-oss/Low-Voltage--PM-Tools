@@ -575,7 +575,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .kb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 26px; }
 .kb-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 
-/* ===== B&S Layout ===== */
+/* ===== Layout ===== */
 .tool.lay-only { display: none; }
 #editor.is-layout .tool.lay-only { display: grid; }
 .pal-tabs { display: flex; gap: 4px; margin: 10px 10px 0; padding: 3px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; }
@@ -659,7 +659,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .mat-fld > span .ic { width: 15px; height: 15px; }
 .mat-other { margin-top: 6px; }
 #l-layout .lr-ph { pointer-events: none; }
-/* ===== Inside the B&S Office Hub ===== */
+/* ===== Inside the QuaField Office Hub ===== */
 .pjob { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--accent); }
 .pjob .ic { width: 15px; height: 15px; }
 html.in-hub:not(.phone):not(.compact) .hub-back { display: none !important; }
@@ -2778,7 +2778,7 @@ const Home = {
       $('#home-sub').textContent = fh ? `${plural(items.length, 'project file')} in “${fh.name}”` : 'Pick the folder on your computer where you keep project files.';
     }
     if (HUB && this.tab === 'recent') {
-      // the hub's Markup tab lists markups, its Layout tab lists B&S Layouts (a project with both shows in both)
+      // the hub's Markup tab lists markups, its Layout tab lists Layouts (a project with both shows in both)
       const lay = Hub.mode === 'layout';
       items = items.filter(it => { const L = it.meta.layouts || 0, P = it.meta.plans || 0; return lay ? L > 0 : (P === 0 || P > L); });
       $('#home-sub').textContent = items.length ? `${plural(items.length, lay ? 'layout' : 'markup')} · open one from a job or here` : (lay ? 'Draw a 2D blueprint: walls, rooms, doors and windows.' : 'Mark up a PDF or image of a floor plan with devices.');
@@ -5843,7 +5843,7 @@ const Side = {
     toast(`Added ${plural(n, 'photo')} to ${isRoom ? (d.name || 'the room') : d.label}`, { kind: 'ok' });
   },
 
-  /* ---------- B&S Layout elements ---------- */
+  /* ---------- Layout elements ---------- */
   showLayout(id, opts = {}) {
     if (!Editor.findItem(id)) return;
     this.mode = 'layout';
@@ -6151,7 +6151,7 @@ const Lightbox = {
 
 /* ---- 10a-combo.js ---- */
 /* ===== Pick-or-type boxes for a device's Manufacturer and Model # =====
-   The list shows the brands for that kind of device, then that brand's models. In the B&S Office Hub the lists come
+   The list shows the brands for that kind of device, then that brand's models. In the QuaField Office Hub the lists come
    from the team's device catalog (and anything new typed here is added to it); on its own the app suggests what's
    already used in this project. */
 
@@ -7149,7 +7149,7 @@ const Exporter = {
 };
 
 /* ---- 14-layout-cat.js ---- */
-/* ===== B&S Layout: object catalog and 2D blueprint symbols =====
+/* ===== Layout: object catalog and 2D blueprint symbols =====
    Units are inches. Items are drawn centered on (0,0); their back edge is at the top (y = -d/2).
    Openings are drawn in a wall frame: x runs along the wall, y across it, wall faces at y = ±t/2. */
 
@@ -7549,7 +7549,7 @@ const PLENUM_OPTIONS = [
 ];
 
 /* ---- 15-layout.js ---- */
-/* ===== B&S Layout: model, geometry, snapping and rendering =====
+/* ===== Layout: model, geometry, snapping and rendering =====
    A layout plan draws its own blueprint in real units: 1 plan unit = 1 inch (scale 12 units per foot). */
 
 const LAYOUT_PX_PER_FT = 12;
@@ -8221,7 +8221,7 @@ const Layout = {
   },
 };
 
-/* ---------- Sample house drawn with B&S Layout ---------- */
+/* ---------- Sample house drawn with Layout ---------- */
 function buildSampleLayout(project) {
   const plan = Layout.newPlan('House Layout');
   const L = plan.layout;
@@ -8327,7 +8327,7 @@ function buildSampleLayout(project) {
 }
 
 /* ---- 16-layout-ui.js ---- */
-/* ===== B&S Layout: tools, palette, measurement box, side panels ===== */
+/* ===== Layout: tools, palette, measurement box, side panels ===== */
 
 const LayoutUI = {
   hover: null,        // last snap result while drawing
@@ -9875,7 +9875,7 @@ const Install = {
 };
 
 /* ---- 19-hub.js ---- */
-/* ===== B&S Office Hub bridge: runs when this app is embedded in the hub (markup.html?hub=1) ===== */
+/* ===== QuaField Office Hub bridge: runs when this app is embedded in the hub (markup.html?hub=1) ===== */
 
 const HUB = (() => {
   try { return window.parent !== window && /[?&]hub=1/.test(location.search) && !!window.parent.HubBridge; }
@@ -10207,7 +10207,7 @@ document.addEventListener('keydown', (e) => {
   if (mod && k === 'f') { e.preventDefault(); Side.showList(); setTimeout(() => $('#dl-q')?.focus(), 50); return; }
   if (mod) return;
 
-  // B&S Layout: typing a length while drawing goes to the measurement box
+  // Layout: typing a length while drawing goes to the measurement box
   if (Layout.is(Editor.plan) && (Editor.tool === 'wall' || Editor.tool === 'room') && /^[0-9.'"]$/.test(key)) {
     if (LayoutUI.vcbType(key)) { e.preventDefault(); return; }
   }

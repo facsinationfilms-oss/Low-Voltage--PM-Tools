@@ -1106,7 +1106,7 @@ button.pc-ent:hover{background:color-mix(in srgb,var(--c) 16%,var(--surface))}
 }
 
 
-/* ===================== B&S Office Hub ===================== */
+/* ===================== QuaField Office Hub ===================== */
 /* sidebar sections */
 .side-sec{margin:6px 0 2px}
 .side-sec-h{display:flex;align-items:center;gap:2px;padding:2px 4px 2px 0}
@@ -2837,7 +2837,7 @@ html .btn.primary:disabled{opacity:.5}
 <input type="file" id="import-file" accept=".json,application/json" hidden>
 <script src="supabase.js"></script>
 <script>
-/* B&S Office Hub — website sync (Supabase): sign in, live sync of tasks/notes/lists/people/schedule/jobs/maps,
+/* QuaField Office Hub — website sync (Supabase): sign in, live sync of tasks/notes/lists/people/schedule/jobs/maps,
    offline queue (kept by the app), private file storage for maps. Plugs into the app through window.BSCloud. */
 (function () {
   'use strict';
@@ -4851,9 +4851,9 @@ function clearDone(){
 
 /* ---------- backup / restore ---------- */
 async function exportData(){
-  const data={app:'B&S Office Hub',version:1,exportedAt:new Date().toISOString(),...snapshotAll()};
+  const data={app:'QuaField Office Hub',version:1,exportedAt:new Date().toISOString(),...snapshotAll()};
   const json=JSON.stringify(data,null,2);
-  const filename=`bs-office-hub-backup-${today()}.json`;
+  const filename=`quafield-backup-${today()}.json`;
   let dl=null;
   try{ if(window.claude&&typeof window.claude.use==='function') dl=await window.claude.use('downloads'); }catch(e){}
   if(dl){
@@ -4868,7 +4868,7 @@ async function exportData(){
     actions:[{label:'Close'},{label:'Copy to clipboard',kind:'primary',act:w=>{ const ta=w.querySelector('#export-text'); const done=()=>toast('Backup copied'); try{ navigator.clipboard.writeText(json).then(done,()=>{ ta.select(); document.execCommand('copy'); done(); }); }catch(e){ ta.select(); try{document.execCommand('copy'); done();}catch(_){} } return false; }}]});
 }
 function openRestore(){
-  openModal({title:'Restore from a backup',body:`<p>Pick a QuaField or B&amp;S backup file (.json), or paste the backup text below.</p><div class="field"><button type="button" class="btn" id="restore-pick">${icon('upload')}Choose a file…</button></div><div class="field"><label for="restore-text">Or paste backup text</label><textarea id="restore-text" placeholder='{"app":"B&amp;S Task Manager", …}'></textarea></div>`,
+  openModal({title:'Restore from a backup',body:`<p>Pick a QuaField or B&amp;S backup file (.json), or paste the backup text below.</p><div class="field"><button type="button" class="btn" id="restore-pick">${icon('upload')}Choose a file…</button></div><div class="field"><label for="restore-text">Or paste backup text</label><textarea id="restore-text" placeholder='{"app":"QuaField Office Hub", …}'></textarea></div>`,
     actions:[{label:'Cancel'},{label:'Continue',kind:'primary',act:w=>{ const txt=w.querySelector('#restore-text').value.trim(); if(!txt){ toast('Paste backup text or choose a file first.'); return false; } setTimeout(()=>previewImport(txt),0); }}],
     onOpen:w=>{ w.querySelector('#restore-pick').addEventListener('click',()=>{ const fi=$('#import-file'); fi.value=''; fi.click(); }); }});
 }
@@ -6604,7 +6604,7 @@ function togglePageChecklist(li){
 
 /* ---- hub.js ---- */
 /* =========================================================
-   B&S Office Hub: home dashboard, jobs & projects, maps & drawings,
+   QuaField Office Hub: home dashboard, jobs & projects, maps & drawings,
    and the Markup / Layout tools (the Site Markup app in a frame)
    ========================================================= */
 const JOB_STATUS=[['lead','Lead','#8A8F98'],['quoted','Quoted','#8E4EC6'],['scheduled','Scheduled','#0B84F3'],['active','In progress','#30A46C'],['hold','On hold','#E8A317'],['done','Done','#6F7C85']];
@@ -7466,7 +7466,7 @@ DW.crew=()=>{
   return `<div class="cw">${ppl.map(p=>{ const mine=occ.filter(o=>o.e.people.includes(p.id)).sort((a,b)=>(a.e.start||'').localeCompare(b.e.start||'')); const off=mine.find(o=>o.e.type==='off');
     return `<button class="cw-row" data-act="open-person" data-id="${p.id}">${av(p,'sm')}<span class="cw-n">${esc(p.name)}</span><span class="cw-w ${off?'off':mine.length?'':'free'}">${off?'Off':mine.length?mine.map(o=>esc(entryLabel(o.e))+(o.e.start&&!o.e.allDay?` <small>${esc(shortTime(o.e.start))}</small>`:'')).join(' · '):'Not scheduled'}</span></button>`; }).join('')}</div>`;
 };
-DW.tools=()=>`<div class="tool-btns"><button class="tool-btn" data-act="hub-tab" data-tab="markup">${icon('markup')}<b>Markup</b><span>Put devices on a PDF or image floor plan</span></button><button class="tool-btn" data-act="hub-tab" data-tab="layout">${icon('layout')}<b>B&amp;S Layout</b><span>Draw a 2D blueprint: walls, rooms, doors</span></button></div>`;
+DW.tools=()=>`<div class="tool-btns"><button class="tool-btn" data-act="hub-tab" data-tab="markup">${icon('markup')}<b>Markup</b><span>Put devices on a PDF or image floor plan</span></button><button class="tool-btn" data-act="hub-tab" data-tab="layout">${icon('layout')}<b>Layout</b><span>Draw a 2D blueprint: walls, rooms, doors</span></button></div>`;
 
 /* ---------- the page ---------- */
 function greet(){ const h=new Date().getHours(); const me=meName(); return (h<12?'Good morning':h<17?'Good afternoon':'Good evening')+(me?', '+me.split(/\s+/)[0]:''); }
@@ -9869,7 +9869,7 @@ function itemJob(j){
 }
 function jobMapCard(m){ const st=Maps.state(m.id); return `<div class="mcard" data-map="${m.id}">
   <button class="mc-open" data-act="map-open" data-id="${m.id}" title="Open ${esc(m.name)}"><div class="mc-thumb">${m.thumb?`<img src="${m.thumb}" alt="">`:`<span>${icon(m.kind==='layout'?'layout':'markup')}</span>`}</div>
-  <div class="mc-body"><div class="mc-name">${esc(m.name)}</div><div class="mc-meta"><span class="mc-kind">${icon(m.kind==='layout'?'layout':'markup')}${m.kind==='layout'?'B&S Layout':m.kind==='mixed'?'Markup + layout':'Markup'}</span><span>${m.plans} plan${m.plans===1?'':'s'}</span>${m.devices?`<span>${m.devices} device${m.devices===1?'':'s'}</span>`:''}</div>
+  <div class="mc-body"><div class="mc-name">${esc(m.name)}</div><div class="mc-meta"><span class="mc-kind">${icon(m.kind==='layout'?'layout':'markup')}${m.kind==='layout'?'Layout':m.kind==='mixed'?'Markup + layout':'Markup'}</span><span>${m.plans} plan${m.plans===1?'':'s'}</span>${m.devices?`<span>${m.devices} device${m.devices===1?'':'s'}</span>`:''}</div>
   <div class="mc-sync ${st}">${st==='uploading'?`<span class="spin"></span>Saving to the cloud…`:st==='error'?`${icon('warn')}Not synced yet — will retry`:st==='pending'?`${icon('cloudUp')}Waiting to sync`:`${icon('cloud')}Synced · ${esc(m.savedAt?shortStamp(m.savedAt):'')}`}</div></div></button>
   <button class="icon-btn sm mc-more" data-act="map-menu" data-id="${m.id}" aria-label="Map options">${icon('more')}</button></div>`; }
 
