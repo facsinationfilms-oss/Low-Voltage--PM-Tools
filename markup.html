@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>B&amp;S Site Markup</title>
+<title>QuaField Markup</title>
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#111c30">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231e3a8a'/%3E%3Ctext x='32' y='41' font-family='Georgia,serif' font-size='24' font-weight='700' fill='white' text-anchor='middle'%3EB%26amp;S%3C/text%3E%3C/svg%3E">
@@ -14,19 +14,19 @@
   --ease: cubic-bezier(.2,.7,.2,1);
 }
 :root[data-theme="dark"] {
-  --bg: #0b1322; --bg-2: #0e1829; --panel: #111c30; --panel-2: #16233b; --elev: #1a2945;
-  --line: #22324d; --line-2: #2d405f; --text: #e8eef8; --text-2: #b9c6da; --muted: #8394b0;
-  --accent: #4c8dff; --accent-2: #2f6fe6; --accent-soft: rgba(76,141,255,.16); --accent-text: #fff;
-  --danger: #f25b5b; --danger-soft: rgba(242,91,91,.14); --warn: #f5a524; --warn-soft: rgba(245,165,36,.14); --ok: #2fc46d; --ok-soft: rgba(47,196,109,.14);
-  --stage: #08101c; --stage-dot: rgba(255,255,255,.045);
+  --bg: #0a1527; --bg-2: #0c1a30; --panel: #0f1f38; --panel-2: #14284a; --elev: #172d50;
+  --line: #1b3152; --line-2: #284368; --text: #e8eef8; --text-2: #b9c6da; --muted: #8394b0;
+  --accent: #2aafcf; --accent-2: #1f9dbe; --accent-soft: rgba(42,175,207,.16); --accent-text: #04141b;
+  --danger: #f25b5b; --danger-soft: rgba(242,91,91,.14); --warn: #f39a1e; --warn-soft: rgba(245,165,36,.14); --ok: #2fc46d; --ok-soft: rgba(47,196,109,.14);
+  --stage: #081324; --stage-dot: rgba(120,170,230,.07);
   --shadow: 0 12px 36px rgba(0,0,0,.5); --shadow-sm: 0 2px 10px rgba(0,0,0,.35);
-  --inp: #0d1729; --hover: rgba(255,255,255,.055); --glass: rgba(17,28,48,.86);
+  --inp: #0b182c; --hover: rgba(42,175,207,.08); --glass: rgba(15,31,56,.88);
   color-scheme: dark;
 }
 :root[data-theme="light"] {
   --bg: #f2f5f9; --bg-2: #e9eef5; --panel: #ffffff; --panel-2: #f6f8fb; --elev: #ffffff;
   --line: #e0e6ef; --line-2: #cfd8e5; --text: #0f1b2d; --text-2: #34445e; --muted: #67778f;
-  --accent: #2563eb; --accent-2: #1d4ed8; --accent-soft: rgba(37,99,235,.1); --accent-text: #fff;
+  --accent: #0e8faf; --accent-2: #0b7e9b; --accent-soft: rgba(14,143,175,.11); --accent-text: #fff;
   --danger: #dc2626; --danger-soft: rgba(220,38,38,.09); --warn: #c27803; --warn-soft: rgba(245,158,11,.13); --ok: #15803d; --ok-soft: rgba(22,163,74,.1);
   --stage: #dfe5ee; --stage-dot: rgba(15,27,45,.06);
   --shadow: 0 12px 36px rgba(15,27,45,.16); --shadow-sm: 0 2px 8px rgba(15,27,45,.1);
@@ -996,6 +996,13 @@ html.phone .ov-body { padding: 12px 10px calc(40px + env(safe-area-inset-bottom)
 .ov-todo { font-size: 11.5px; }
 html.phone .ov-long { display: none; } html.phone .ov-short { display: inline; }
 html.phone .ov-sec-h { gap: 8px; }
+
+/* ===== QuaField brand ===== */
+.logo.qf { background: none !important; border-radius: 0; box-shadow: none; }
+.logo.qf svg { width: 100%; height: 100%; display: block; }
+.btn.primary { background: linear-gradient(180deg, #f7a532, #e8890f) !important; border-color: #e8890f !important; color: #1b0e00 !important; }
+.btn.primary:hover { background: linear-gradient(180deg, #f9b04a, #ee9418) !important; }
+.btn.primary svg { color: #1b0e00; }
 </style>
 </head>
 <body data-view="home">
@@ -1005,7 +1012,7 @@ html.phone .ov-sec-h { gap: 8px; }
   <header class="home-top">
     <button class="btn ghost hub-back" id="btn-hub-back" hidden title="Back to the Office Hub"><i data-ic="ChevronLeft"></i><span>Hub</span></button>
     <div class="brand">
-      <span class="logo">B&amp;S</span>
+      <span class="logo qf"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"> <g fill="#F39A1E"> <path d="M50 14 A36 36 0 0 0 50 86 L50 75 A25 25 0 0 1 50 25 Z"/> <g transform="translate(50 50)"> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-20)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-55)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-90)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-125)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-160)"/> </g> <path d="M50 30 A20 20 0 0 0 50 70 L50 66 A16 16 0 0 1 50 34 Z" opacity=".55"/> </g> <path fill="#2AAFCF" d="M52 8 A42 42 0 0 1 82 76 L74 70 A32 32 0 0 0 52 18 Z"/> <g stroke="#2AAFCF" stroke-width="2.2" stroke-linecap="round"> <line x1="52" y1="23" x2="52" y2="28"/><line x1="64" y1="26" x2="62" y2="30"/><line x1="73" y1="34" x2="69" y2="37"/> <line x1="77" y1="46" x2="72" y2="47"/><line x1="76" y1="58" x2="71" y2="57"/> </g> <line x1="50" y1="50" x2="76" y2="78" stroke="#2AAFCF" stroke-width="3.2" stroke-linecap="round"/> <circle cx="50" cy="50" r="5" fill="none" stroke="#2AAFCF" stroke-width="2.6"/> <path fill="#2AAFCF" d="M74 70 L92 92 L68 84 Z"/> </svg></span>
       <div class="brand-txt"><b>Site Markup</b><span>Survey &amp; device mapping</span></div>
     </div>
     <div class="search home-search"><i data-ic="Search"></i><input id="home-q" placeholder="Search projects, clients, addresses" autocomplete="off"></div>
@@ -1056,7 +1063,7 @@ html.phone .ov-sec-h { gap: 8px; }
 <section id="editor" hidden>
   <header class="ed-top">
     <button class="icon-btn" id="ed-home" title="Back" aria-label="Back to the list"><i data-ic="ArrowLeft"></i></button>
-    <span class="logo sm">B&amp;S</span>
+    <span class="logo sm qf"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"> <g fill="#F39A1E"> <path d="M50 14 A36 36 0 0 0 50 86 L50 75 A25 25 0 0 1 50 25 Z"/> <g transform="translate(50 50)"> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-20)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-55)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-90)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-125)"/> <rect x="-6" y="-44" width="12" height="11" rx="2" transform="rotate(-160)"/> </g> <path d="M50 30 A20 20 0 0 0 50 70 L50 66 A16 16 0 0 1 50 34 Z" opacity=".55"/> </g> <path fill="#2AAFCF" d="M52 8 A42 42 0 0 1 82 76 L74 70 A32 32 0 0 0 52 18 Z"/> <g stroke="#2AAFCF" stroke-width="2.2" stroke-linecap="round"> <line x1="52" y1="23" x2="52" y2="28"/><line x1="64" y1="26" x2="62" y2="30"/><line x1="73" y1="34" x2="69" y2="37"/> <line x1="77" y1="46" x2="72" y2="47"/><line x1="76" y1="58" x2="71" y2="57"/> </g> <line x1="50" y1="50" x2="76" y2="78" stroke="#2AAFCF" stroke-width="3.2" stroke-linecap="round"/> <circle cx="50" cy="50" r="5" fill="none" stroke="#2AAFCF" stroke-width="2.6"/> <path fill="#2AAFCF" d="M74 70 L92 92 L68 84 Z"/> </svg></span>
     <div class="ed-title">
       <input class="title-inp" id="ed-name" spellcheck="false" placeholder="Project name" title="Project name — click to rename">
       <span id="name-meas" class="name-meas"></span>
@@ -1132,7 +1139,7 @@ html.phone .ov-sec-h { gap: 8px; }
         <p>Drop a PDF or image here, or choose one from your computer.</p>
         <div class="empty-actions">
           <button class="btn primary" id="empty-plan-add"><i data-ic="FileImport"></i><span>PDF or image…</span></button>
-          <button class="btn" id="empty-plan-blank"><i data-ic="HomeEdit"></i><span>B&amp;S Layout</span></button>
+          <button class="btn" id="empty-plan-blank"><i data-ic="HomeEdit"></i><span>Layout</span></button>
         </div>
       </div>
       <div class="stage-drop"><div><i data-ic="Upload"></i><b>Drop to add</b><span>Images on a device become its photos · PDFs and images elsewhere become new plans</span></div></div>
@@ -1996,7 +2003,7 @@ function serializeProject(project, meta) {
 function parseProjectFile(text) {
   let obj;
   try { obj = JSON.parse(text); } catch (e) { throw new Error('This file is not a valid project file (it could not be read).'); }
-  if (!obj || obj.format !== FILE_FORMAT || !obj.project) throw new Error('This file is not a B&S Site Markup project.');
+  if (!obj || obj.format !== FILE_FORMAT || !obj.project) throw new Error('This file isn’t a QuaField map file.');
   return { meta: obj.meta || {}, project: obj.project };
 }
 
@@ -2014,7 +2021,7 @@ async function readFileMeta(file) {
   return meta && meta.name ? meta : projectMeta(project);
 }
 
-const FILE_TYPES = [{ description: 'B&S Site Markup project', accept: { 'application/json': [FILE_EXT] } }];
+const FILE_TYPES = [{ description: 'QuaField map file', accept: { 'application/json': [FILE_EXT] } }];
 
 const Files = {
   async verifyPermission(handle, write = true, ask = true) {
@@ -2683,7 +2690,7 @@ const App = {
   },
 
   updateTitle() {
-    document.title = this.project ? `${this.dirty ? '• ' : ''}${this.project.name} — B&S Site Markup` : 'B&S Site Markup';
+    document.title = this.project ? `${this.dirty ? '• ' : ''}${this.project.name} — QuaField Markup` : 'QuaField Markup';
   },
 };
 
@@ -2951,7 +2958,7 @@ const Home = {
       <div class="np-sec">Floor plan</div>
       <div class="np-bg">
         <button class="bgopt on" data-mode="upload">${ic('FileImport')}<b>Mark up a PDF or image</b><span>Upload a floor plan, drawing or photo and place devices on it</span></button>
-        <button class="bgopt" data-mode="layout">${ic('HomeEdit')}<b>B&amp;S Layout</b><span>Draw your own 2D blueprint: walls, rooms, doors, windows</span></button>
+        <button class="bgopt" data-mode="layout">${ic('HomeEdit')}<b>Layout</b><span>Draw your own 2D blueprint: walls, rooms, doors, windows</span></button>
       </div>
       <div class="np-drop" id="np-drop">
         <div class="np-drop-in">${ic('Upload')}<div><b>Drop a PDF or image here</b><span>or</span></div><button class="btn sm" id="np-browse">Browse…</button></div>
@@ -2996,7 +3003,7 @@ const Home = {
           const name = $('#np-name', body).value.trim();
           if (!name) { $('#np-name', body).focus(); $('#np-name', body).classList.add('bad'); toast('Give the project a name', { kind: 'warn' }); return false; }
           if (bgMode === 'upload' && !plans.length) {
-            const ok = await confirmDialog('No floor plan yet', 'You haven’t added a PDF or image. Start with a B&amp;S Layout drawing instead? You can add PDFs and more drawings any time.', { ok: 'Start a B&S Layout' });
+            const ok = await confirmDialog('No floor plan yet', 'You haven’t added a PDF or image. Start with a layout drawing instead? You can add PDFs and more drawings any time.', { ok: 'Start a layout' });
             if (!ok) return false;
             bgMode = 'layout';
           }
@@ -3051,7 +3058,7 @@ const SettingsUI = {
           <label class="switch"><input type="checkbox" id="set-auto" ${s.autosaveToFile ? 'checked' : ''}><i></i></label></div>
         <div class="set-row"><div><b>Open details after placing a device</b><span>Shows the device panel each time you drop a device on the map.</span></div>
           <label class="switch"><input type="checkbox" id="set-openplace" ${s.openPanelOnPlace ? 'checked' : ''}><i></i></label></div>
-        <div class="set-group">B&amp;S Layout</div>
+        <div class="set-group">Layout</div>
         <div class="set-row"><div><b>Show the length on the wall while drawing</b><span>A blue tag rides along the wall as you draw it. The length always shows in the box at the bottom right too.</span></div>
           <label class="switch"><input type="checkbox" id="set-live" ${s.layoutLiveLength !== false ? 'checked' : ''}><i></i></label></div>
         <div class="set-row"><div><b>Keep wall lengths on the drawing</b><span>Each wall’s length stays printed next to it as a dimension. You can turn it off per drawing under Layers.</span></div>
@@ -3541,7 +3548,7 @@ const Editor = {
   tool: 'select',
   setTool(t) {
     if ((t === 'wall' || t === 'room') && !Layout.is(this.plan)) {
-      toast('Walls and rooms are for B&S Layout drawings — add one with “Add plan”', { kind: 'warn' });
+      toast('Walls and rooms are for layout drawings — add one with “Add plan”', { kind: 'warn' });
       return;
     }
     MapView.finishPoly(false);
@@ -3753,7 +3760,7 @@ const Editor = {
     });
     $('#ptab-add').onclick = (e) => showMenu(e.currentTarget, [
       { label: 'Mark up a PDF or image…', icon: 'FileImport', onClick: () => this.addPlansFromFiles() },
-      { label: 'New B&S Layout (draw a blueprint)', icon: 'HomeEdit', onClick: () => this.addLayoutPlan() },
+      { label: 'New layout (draw a blueprint)', icon: 'HomeEdit', onClick: () => this.addLayoutPlan() },
     ]);
     const on = el.querySelector('.ptab.on');
     if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -3852,7 +3859,7 @@ const Editor = {
     this.switchPlan(pl.id);
     this.setPalTab('build');
     this.setTool('room');
-    toast('B&S Layout ready — drag to draw a room, or press W to draw walls', { ms: 4500 });
+    toast('Layout ready — drag to draw a room, or press W to draw walls', { ms: 4500 });
   },
 
   async replaceBg(id) {
@@ -4295,7 +4302,7 @@ const Editor = {
       <label class="lp-row"><input type="checkbox" class="chk" data-opt="showCones" ${Settings.data.showCones ? 'checked' : ''}><span>Camera view areas</span></label>
       <label class="lp-row"><input type="checkbox" class="chk" data-opt="showStatus" ${Settings.data.showStatus ? 'checked' : ''}><span>Status badges</span></label>
       <label class="lp-row"><input type="checkbox" class="chk" data-opt="hideMarkups" ${Settings.data.hideMarkups ? '' : 'checked'}><span>Markups & notes</span></label>
-      ${Layout.is(this.plan) ? `<div class="menu-sep"></div><div class="menu-head">B&S Layout</div>
+      ${Layout.is(this.plan) ? `<div class="menu-sep"></div><div class="menu-head">Layout</div>
       <label class="lp-row"><input type="checkbox" class="chk" data-lay="showDims" ${this.plan.layout.showDims ? 'checked' : ''}><span>Wall lengths</span></label>
       <label class="lp-row"><input type="checkbox" class="chk" data-lay="showRoomInfo" ${this.plan.layout.showRoomInfo ? 'checked' : ''}><span>Room sizes & areas</span></label>
       <label class="lp-row"><input type="checkbox" class="chk" data-lay="showGrid" ${this.plan.layout.showGrid ? 'checked' : ''}><span>Grid</span></label>` : ''}
@@ -4329,7 +4336,7 @@ const Editor = {
     const rows = [
       ['Select / move', 'V'], ['Pan', 'H or hold Space'], ['Text', 'T'], ['Arrow', 'A'], ['Line', 'L'], ['Cable run', 'C'],
       ['Box', 'R'], ['Circle', 'O'], ['Pen', 'P'], ['Measure', 'M'], ['Set scale', 'K'],
-      ['Draw walls (B&S Layout)', 'W'], ['Draw a room (B&S Layout)', 'B'], ['Type a length while drawing', 'just type, then Enter'],
+      ['Draw walls (layout)', 'W'], ['Draw a room (layout)', 'B'], ['Type a length while drawing', 'just type, then Enter'],
       ['Flip door swing / mirror object', 'F'], ['Snapping off while dragging', 'hold Alt'],
       ['Place last device again', 'D'], ['Stop placing / deselect', 'Esc'], ['Delete selected', 'Delete'],
       ['Duplicate', 'Ctrl+D'], ['Copy / paste', 'Ctrl+C / Ctrl+V'], ['Select all', 'Ctrl+A'], ['Nudge', 'Arrow keys (Shift = more)'],
@@ -9553,7 +9560,7 @@ const PBar = {
       Editor.hint(`<b>${esc(Reg.type(d.id).name)}</b> placed. Drag another, or tap it on the map to change it.`, true);
       if (dev) this.flash(dev.id);
     } else {
-      if (!this.layoutPlan()) { toast('Layout items go on a B&S Layout plan', { kind: 'warn' }); return; }
+      if (!this.layoutPlan()) { toast('Layout items go on a layout plan', { kind: 'warn' }); return; }
       LayoutUI.placeAt(d.id, p, { free: Touch.free });
       Editor.hint(`<b>${esc((LAYOUT_BY_ID[d.id] || {}).name || 'Item')}</b> placed. Drag another, or tap it on the map to change it.`, true);
     }
