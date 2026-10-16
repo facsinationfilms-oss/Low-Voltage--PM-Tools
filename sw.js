@@ -1,7 +1,7 @@
 /* QuaField Office Hub — offline support. The app and the markup tools are cached so they open with no signal;
    your data syncs when you're back online. New versions load the next time you're online. */
-const CACHE = 'bs-hub-8127f301ee';
-const FILES = ['./', './index.html', './markup.html', './quote.html', './supabase.js', './pdf-lib.min.js', './pdf.min.mjs', './pdf.worker.min.mjs', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+const CACHE = 'bs-hub-44bac8dd7f';
+const FILES = ['./', './index.html', './markup.html', './quote.html', './supabase.js', './pdf-lib.min.js', './zxing.min.js', './pdf.min.mjs', './pdf.worker.min.mjs', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => /^bs-(hub|markup)-/.test(k) && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
