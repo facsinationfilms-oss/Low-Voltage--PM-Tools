@@ -7358,6 +7358,7 @@ Object.assign(IC,{invoice:'<path d="M6 3.5h12a.5.5 0 0 1 .5.5v16.5l-2.2-1.4-2.1 
    Sidebar (clean list, sub-items open with their area), top tabs, phone bottom bar, "New" menu
    ========================================================= */
 NAV.push(['home','Dashboard','dash'],['quotes','Quotes','quote'],['items','Item library','box'],['invoices','Invoices','invoice'],['payments','Payments','coins'],['expenses','Expenses','receipt'],['settings','Settings','gear']);
+Object.assign(IC,{checkbox:'<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.2 12.4l2.7 2.7 5-5.6"/>'});
 const TASK_VIEWS=['today','upcoming','inbox','all','starred','done','folder','tag','saved','search'];
 function navArea(){
   if(HUB.tool) return 'tools';
@@ -7371,8 +7372,7 @@ function navArea(){
   if(v==='schedule'||v==='calendar') return 'schedule';
   if(v==='jobs') return UI.jobsType==='project'?'projects':'jobs';
   if(v==='contacts') return 'jobs';
-  if(v==='quotes'||v==='items') return 'quotes';
-  if(v==='invoices'||v==='payments') return 'invoices';
+  if(['quotes','items','invoices','payments','expenses'].includes(v)) return 'finances';
   if(TASK_VIEWS.includes(v)) return 'tasks';
   return v;
 }
@@ -7409,17 +7409,14 @@ function renderNav(){
     top('dash','Dashboard','dash',{view:'home'})+
     top('schedule','Schedule','sched',{n:todayN||'',kids:
       sub('schedule','Crew board','sched','',{on:isOn('schedule',UI.schedView!=='team')})+sub('calendar','Calendar','cal','')+sub('schedule','Crew','crew',peopleList().length||'',{act:'nav-team',on:isOn('schedule',UI.schedView==='team')})})+
+    top('projects','Projects','project',{act:'nav-jobs',extra:'data-type="project"',n:jobsOf('project').filter(j=>j.status!=='done').length||''})+
     top('jobs','Jobs','job',{act:'nav-jobs',extra:'data-type="job"',n:jobsOf('job').filter(j=>j.status!=='done').length||'',kids:
       sub('jobs','All jobs','all',jobsOf('job').length||'',{act:'nav-jobs',extra:'data-type="job"',on:isOn('jobs',UI.jobsType!=='project')})+sub('contacts','Contacts','contact',Object.keys(S.contacts).length||'')})+
-    top('projects','Projects','project',{act:'nav-jobs',extra:'data-type="project"',n:jobsOf('project').filter(j=>j.status!=='done').length||''})+
-    top('quotes','Quotes','quote',{view:'quotes',n:waiting||'',kids:
-      sub('quotes','All quotes','quote',qs.length||'')+sub('items','Item library','box',Object.keys(S.items).length||'')})+
-    top('invoices','Invoices','invoice',{view:'invoices',n:unpaid.length||'',alert:!!overdueN,kids:
-      sub('invoices','All invoices','invoice',invs.length||'')+sub('payments','Payments','coins',Object.keys(S.payments).length||'')})+
-    top('tasks','Tasks','check',{view:'today',n:c.today,alert:!!c.overdue,kids:
+    top('tasks','Tasks','checkbox',{view:'today',n:c.today,alert:!!c.overdue,kids:
       sub('today','Today','sun',c.today,{alert:!!c.overdue,extra:'data-drop="nav-today"'})+sub('upcoming','Upcoming','upcoming',c.upcoming)+sub('inbox','Inbox','inbox',c.inbox,{extra:'data-drop="nav-inbox"'})+sub('all','All tasks','all',c.all)+sub('starred','Starred','star',c.starred,{extra:'data-drop="nav-starred"'})+sub('done','Completed','done','')+`<button class="nav-item sub ${UI.view==='folder'&&!UI.item&&!HUB.tool?'active':''}" data-act="nav-lists-menu">${icon('folder')}<span>Lists</span>${cnt(Object.keys(S.folders).length||'')}</button>`})+
     top('notes','Notes','note',{n:c.notes})+
-    top('expenses','Expenses','receipt',{n:expN||''})+
+    top('finances','Finances','coins',{view:'quotes',n:overdueN||'',alert:!!overdueN,kids:
+      sub('quotes','Quotes','quote',waiting||'')+sub('invoices','Invoices','invoice',unpaid.length||'',{alert:!!overdueN})+sub('payments','Payments','coins',Object.keys(S.payments).length||'')+sub('expenses','Expenses','receipt',expN||'')+sub('items','Item library','box',Object.keys(S.items).length||'')})+
     top('tools','Tools','markup',{act:'nav-tools',kids:
       `<button class="nav-item sub ${HUB.tool==='markup'?'active':''}" data-act="hub-tab" data-tab="markup">${icon('markup')}<span>Markup</span></button>`+
       `<button class="nav-item sub ${HUB.tool==='layout'?'active':''}" data-act="hub-tab" data-tab="layout">${icon('layout')}<span>Layout</span></button>`})+
@@ -7436,7 +7433,7 @@ function renderHubTabs(){
   const bb=$('#hub-bottom'); if(bb){
     const area=navArea();
     const b=(k,label,ic,act,extra='')=>`<button class="hb ${k===area||(k==='tools'&&area==='tools')?'on':''}" data-act="${act}" ${extra}>${icon(ic)}<span>${label}</span></button>`;
-    bb.innerHTML=b('dash','Dashboard','dash','nav','data-view="home"')+b('schedule','Schedule','sched','nav','data-view="schedule"')+b('jobs','Jobs','job','nav-jobs','data-type="job"')+b('quotes','Quotes','quote','nav','data-view="quotes"')+b('tasks','Tasks','check','nav','data-view="today"')+b('tools','Tools','markup','tools-menu');
+    bb.innerHTML=b('dash','Dashboard','dash','nav','data-view="home"')+b('schedule','Schedule','sched','nav','data-view="schedule"')+b('jobs','Jobs','job','nav-jobs','data-type="job"')+b('finances','Finances','coins','nav','data-view="quotes"')+b('tasks','Tasks','checkbox','nav','data-view="today"')+b('tools','Tools','markup','tools-menu');
   }
 }
 function newMenu(anchor){
@@ -10824,7 +10821,7 @@ function applyRole(){
 }
 { const base=Maps._onReady.bind(Maps); Maps._onReady=function(){ base(); try{ this.api&&this.api.setRole&&this.api.setRole(Role.get()); }catch(e){} }; }
 { const base=renderNav; renderNav=function(){ applyRole(); base();
-  if(!Role.mgr()){ for(const k of ['quotes','invoices','expenses']){ const t=$(`#nav .nav-top[data-area="${k}"]`); if(t){ const kids=t.nextElementSibling; if(kids&&kids.classList.contains('nav-kids')) kids.remove(); t.remove(); } } const bq=$('#hub-bottom [data-view="quotes"]'); if(bq){ bq.dataset.view='today'; bq.innerHTML=`${icon('check')}<span>Tasks</span>`; const bt=$$('#hub-bottom .hb').find(b=>b!==bq&&b.dataset.view==='today'); if(bt) bt.remove(); } }
+  if(!Role.mgr()){ for(const k of ['finances','quotes','invoices','expenses']){ const t=$(`#nav .nav-top[data-area="${k}"]`); if(t){ const kids=t.nextElementSibling; if(kids&&kids.classList.contains('nav-kids')) kids.remove(); t.remove(); } } const bq=$('#hub-bottom [data-view="quotes"]'); if(bq){ bq.dataset.view='today'; bq.innerHTML=`${icon('checkbox')}<span>Tasks</span>`; const bt=$$('#hub-bottom .hb').find(b=>b!==bq&&b.dataset.view==='today'); if(bt) bt.remove(); } }
   const n=Team.pending().length; const st=$('#nav .nav-top[data-area="settings"] .nav-main'); if(st&&n&&Role.admin()){ const c=st.querySelector('.count'); if(c){ c.textContent=n; c.classList.add('alert'); } }
 }; }
 { const base=newMenu; newMenu=function(anchor){ if(Role.mgr()) return base(anchor);
@@ -12645,7 +12642,7 @@ DW.lowstock=()=>{
   const low=INV.low().length, n=INV.tracked().length, here=navArea()==='inventory';
   const el=document.createElement('div'); el.className='nav-top '+(here?'here':''); el.dataset.area='inventory';
   el.innerHTML=`<button class="nav-item nav-main ${here&&UI.view==='inventory'&&!UI.item&&!HUB.tool?'active':''}" data-act="nav" data-view="inventory">${icon('stock')}<span>Inventory</span><span class="count ${low?'alert':''}">${low||n||''}</span></button>`;
-  const ref=nav.querySelector('.nav-top[data-area="invoices"]'); let after=ref; if(ref&&ref.nextElementSibling&&ref.nextElementSibling.classList.contains('nav-kids')) after=ref.nextElementSibling;
+  const ref=nav.querySelector('.nav-top[data-area="finances"]'); let after=ref; if(ref&&ref.nextElementSibling&&ref.nextElementSibling.classList.contains('nav-kids')) after=ref.nextElementSibling;
   if(after) after.after(el); else nav.appendChild(el);
 }; }
 
