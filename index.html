@@ -2806,6 +2806,12 @@ button.inv-row:hover{background:var(--hover)}
   .if-invbox{grid-template-columns:1fr}
 }
 
+.feat-row{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.feat-row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.feat-b{display:flex;gap:8px;flex-wrap:wrap;padding-top:12px}
+.sn-hit{background:rgba(242,116,15,.16);border-radius:6px}
+.inv-list.sn>div{font-size:13px}
+
 /* ===================== QuaField brand: logo colors + blueprint background =====================
    Orange (logo gear) = the main action buttons. Teal (logo gauge) = what's selected, links, focus.
    Navy blueprint with a faint grid behind the content. */
@@ -7184,7 +7190,7 @@ Object.assign(NORM,{
     history:Array.isArray(o.history)?o.history.filter(h=>h&&typeof h==='object').slice(-60).map(h=>({at:num(h.at),what:str(h.what).slice(0,300)})):[],
     totals:{sub:finNum(o.totals&&o.totals.sub),total:finNum(o.totals&&o.totals.total),cost:finNum(o.totals&&o.totals.cost)},
     createdAt:num(o.createdAt,Date.now()),updatedAt:num(o.updatedAt,Date.now())}),
-  items:o=>({id:str(o.id),name:(str(o.name).slice(0,300))||'New item',sku:str(o.sku).slice(0,80),mfr:str(o.mfr).slice(0,120),category:str(o.category).slice(0,80),desc:str(o.desc).slice(0,4000),unit:str(o.unit).slice(0,20)||'ea',cost:finNum(o.cost),price:finNum(o.price),taxable:o.taxable!==false,labor:posNum(o.labor),vendor:str(o.vendor).slice(0,120),url:/^https?:\/\//i.test(str(o.url))?str(o.url).slice(0,600):'',notes:str(o.notes).slice(0,4000),kind:o.kind==='labor'?'labor':'item',track:!!o.track&&o.kind!=='labor',barcode:str(o.barcode).trim().slice(0,64),reorder:posNum(o.reorder),reorderQty:posNum(o.reorderQty),alert:!!o.alert,loc:str(o.loc).slice(0,60),uses:num(o.uses),lastUsed:num(o.lastUsed),createdAt:num(o.createdAt,Date.now()),updatedAt:num(o.updatedAt,Date.now())}),
+  items:o=>({id:str(o.id),name:(str(o.name).slice(0,300))||'New item',sku:str(o.sku).slice(0,80),mfr:str(o.mfr).slice(0,120),category:str(o.category).slice(0,80),desc:str(o.desc).slice(0,4000),unit:str(o.unit).slice(0,20)||'ea',cost:finNum(o.cost),price:finNum(o.price),taxable:o.taxable!==false,labor:posNum(o.labor),vendor:str(o.vendor).slice(0,120),url:/^https?:\/\//i.test(str(o.url))?str(o.url).slice(0,600):'',notes:str(o.notes).slice(0,4000),kind:o.kind==='labor'?'labor':'item',track:!!o.track&&o.kind!=='labor',serial:!!o.track&&!!o.serial&&o.kind!=='labor',barcode:str(o.barcode).trim().slice(0,64),reorder:posNum(o.reorder),reorderQty:posNum(o.reorderQty),alert:!!o.alert,loc:str(o.loc).slice(0,60),uses:num(o.uses),lastUsed:num(o.lastUsed),createdAt:num(o.createdAt,Date.now()),updatedAt:num(o.updatedAt,Date.now())}),
   expenses:o=>({id:str(o.id),date:isDate(o.date)?o.date:today(),amount:money(finNum(o.amount)),category:EXP_CATS.some(x=>x[0]===o.category)?o.category:'materials',jobId:validId(o.jobId)?o.jobId:'',vendor:str(o.vendor).slice(0,160),desc:str(o.desc).slice(0,1000),paidBy:str(o.paidBy).slice(0,80),receipt:cleanFile(o.receipt),createdAt:num(o.createdAt,Date.now()),updatedAt:num(o.updatedAt,Date.now())}),
   settings:o=>{ let x={}; try{ x=JSON.parse(JSON.stringify(o)); }catch(e){} x.id=str(o.id); x.type=str(o.type); if(typeof x.logo==='string'&&(!x.logo.startsWith('data:image/')||x.logo.length>400000)) x.logo=''; x.updatedAt=num(o.updatedAt,Date.now()); return x; },
 });
@@ -12070,10 +12076,19 @@ const Code128={
 /* ---------- the ledger ---------- */
 const MOVE_TYPES={receive:['Received','#30A46C'],adjust:['Adjusted','#E8A317'],count:['Counted','#3E63DD'],transfer:['Moved','#8E4EC6'],sale:['Sold','#E5484D'],job:['Used on job','#F76B15'],return:['Returned','#05A2C2']};
 KINDS.push('moves'); S.moves={};
-NORM.moves=o=>({id:str(o.id),item:validId(o.item)?o.item:'',qty:finNum(o.qty),type:MOVE_TYPES[o.type]?o.type:'adjust',loc:str(o.loc).slice(0,60),job:validId(o.job)?o.job:'',ref:str(o.ref).slice(0,80),note:str(o.note).slice(0,300),by:str(o.by).slice(0,120),byUid:str(o.byUid).slice(0,64),cost:finNum(o.cost),at:num(o.at,Date.now())});
+NORM.moves=o=>({id:str(o.id),item:validId(o.item)?o.item:'',qty:finNum(o.qty),type:MOVE_TYPES[o.type]?o.type:'adjust',loc:str(o.loc).slice(0,60),job:validId(o.job)?o.job:'',ref:str(o.ref).slice(0,80),note:str(o.note).slice(0,300),sn:Array.isArray(o.sn)?o.sn.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim().slice(0,60)).slice(0,500):[],by:str(o.by).slice(0,120),byUid:str(o.byUid).slice(0,64),cost:finNum(o.cost),at:num(o.at,Date.now())});
 const r3=n=>Math.round(finNum(n)*1000)/1000;
 const jobLabel=id=>S.jobs[id]?S.jobs[id].name:'(removed job)';
 const fmtWhen=t=>new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+
+/* per-company switches: each company turns on only what it uses */
+const FEAT_DEF={inv:true,barcode:true,alerts:true,serials:false};
+const Feat={
+  cfg(){ return S.settings.features||{}; },
+  on(k){ const c=this.cfg(); return k in c?!!c[k]:FEAT_DEF[k]; },
+  set(p){ Store.put('settings',NORM.settings({...(S.settings.features||{}),...p,id:'features',type:'features',updatedAt:Date.now()})); scheduleRender(); },
+};
+const snLines=t=>String(t||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
 
 const INV={
   v:0, _ix:null, _iv:-1,
@@ -12086,14 +12101,17 @@ const INV={
   /* ----- totals per item ----- */
   ix(){
     if(this._ix&&this._iv===this.v) return this._ix;
-    const m=new Map(), dl=this.defLoc();
+    const m=new Map(), dl=this.defLoc(), evs=[];
     for(const mv of Object.values(S.moves)){
       if(!mv.item) continue;
+      if(mv.sn&&mv.sn.length) evs.push(mv);
       let r=m.get(mv.item); if(!r){ r={on:0,locs:{},jobs:{},n:0,last:0}; m.set(mv.item,r); }
       r.on+=mv.qty; const l=mv.loc||dl; r.locs[l]=(r.locs[l]||0)+mv.qty;
       if(mv.job) r.jobs[mv.job]=(r.jobs[mv.job]||0)+mv.qty;
       r.n++; r.last=Math.max(r.last,mv.at);
     }
+    evs.sort((a,b)=>a.at-b.at||((a.qty<0?-1:1)-(b.qty<0?-1:1)));
+    for(const mv of evs){ const r=m.get(mv.item); if(!r.sns) r.sns=new Map(); for(const x of mv.sn){ if(mv.qty>0) r.sns.set(x,{loc:mv.loc||dl,job:mv.job||''}); else r.sns.delete(x); } }
     for(const r of m.values()){
       r.on=r3(r.on); for(const k of Object.keys(r.locs)) r.locs[k]=r3(r.locs[k]);
       r.held=0; for(const k of Object.keys(r.jobs)){ r.jobs[k]=r3(r.jobs[k]); if(r.jobs[k]>0) r.held+=r.jobs[k]; }
@@ -12102,17 +12120,22 @@ const INV={
     this._ix=m; this._iv=this.v; return m;
   },
   stock(id){ return this.ix().get(id)||{on:0,locs:{},jobs:{},n:0,last:0,held:0,avail:0}; },
+  /* serial numbers currently in stock for an item: [[serial,{loc,job}]] */
+  sns(id){ const r=this.ix().get(id); return r&&r.sns?[...r.sns.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})):[]; },
+  hasSerial(id,code){ const k=String(code||'').trim().toLowerCase(); return this.sns(id).some(([x])=>x.toLowerCase()===k); },
+  serialOwner(code){ const k=String(code||'').trim().toLowerCase(); if(!k) return null; for(const [id,r] of this.ix()) if(r.sns) for(const x of r.sns.keys()) if(x.toLowerCase()===k) return S.items[id]||null; return null; },
   tracked(){ return Object.values(S.items).filter(i=>i.track).sort((a,b)=>a.name.localeCompare(b.name)); },
-  status(it){ const s=this.stock(it.id); if(s.avail<=0) return it.alert&&it.reorder>0?'low':'out'; if(it.alert&&it.reorder>0&&s.avail<=it.reorder) return 'low'; return 'ok'; },
-  isLow(it){ const s=this.stock(it.id); return !!(it.track&&it.alert&&it.reorder>0&&s.avail<=it.reorder); },
+  alertOn(it){ return !!(Feat.on('alerts')&&it.alert&&it.reorder>0); },
+  status(it){ const s=this.stock(it.id); if(s.avail<=0) return this.alertOn(it)?'low':'out'; if(this.alertOn(it)&&s.avail<=it.reorder) return 'low'; return 'ok'; },
+  isLow(it){ const s=this.stock(it.id); return !!(it.track&&this.alertOn(it)&&s.avail<=it.reorder); },
   low(){ return this.tracked().filter(i=>this.isLow(i)).sort((a,b)=>(this.stock(a.id).avail-a.reorder)-(this.stock(b.id).avail-b.reorder)); },
   suggest(it){ const a=this.stock(it.id).avail; return it.reorderQty>0?it.reorderQty:Math.max(1,Math.ceil(it.reorder*2-a)); },
   chip(it){ const s=this.stock(it.id), st=this.status(it); return `<span class="chip inv-st ${st}">${st==='low'?'Low · ':st==='out'?'Out · ':''}${fmtQty(s.avail)} ${st==='ok'?'in stock':'left'}</span>`; },
   /* ----- writing movements ----- */
-  add({item,qty,type,loc,job,ref,note,cost}){
+  add({item,qty,type,loc,job,ref,note,cost,sn}){
     const it=S.items[item]; qty=r3(qty); if(!it||!qty) return null;
     const before=this.stock(item).avail;
-    const o=NORM.moves({id:uid('mv'),item,qty,type,loc:loc||this.defLoc(),job:job||'',ref:ref||'',note:note||'',cost:cost!=null?cost:it.cost,by:Who.name(),byUid:Who.uid(),at:Date.now()});
+    const o=NORM.moves({id:uid('mv'),item,qty,type,loc:loc||this.defLoc(),job:job||'',ref:ref||'',note:note||'',sn:sn||[],cost:cost!=null?cost:it.cost,by:Who.name(),byUid:Who.uid(),at:Date.now()});
     Store.put('moves',o);
     const after=this.stock(item).avail;
     if(this.isLow(it)&&!(before<=it.reorder)) setTimeout(()=>toast(`${it.name} is low: ${fmtQty(after)} left (reorder at ${fmtQty(it.reorder)})`,{ms:9000}),500);
@@ -12121,44 +12144,56 @@ const INV={
   },
   /* ----- barcodes ----- */
   key(s){ s=String(s||'').trim().toLowerCase(); return /^\d{8,}$/.test(s)?s.replace(/^0+/,''):s; },
-  find(code){ const k=this.key(code); if(!k) return null; const its=Object.values(S.items); return its.find(i=>i.barcode&&this.key(i.barcode)===k)||its.find(i=>i.sku&&this.key(i.sku)===k)||null; },
+  find(code){ const k=this.key(code); if(!k) return null; const its=Object.values(S.items); return its.find(i=>i.barcode&&this.key(i.barcode)===k)||its.find(i=>i.sku&&this.key(i.sku)===k)||(Feat.on('serials')?this.serialOwner(code):null)||null; },
   taken(code,exceptId){ const k=this.key(code); if(!k) return null; return Object.values(S.items).find(i=>i.id!==exceptId&&i.barcode&&this.key(i.barcode)===k)||null; },
   genCode(){ let n=Math.max(1,num(this.cfg().nextCode,1)); for(;;){ const c='QF'+String(n).padStart(6,'0'); if(!this.taken(c)) return c; n++; } },
   noteCode(c){ const m=/^QF(\d+)$/.exec(c||''); if(m&&+m[1]>=num(this.cfg().nextCode,1)) this.saveCfg({nextCode:+m[1]+1}); },
   ensureCode(it){ if(it.barcode) return it; const o=NORM.items({...it,barcode:this.genCode(),updatedAt:Date.now()}); Store.put('items',o); this.noteCode(o.barcode); return o; },
   /* ----- the Inventory fields inside the item dialog ----- */
   itemFields(v,isNew){
-    const has=Object.values(S.moves).some(m=>m.item===v.id);
-    return `<div class="field if-wide if-inv-h"><label class="tgl"><input type="checkbox" id="if-track" ${v.track?'checked':''}><span></span>Track stock for this item <small>(inventory, barcode, low-stock alerts)</small></label></div>
+    if(!Feat.on('inv')) return '';
+    const has=Object.values(S.moves).some(m=>m.item===v.id), bc=Feat.on('barcode'), al=Feat.on('alerts'), se=Feat.on('serials');
+    const locked=!isNew&&this.stock(v.id).on!==0||has&&this.sns(v.id).length>0;
+    return `<div class="field if-wide if-inv-h"><label class="tgl"><input type="checkbox" id="if-track" ${v.track?'checked':''}><span></span>Track stock for this item <small>(inventory${bc?', barcode':''}${al?', low-stock alerts':''})</small></label></div>
       <div class="if-invbox if-wide" id="if-invbox" ${v.track?'':'hidden'}>
-        <div class="field"><label for="if-bc">Barcode</label><div class="bc-in"><input id="if-bc" maxlength="64" value="${esc(v.barcode)}" placeholder="Scan it, or create one" autocomplete="off"><button type="button" class="btn sm" id="if-bc-gen">Create</button><button type="button" class="btn sm" id="if-bc-scan" title="Scan with the camera">${icon('scan')}</button></div><small class="hint">Use the one on the package, or create your own to print on a label</small></div>
+        ${bc?`<div class="field"><label for="if-bc">Barcode</label><div class="bc-in"><input id="if-bc" maxlength="64" value="${esc(v.barcode)}" placeholder="Scan it, or create one" autocomplete="off"><button type="button" class="btn sm" id="if-bc-gen">Create</button><button type="button" class="btn sm" id="if-bc-scan" title="Scan with the camera">${icon('scan')}</button></div><small class="hint">Use the one on the package, or create your own to print on a label</small></div>`:''}
         <div class="field"><label for="if-loc">Where it lives</label><select id="if-loc"><option value="">${esc(INV.defLoc())} (default)</option>${INV.locs().slice(1).map(l=>`<option ${v.loc===l?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
-        ${has?'':`<div class="field"><label for="if-qty0">${isNew?'Starting quantity':'Quantity on hand now'}</label><input id="if-qty0" inputmode="decimal" placeholder="0"></div>`}
-        <div class="field"><label for="if-ro">Reorder at</label><input id="if-ro" inputmode="decimal" value="${v.reorder||''}" placeholder="e.g. 5"></div>
+        ${has?'':`<div class="field" id="if-qty0-f"><label for="if-qty0">${isNew?'Starting quantity':'Quantity on hand now'}</label><input id="if-qty0" inputmode="decimal" placeholder="0"></div>`}
+        ${al?`<div class="field"><label for="if-ro">Reorder at</label><input id="if-ro" inputmode="decimal" value="${v.reorder||''}" placeholder="e.g. 5"></div>
         <div class="field"><label for="if-roq">Usual reorder quantity</label><input id="if-roq" inputmode="decimal" value="${v.reorderQty||''}" placeholder="e.g. 20"></div>
-        <div class="field"><label class="tgl"><input type="checkbox" id="if-alert" ${v.alert?'checked':''}><span></span>Alert me when it gets low</label></div>
+        <div class="field"><label class="tgl"><input type="checkbox" id="if-alert" ${v.alert?'checked':''}><span></span>Alert me when it gets low</label></div>`:''}
+        ${se?`<div class="field if-wide"><label class="tgl"><input type="checkbox" id="if-serial" ${v.serial?'checked':''} ${locked?'disabled':''}><span></span>Track serial numbers for this item</label><small class="hint">${locked?'Can only be changed while none are in stock.':'Each unit gets its own serial number when you receive it.'}</small></div>`:''}
       </div>`;
   },
   bindFields(w){
     const tr=w.querySelector('#if-track'), box=w.querySelector('#if-invbox'); if(!tr) return;
     tr.addEventListener('change',()=>{ box.hidden=!tr.checked; });
     const bc=w.querySelector('#if-bc');
-    w.querySelector('#if-bc-gen').addEventListener('click',()=>{ bc.value=INV.genCode(); });
-    w.querySelector('#if-bc-scan').addEventListener('click',()=>Scan.camera(code=>{ bc.value=code; }));
-    bc.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); } });   // a scanner's Enter fills the field, it doesn't save the dialog
+    if(bc){
+      w.querySelector('#if-bc-gen').addEventListener('click',()=>{ bc.value=INV.genCode(); });
+      w.querySelector('#if-bc-scan').addEventListener('click',()=>Scan.camera(code=>{ bc.value=code; }));
+      bc.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); } });   // a scanner's Enter fills the field, it doesn't save the dialog
+    }
+    const se=w.querySelector('#if-serial'), q0=w.querySelector('#if-qty0-f');
+    if(se&&q0){ const f=()=>{ q0.hidden=se.checked; }; se.addEventListener('change',f); f(); }
   },
   readFields(w,it){
     const q=s=>w.querySelector(s);
     if(!q('#if-track')) return {f:{}};
-    const track=q('#if-track').checked, barcode=q('#if-bc').value.trim();
+    const track=q('#if-track').checked, barcode=q('#if-bc')?q('#if-bc').value.trim():(it?it.barcode:'');
     if(barcode){ const dup=this.taken(barcode,it&&it.id); if(dup) return {error:`“${dup.name}” already uses the barcode ${barcode}`}; }
-    return {f:{track,barcode,loc:q('#if-loc').value,reorder:parseMoney(q('#if-ro').value),reorderQty:parseMoney(q('#if-roq').value),alert:q('#if-alert').checked},qty0:q('#if-qty0')?parseMoney(q('#if-qty0').value):0};
+    const f={track,barcode,loc:q('#if-loc').value};
+    if(q('#if-ro')){ f.reorder=parseMoney(q('#if-ro').value); f.reorderQty=parseMoney(q('#if-roq').value); f.alert=q('#if-alert').checked; }
+    if(q('#if-serial')) f.serial=q('#if-serial').checked;
+    const q0=q('#if-qty0')&&!q('#if-qty0-f').hidden?parseMoney(q('#if-qty0').value):0;
+    return {f,qty0:f.serial?0:q0,serialNew:!!f.serial&&!(it&&it.serial)};
   },
   afterSave(o,inv){
     if(o.barcode) this.noteCode(o.barcode);
     if(o.track&&inv.qty0>0) this.add({item:o.id,qty:inv.qty0,type:'receive',note:'Starting stock',loc:o.loc||this.defLoc()});
+    if(o.track&&o.serial&&inv.serialNew) setTimeout(()=>toast('Serial numbers are added when you receive stock: open the item in Inventory and press Receive.',{ms:9000}),600);
   },
-  toolsMenu(){ return [{label:'Scan an item',icon:'scan',act:()=>Scan.camera()},{label:'Inventory',icon:'stock',act:()=>go('inventory')}]; },
+  toolsMenu(){ return Feat.on('inv')?[...(Feat.on('barcode')?[{label:'Scan an item',icon:'scan',act:()=>Scan.camera()}]:[]),{label:'Inventory',icon:'stock',act:()=>go('inventory')}]:[]; },
 };
 { const p=Store.put, d=Store.del; Store.put=function(k){ const r=p.apply(this,arguments); if(k==='moves'||k==='settings') INV.v++; return r; }; Store.del=function(k){ const r=d.apply(this,arguments); if(k==='moves'||k==='settings') INV.v++; return r; }; }
 { const b=applySnapshot; applySnapshot=function(kind){ const r=b.apply(this,arguments); if(kind==='moves'||kind==='settings') INV.v++; return r; }; }
@@ -12169,11 +12204,13 @@ MONEY_WIDGETS.push('lowstock');
 const INV_TABS=[['stock','Stock'],['low','Low stock'],['count','Count'],['moves','Activity']];
 VIEWS.inventory=()=>{
   if(!Role.mgr()) return `<div class="content-inner">${viewHead('Inventory')}${emptyState('Inventory is for managers','Ask an admin if you need stock numbers.')}</div>`;
+  if(!Feat.on('inv')) return `<div class="content-inner">${viewHead('Inventory')}${emptyState('Inventory is turned off','Your company isn’t using inventory right now. Turn it on in Settings › Inventory & features.')}<p style="text-align:center"><button class="btn primary" data-act="nav" data-view="settings">Open Settings</button></p></div>`;
   const u=INV.ui, all=INV.tracked(), low=INV.low();
-  const tab=INV_TABS.some(t=>t[0]===u.tab)?u.tab:'stock';
-  const seg=`<div class="seg" role="group">${INV_TABS.map(([k,l])=>`<button data-act="stk-tab" data-val="${k}" aria-pressed="${tab===k}">${l}${k==='low'&&low.length?` <span class="count alert">${low.length}</span>`:''}</button>`).join('')}</div>`;
+  const tabs=INV_TABS.filter(t=>t[0]!=='low'||Feat.on('alerts'));
+  const tab=tabs.some(t=>t[0]===u.tab)?u.tab:'stock';
+  const seg=`<div class="seg" role="group">${tabs.map(([k,l])=>`<button data-act="stk-tab" data-val="${k}" aria-pressed="${tab===k}">${l}${k==='low'&&low.length?` <span class="count alert">${low.length}</span>`:''}</button>`).join('')}</div>`;
   const tools=`${seg}${tab==='stock'||tab==='moves'?`<label class="search sm jobs-q">${icon('search')}<input id="stk-q" placeholder="${tab==='moves'?'Find an item, job or note…':'Search or scan a barcode…'}" value="${esc(tab==='moves'?u.mq:u.q)}" autocomplete="off"></label>`:''}<span class="spacer"></span>
-    <button class="btn" data-act="stk-scan">${icon('scan')}Scan</button><button class="btn" data-act="stk-labels" ${all.length?'':'disabled'}>${icon('print')}Labels</button><button class="btn" data-act="stk-locs">${icon('pin')}Locations</button><button class="btn primary" data-act="stk-add">${icon('plus')}Add product</button>`;
+    ${Feat.on('barcode')?`<button class="btn" data-act="stk-scan">${icon('scan')}Scan</button><button class="btn" data-act="stk-labels" ${all.length?'':'disabled'}>${icon('print')}Labels</button>`:''}<button class="btn" data-act="stk-locs">${icon('pin')}Locations</button><button class="btn primary" data-act="stk-add">${icon('plus')}Add product</button>`;
   let body='';
   if(!all.length&&tab!=='moves') body=invEmpty();
   else if(tab==='stock') body=invStock(all);
@@ -12185,13 +12222,13 @@ VIEWS.inventory=()=>{
 function invEmpty(){
   const n=Object.values(S.items).filter(i=>i.kind!=='labor'&&!i.track).length;
   return `<div class="inv-empty">${icon('stock')}<h3>Start tracking your stock</h3><p>Add a product with a quantity and a barcode, or turn on tracking for items already in your library. Everything you receive, use or sell is logged, so you always know what you have, what's set aside for a job, and what the store can sell.</p>
-    <div class="inv-empty-b"><button class="btn primary" data-act="stk-add">${icon('plus')}Add a product</button>${n?`<button class="btn" data-act="stk-pick">${icon('box')}Track items from my library <span class="count">${n}</span></button>`:''}<button class="btn" data-act="stk-scan">${icon('scan')}Scan a barcode</button></div></div>`;
+    <div class="inv-empty-b"><button class="btn primary" data-act="stk-add">${icon('plus')}Add a product</button>${n?`<button class="btn" data-act="stk-pick">${icon('box')}Track items from my library <span class="count">${n}</span></button>`:''}${Feat.on('barcode')?`<button class="btn" data-act="stk-scan">${icon('scan')}Scan a barcode</button>`:''}</div></div>`;
 }
 function invKpis(all,low){
   const ix=INV.ix(); let units=0,val=0,out=0; for(const it of all){ const s=INV.stock(it.id); units+=s.on; val+=Math.max(0,s.on)*it.cost; if(s.avail<=0) out++; }
   const held=all.reduce((a,it)=>a+INV.stock(it.id).held,0);
   const t=(n,l,{act='',bad=false}={})=>`<button class="kpi ${bad?'bad':''}" ${act}><b>${n}</b><span>${l}</span></button>`;
-  return `<div class="kpis inv-kpis">${t(all.length,'items tracked')}${t(fmtQty(units),'units on hand')}${t(fmtK(val),'stock value (at cost)')}${t(fmtQty(held),'held for jobs')}${t(low.length,'low on stock',{act:'data-act="stk-tab" data-val="low"',bad:!!low.length})}</div>`;
+  return `<div class="kpis inv-kpis">${t(all.length,'items tracked')}${t(fmtQty(units),'units on hand')}${t(fmtK(val),'stock value (at cost)')}${t(fmtQty(held),'held for jobs')}${Feat.on('alerts')?t(low.length,'low on stock',{act:'data-act="stk-tab" data-val="low"',bad:!!low.length}):''}</div>`;
 }
 function invLocSummary(s){ const e=Object.entries(s.locs).filter(([,q])=>q!==0); if(!e.length) return ''; return e.length===1?esc(e[0][0]):`${esc(e[0][0])} +${e.length-1}`; }
 function invRow(it){
@@ -12221,7 +12258,7 @@ function invCount(all){
   const cnt=INV.ui.cnt[loc]||{}; const n=Object.values(cnt).filter(v=>v!=='').length;
   return `<div class="inv-reorder-bar"><b>Stock take</b><label class="inv-loc-sel">Counting<select id="cnt-loc" aria-label="Location">${INV.locs().map(l=>`<option ${l===loc?'selected':''}>${esc(l)}</option>`).join('')}</select></label><span class="view-sub">Type what you actually counted. Leave a line blank to skip it.</span><span class="spacer"></span><button class="btn primary" data-act="stk-count-apply" ${n?'':'disabled'} id="cnt-apply">Apply ${n||''} count${n===1?'':'s'}</button></div>
     <div class="itable inv-table"><div class="inv-row cnt head"><span>Item</span><span class="inv-n">Expected</span><span class="inv-n">Counted</span><span class="inv-n">Difference</span></div>${all.map(it=>{ const exp=r3(INV.stock(it.id).locs[loc]||0), c=cnt[it.id]; const diff=c===undefined||c===''?'':r3(parseFloat(c)-exp);
-      return `<div class="inv-row cnt"><span class="ir-name"><b>${esc(it.name)}</b><small>${esc(it.sku||it.barcode||'')}</small></span><span class="inv-n">${fmtQty(exp)}</span><span class="inv-n"><input class="cnt-in" inputmode="decimal" data-cnt="${it.id}" data-exp="${exp}" value="${c===undefined?'':esc(c)}" aria-label="Counted ${esc(it.name)}"></span><span class="inv-n cnt-d ${diff>0?'pos':diff<0?'neg':''}">${diff===''?'':(diff>0?'+':'')+fmtQty(diff)}</span></div>`; }).join('')}</div>`;
+      return `<div class="inv-row cnt"><span class="ir-name"><b>${esc(it.name)}</b><small>${esc(it.sku||it.barcode||'')}</small></span><span class="inv-n">${fmtQty(exp)}</span><span class="inv-n">${it.serial?`<small title="Counted by serial number: use Adjust on the item">by serial</small>`:`<input class="cnt-in" inputmode="decimal" data-cnt="${it.id}" data-exp="${exp}" value="${c===undefined?'':esc(c)}" aria-label="Counted ${esc(it.name)}">`}</span><span class="inv-n cnt-d ${diff>0?'pos':diff<0?'neg':''}">${diff===''?'':(diff>0?'+':'')+fmtQty(diff)}</span></div>`; }).join('')}</div>`;
 }
 function invMoves(){
   const q=INV.ui.mq.trim().toLowerCase();
@@ -12233,22 +12270,24 @@ function invMoves(){
 }
 
 /* ---------- an item's stock card ---------- */
-function invCard(id){
+function invCard(id,{sn=''}={}){
   const it=S.items[id]; if(!it) return;
   if(!it.track){ itemDialog(it); return; }
   const s=INV.stock(id), st=INV.status(it);
   const locs=Object.entries(s.locs).filter(([,q])=>q!==0).sort((a,b)=>b[1]-a[1]);
   const jobs=Object.entries(s.jobs).filter(([,q])=>q>0).sort((a,b)=>b[1]-a[1]);
+  const sns=it.serial?INV.sns(id):[];
   const mv=Object.values(S.moves).filter(m=>m.item===id).sort((a,b)=>b.at-a.at).slice(0,8);
   const tile=(n,l,c='')=>`<div class="inv-tile ${c}"><b>${n}</b><span>${l}</span></div>`;
   bigModal({title:it.name,size:'wide',body:`<div class="inv-card" data-item="${id}">
       <p class="inv-sub">${esc([it.mfr,it.sku,it.vendor].filter(Boolean).join(' · '))||'&nbsp;'} ${INV.isLow(it)?`<span class="chip inv-st low">Low</span>`:''}</p>
-      <div class="inv-tiles">${tile(fmtQty(s.on),'On hand')}${tile(fmtQty(s.held),'Held for jobs')}${tile(fmtQty(s.avail),'Available to sell',st==='ok'?'':st)}${tile(it.reorder?fmtQty(it.reorder):'—','Reorder at')}</div>
+      <div class="inv-tiles">${tile(fmtQty(s.on),'On hand')}${tile(fmtQty(s.held),'Held for jobs')}${tile(fmtQty(s.avail),'Available to sell',st==='ok'?'':st)}${Feat.on('alerts')?tile(it.reorder?fmtQty(it.reorder):'—','Reorder at'):''}</div>
       <div class="inv-btns"><button class="btn primary" data-act="stk-receive" data-id="${id}" data-back="1">Receive</button><button class="btn" data-act="stk-use" data-id="${id}" data-back="1">Use on job</button><button class="btn" data-act="stk-adjust" data-id="${id}" data-back="1">Adjust</button>${INV.locs().length>1?`<button class="btn" data-act="stk-transfer" data-id="${id}" data-back="1">Move</button>`:''}<button class="btn" data-act="item-open" data-id="${id}">${icon('edit')}Edit item</button></div>
-      <div class="inv-bcbox">${it.barcode?`<div class="inv-bcimg">${Code128.svg(it.barcode,{h:56,scale:2})}<code>${esc(it.barcode)}</code></div><button class="btn sm" data-act="stk-label" data-id="${id}">${icon('print')}Print label</button>`:`<span class="view-sub">No barcode yet.</span><button class="btn sm" data-act="stk-gen" data-id="${id}">${icon('barcode')}Create a barcode</button>`}</div>
+      ${Feat.on('barcode')?`<div class="inv-bcbox">${it.barcode?`<div class="inv-bcimg">${Code128.svg(it.barcode,{h:56,scale:2})}<code>${esc(it.barcode)}</code></div><button class="btn sm" data-act="stk-label" data-id="${id}">${icon('print')}Print label</button>`:`<span class="view-sub">No barcode yet.</span><button class="btn sm" data-act="stk-gen" data-id="${id}">${icon('barcode')}Create a barcode</button>`}</div>`:''}
+      ${it.serial?`<h4>Serial numbers in stock <small>(${sns.length})</small></h4>${sns.length?`<div class="inv-list sn">${sns.map(([x,i])=>`<div class="${sn&&x.toLowerCase()===String(sn).toLowerCase()?'sn-hit':''}"><span><b>${esc(x)}</b> · ${esc(i.loc)}${i.job?' · held for '+esc(jobLabel(i.job)):''}</span></div>`).join('')}</div>`:'<p class="view-sub">None in stock. Receive some to add their serial numbers.</p>'}`:''}
       ${locs.length>1||(locs.length===1&&INV.locs().length>1)?`<h4>Where it is</h4><div class="inv-list">${locs.map(([l,q])=>`<div><span>${esc(l)}</span><b>${fmtQty(q)}</b></div>`).join('')}</div>`:''}
       ${jobs.length?`<h4>Held for jobs <small>(not for sale)</small></h4><div class="inv-list">${jobs.map(([j,q])=>`<div><button class="linkish" data-act="open-job" data-id="${j}">${esc(jobLabel(j))}</button><b>${fmtQty(q)}</b></div>`).join('')}</div>`:''}
-      <h4>Recent activity</h4>${mv.length?`<div class="inv-list mv">${mv.map(m=>`<div><span>${esc(fmtWhen(m.at))} · ${esc(MOVE_TYPES[m.type][0])}${m.job?' · '+esc(jobLabel(m.job)):''}${m.note||m.ref?' · '+esc(m.ref||m.note):''}</span><b class="${m.qty<0?'neg':'pos'}">${m.qty>0?'+':''}${fmtQty(m.qty)}</b></div>`).join('')}</div>`:'<p class="view-sub">Nothing yet. Receive some stock to get started.</p>'}
+      <h4>Recent activity</h4>${mv.length?`<div class="inv-list mv">${mv.map(m=>`<div><span>${esc(fmtWhen(m.at))} · ${esc(MOVE_TYPES[m.type][0])}${m.job?' · '+esc(jobLabel(m.job)):''}${m.sn&&m.sn.length?' · '+esc(m.sn.slice(0,3).join(', ')+(m.sn.length>3?' +'+(m.sn.length-3):'')):m.note||m.ref?' · '+esc(m.ref||m.note):''}</span><b class="${m.qty<0?'neg':'pos'}">${m.qty>0?'+':''}${fmtQty(m.qty)}</b></div>`).join('')}</div>`:'<p class="view-sub">Nothing yet. Receive some stock to get started.</p>'}
     </div>`,actions:[{label:'Close',kind:'primary'}],autofocus:false});
 }
 
@@ -12257,39 +12296,58 @@ const jobOptions=(sel='')=>sortJobs(jobsOf().filter(j=>j.status!=='done')).map(j
 const locOptions=(sel='')=>INV.locs().map(l=>`<option ${l===sel?'selected':''}>${esc(l)}</option>`).join('');
 function moveDialog(kind,id,{back=false}={}){
   const it=S.items[id]; if(!it) return;
-  const s=INV.stock(id), dl=it.loc||INV.defLoc();
+  const ser=!!it.serial, dl=it.loc||INV.defLoc(), s=INV.stock(id);
   const reopen=()=>{ if(back) setTimeout(()=>invCard(id),40); };
   const qtyField=lbl=>`<div class="field"><label for="mv-qty">${lbl}</label><input id="mv-qty" inputmode="decimal" placeholder="0"><small class="hint">${esc(it.unit||'ea')}</small></div>`;
+  const snBox=`<div class="field if-wide"><label for="mv-sn">Serial numbers</label><textarea id="mv-sn" rows="5" placeholder="One per line. Scan each one, or paste a list." autocomplete="off"></textarea><small class="hint" id="mv-sn-n">0 units</small></div>`;
+  const pickInner=loc=>{ const l=INV.sns(id).filter(([,i])=>i.loc===loc); return l.length?l.map(([x,i])=>`<label class="lbl-row"><input type="checkbox" data-sn="${esc(x)}"><span><b>${esc(x)}</b>${i.job?`<small>held for ${esc(jobLabel(i.job))}</small>`:''}</span><span></span></label>`).join(''):`<p class="view-sub" style="padding:8px 12px">No serial numbers in stock at ${esc(loc)}.</p>`; };
+  const pickBox=(loc,idn='mv-pick')=>`<div class="field if-wide"><label>Which units</label><div class="lbl-list" id="${idn}">${pickInner(loc)}</div><small class="hint" id="${idn}-n">None picked</small></div>`;
   const locField=(lbl='Location',idn='mv-loc',sel=dl)=>`<div class="field"><label for="${idn}">${lbl}</label><select id="${idn}">${locOptions(sel)}</select></div>`;
   const note=`<div class="field if-wide"><label for="mv-note">Note <small>(optional)</small></label><input id="mv-note" maxlength="300" placeholder=""></div>`;
+  const picked=(w,idn='mv-pick')=>[...w.querySelectorAll('#'+idn+' [data-sn]:checked')].map(c=>c.dataset.sn);
+  const newSerials=(w)=>{ const l=snLines(w.querySelector('#mv-sn').value); const seen=new Set(); for(const x of l){ const k=x.toLowerCase(); if(seen.has(k)) return {err:`Serial ${x} is listed twice`}; seen.add(k); const o=INV.serialOwner(x); if(o) return {err:`Serial ${x} is already in stock (${o.name})`}; } return {l}; };
+  const locOf=w=>(w.querySelector('#mv-loc')||{}).value||INV.defLoc();
   const cfg={
-    receive:{title:`Receive ${it.name}`,btn:'Receive',body:`<div class="iform">${qtyField('Quantity received')}${INV.locs().length>1?locField('Into'):''}
+    receive:{title:`Receive ${it.name}`,btn:'Receive',body:`<div class="iform">${ser?snBox:qtyField('Quantity received')}${INV.locs().length>1?locField('Into'):''}
       <div class="field if-wide"><label for="mv-job">Received for a job? <small>(held for it, not sellable)</small></label><select id="mv-job"><option value="">No — it's store stock</option>${jobOptions()}</select></div>
       <div class="field"><label for="mv-cost">Cost each</label><div class="money-in"><span>$</span><input id="mv-cost" inputmode="decimal" value="${it.cost?it.cost.toFixed(2):''}" placeholder="0.00"></div></div><div class="field"><label for="mv-ref">PO / invoice #</label><input id="mv-ref" maxlength="80"></div>${note}</div>`,
-      go:w=>{ const q=parseMoney(w.querySelector('#mv-qty').value); if(!(q>0)) return 'Enter how many arrived'; const job=w.querySelector('#mv-job').value;
-        INV.add({item:id,qty:q,type:'receive',loc:(w.querySelector('#mv-loc')||{}).value,job,cost:parseMoney(w.querySelector('#mv-cost').value),ref:w.querySelector('#mv-ref').value.trim(),note:w.querySelector('#mv-note').value.trim()});
+      go:w=>{ let q,sn=[]; if(ser){ const r=newSerials(w); if(r.err) return r.err; if(!r.l.length) return 'Enter at least one serial number'; sn=r.l; q=sn.length; } else { q=parseMoney(w.querySelector('#mv-qty').value); if(!(q>0)) return 'Enter how many arrived'; }
+        const job=w.querySelector('#mv-job').value;
+        INV.add({item:id,qty:q,sn,type:'receive',loc:locOf(w),job,cost:parseMoney(w.querySelector('#mv-cost').value),ref:w.querySelector('#mv-ref').value.trim(),note:w.querySelector('#mv-note').value.trim()});
         toast(job?`Received ${fmtQty(q)} ${it.name} — held for ${jobLabel(job)}`:`Received ${fmtQty(q)} ${it.name}`); }},
-    use:{title:`Use ${it.name} on a job`,btn:'Use',body:`<div class="iform"><div class="field if-wide"><label for="mv-job">Job</label><select id="mv-job"><option value="">Choose a job…</option>${jobOptions()}</select></div>${qtyField('Quantity used')}${INV.locs().length>1?locField('Taken from'):''}${note}</div>`,
-      go:w=>{ const q=parseMoney(w.querySelector('#mv-qty').value), job=w.querySelector('#mv-job').value, loc=(w.querySelector('#mv-loc')||{}).value||INV.defLoc();
-        if(!job) return 'Choose the job'; if(!(q>0)) return 'Enter how many were used';
-        const have=r3(INV.stock(id).locs[loc]||0); if(q>have) return `Only ${fmtQty(have)} on hand${INV.locs().length>1?' at '+loc:''}`;
-        INV.add({item:id,qty:-q,type:'job',loc,job,note:w.querySelector('#mv-note').value.trim()}); toast(`${fmtQty(q)} ${it.name} used on ${jobLabel(job)}`); }},
-    adjust:{title:`Adjust ${it.name}`,btn:'Save',body:`<div class="iform"><div class="field"><label for="mv-mode">What happened</label><select id="mv-mode"><option value="set">Set the count to…</option><option value="add">Add some</option><option value="rem">Remove some</option></select></div>${qtyField('Quantity')}${INV.locs().length>1?locField():''}
+    use:{title:`Use ${it.name} on a job`,btn:'Use',body:`<div class="iform"><div class="field if-wide"><label for="mv-job">Job</label><select id="mv-job"><option value="">Choose a job…</option>${jobOptions()}</select></div>${ser?(INV.locs().length>1?locField('Taken from'):'')+pickBox(dl):qtyField('Quantity used')+(INV.locs().length>1?locField('Taken from'):'')}${note}</div>`,
+      go:w=>{ const job=w.querySelector('#mv-job').value, loc=locOf(w); if(!job) return 'Choose the job';
+        let q,sn=[]; if(ser){ sn=picked(w); q=sn.length; if(!q) return 'Pick the units that were used'; } else { q=parseMoney(w.querySelector('#mv-qty').value); if(!(q>0)) return 'Enter how many were used'; const have=r3(INV.stock(id).locs[loc]||0); if(q>have) return `Only ${fmtQty(have)} on hand${INV.locs().length>1?' at '+loc:''}`; }
+        INV.add({item:id,qty:-q,sn,type:'job',loc,job,note:w.querySelector('#mv-note').value.trim()}); toast(`${fmtQty(q)} ${it.name} used on ${jobLabel(job)}`); }},
+    adjust:{title:`Adjust ${it.name}`,btn:'Save',body:ser?`<div class="iform"><div class="field"><label for="mv-mode">What happened</label><select id="mv-mode"><option value="add">Add units</option><option value="rem">Remove units</option></select></div>${INV.locs().length>1?locField():''}<div id="mv-addbox" class="if-wide">${snBox}</div><div id="mv-rembox" class="if-wide" hidden>${pickBox(dl)}</div>
+      <div class="field"><label for="mv-why">Reason</label><select id="mv-why">${['Correction','Damaged','Lost','Found','Returned to vendor','Other'].map(x=>`<option>${x}</option>`).join('')}</select></div>${note}</div>`
+      :`<div class="iform"><div class="field"><label for="mv-mode">What happened</label><select id="mv-mode"><option value="set">Set the count to…</option><option value="add">Add some</option><option value="rem">Remove some</option></select></div>${qtyField('Quantity')}${INV.locs().length>1?locField():''}
       <div class="field"><label for="mv-why">Reason</label><select id="mv-why">${['Correction','Damaged','Lost','Found','Returned to vendor','Other'].map(x=>`<option>${x}</option>`).join('')}</select></div>${note}</div><p class="view-sub" id="mv-now">Right now: ${fmtQty(s.locs[dl]||0)} ${esc(it.unit||'ea')} at ${esc(dl)}.</p>`,
-      go:w=>{ const raw=w.querySelector('#mv-qty').value.trim(); if(raw==='') return 'Enter a quantity'; const q=parseMoney(raw), mode=w.querySelector('#mv-mode').value, loc=(w.querySelector('#mv-loc')||{}).value||INV.defLoc();
+      go:w=>{ const mode=w.querySelector('#mv-mode').value, loc=locOf(w), why=[w.querySelector('#mv-why').value,w.querySelector('#mv-note').value.trim()].filter(Boolean).join(' · ');
+        if(ser){ if(mode==='add'){ const r=newSerials(w); if(r.err) return r.err; if(!r.l.length) return 'Enter at least one serial number'; INV.add({item:id,qty:r.l.length,sn:r.l,type:'adjust',loc,note:why}); toast(`${it.name}: +${r.l.length}`); }
+          else { const sn=picked(w); if(!sn.length) return 'Pick the units to remove'; INV.add({item:id,qty:-sn.length,sn,type:'adjust',loc,note:why}); toast(`${it.name}: −${sn.length}`); } return; }
+        const raw=w.querySelector('#mv-qty').value.trim(); if(raw==='') return 'Enter a quantity'; const q=parseMoney(raw);
         const have=r3(INV.stock(id).locs[loc]||0); let d=mode==='set'?r3(q-have):mode==='add'?q:-q;
         if(!d){ toast('That is already the count'); return; } if(have+d<0) return `Only ${fmtQty(have)} on hand${INV.locs().length>1?' at '+loc:''}`;
-        INV.add({item:id,qty:d,type:'adjust',loc,note:[w.querySelector('#mv-why').value,w.querySelector('#mv-note').value.trim()].filter(Boolean).join(' · ')}); toast(`${it.name}: ${d>0?'+':''}${fmtQty(d)}`); }},
-    transfer:{title:`Move ${it.name}`,btn:'Move',body:`<div class="iform">${qtyField('Quantity')}${locField('From','mv-from',dl)}${locField('To','mv-to',INV.locs().find(l=>l!==dl))}${note}</div>`,
-      go:w=>{ const q=parseMoney(w.querySelector('#mv-qty').value), a=w.querySelector('#mv-from').value, b=w.querySelector('#mv-to').value;
-        if(!(q>0)) return 'Enter how many to move'; if(a===b) return 'Pick two different places';
-        const have=r3(INV.stock(id).locs[a]||0); if(q>have) return `Only ${fmtQty(have)} at ${a}`;
+        INV.add({item:id,qty:d,type:'adjust',loc,note:why}); toast(`${it.name}: ${d>0?'+':''}${fmtQty(d)}`); }},
+    transfer:{title:`Move ${it.name}`,btn:'Move',body:`<div class="iform">${ser?'':qtyField('Quantity')}${locField('From','mv-from',dl)}${locField('To','mv-to',INV.locs().find(l=>l!==dl))}${ser?pickBox(dl):''}${note}</div>`,
+      go:w=>{ const a=w.querySelector('#mv-from').value, b=w.querySelector('#mv-to').value; if(a===b) return 'Pick two different places';
+        let q,sn=[]; if(ser){ sn=picked(w); q=sn.length; if(!q) return 'Pick the units to move'; } else { q=parseMoney(w.querySelector('#mv-qty').value); if(!(q>0)) return 'Enter how many to move'; const have=r3(INV.stock(id).locs[a]||0); if(q>have) return `Only ${fmtQty(have)} at ${a}`; }
         const ref=uid('tr'), n=w.querySelector('#mv-note').value.trim();
-        INV.add({item:id,qty:-q,type:'transfer',loc:a,ref,note:n||`To ${b}`}); INV.add({item:id,qty:q,type:'transfer',loc:b,ref,note:n||`From ${a}`}); toast(`Moved ${fmtQty(q)} ${it.name} to ${b}`); }},
+        INV.add({item:id,qty:-q,sn,type:'transfer',loc:a,ref,note:n||`To ${b}`}); INV.add({item:id,qty:q,sn,type:'transfer',loc:b,ref,note:n||`From ${a}`}); toast(`Moved ${fmtQty(q)} ${it.name} to ${b}`); }},
   }[kind];
   const w=bigModal({title:cfg.title,size:'',body:cfg.body,actions:[{label:'Cancel',act:reopen},{label:cfg.btn,kind:'primary',act:w=>{ const err=cfg.go(w); if(typeof err==='string'){ toast(err); return false; } reopen(); }}]});
-  if(w&&kind==='adjust'){ const upd=()=>{ const l=(w.querySelector('#mv-loc')||{}).value||INV.defLoc(); w.querySelector('#mv-now').textContent=`Right now: ${fmtQty(INV.stock(id).locs[l]||0)} ${it.unit||'ea'} at ${l}.`; }; w.querySelector('#mv-loc')&&w.querySelector('#mv-loc').addEventListener('change',upd); }
-  const q=w&&w.querySelector('#mv-qty')||w&&w.querySelector('#mv-job'); q&&q.focus();
+  if(!w) return;
+  if(!ser&&kind==='adjust'){ const upd=()=>{ const l=locOf(w); w.querySelector('#mv-now').textContent=`Right now: ${fmtQty(INV.stock(id).locs[l]||0)} ${it.unit||'ea'} at ${l}.`; }; w.querySelector('#mv-loc')&&w.querySelector('#mv-loc').addEventListener('change',upd); }
+  if(ser){
+    const sn=w.querySelector('#mv-sn'); if(sn) sn.addEventListener('input',()=>{ const n=snLines(sn.value).length; w.querySelector('#mv-sn-n').textContent=`${n} unit${n===1?'':'s'}`; });
+    const pn=(idn)=>{ const el=w.querySelector('#'+idn+'-n'); if(el){ const n=picked(w,idn).length; el.textContent=n?`${n} picked`:'None picked'; } };
+    w.addEventListener('change',e=>{ if(e.target.matches('[data-sn]')){ const box=e.target.closest('[id^=mv-pick]'); box&&pn(box.id); } });
+    const src=kind==='transfer'?'#mv-from':'#mv-loc'; const sel=w.querySelector(src);
+    if(sel&&(kind==='use'||kind==='transfer'||kind==='adjust')) sel.addEventListener('change',()=>{ const pb=w.querySelector('#mv-pick'); if(pb){ pb.innerHTML=pickInner(sel.value); pn('mv-pick'); } });
+    const mode=w.querySelector('#mv-mode'); if(mode) mode.addEventListener('change',()=>{ w.querySelector('#mv-addbox').hidden=mode.value!=='add'; w.querySelector('#mv-rembox').hidden=mode.value!=='rem'; });
+  }
+  const q=w.querySelector('#mv-qty')||w.querySelector('#mv-sn')||w.querySelector('#mv-job'); q&&q.focus();
 }
 
 /* ---------- locations ---------- */
@@ -12325,9 +12383,9 @@ const LABELS={
   r3x1:{name:'Roll · 3″ × 1″',w:216,h:72},
   r4x2:{name:'Roll · 4″ × 2″',w:288,h:144},
 };
-async function buildLabelsPdf(entries,{fmt='a5160',price=false,skip=0}={}){
+async function buildLabelsPdf(entries,{fmt='a5160',price=false,skip=0,custom=null}={}){
   const L=await Libs.pdfLib(); const {PDFDocument,StandardFonts,rgb}=L;
-  const f=LABELS[fmt]||LABELS.a5160;
+  const f=fmt==='custom'&&custom?{w:custom.w,h:custom.h}:(LABELS[fmt]||LABELS.a5160);
   const pdf=await PDFDocument.create(); const font=await pdf.embedFont(StandardFonts.Helvetica), bold=await pdf.embedFont(StandardFonts.HelveticaBold);
   const labels=[]; for(let i=0;i<skip&&f.sheet;i++) labels.push(null);
   for(const {item,copies} of entries) for(let i=0;i<copies;i++) labels.push(item);
@@ -12361,23 +12419,30 @@ function labelDialog(ids){
   const all=INV.tracked(); const pre=new Set(ids&&ids.length?ids:[]);
   const rows=all.map(it=>`<label class="lbl-row"><input type="checkbox" data-lbl="${it.id}" ${pre.size?pre.has(it.id)?'checked':'':'checked'}><span><b>${esc(it.name)}</b><small>${esc(it.barcode||'no barcode yet — one will be created')}</small></span><span class="inv-n">${fmtQty(INV.stock(it.id).on)} on hand</span></label>`).join('');
   const lastFmt=(()=>{ try{ return localStorage.getItem('bs-hub.lblfmt')||''; }catch(e){ return ''; } })();
-  bigModal({title:'Print barcode labels',size:'wide',body:`<div class="iform"><div class="field if-wide"><label for="lbl-fmt">Label size</label><select id="lbl-fmt">${Object.entries(LABELS).map(([k,v])=>`<option value="${k}" ${k===(LABELS[lastFmt]?lastFmt:'a5160')?'selected':''}>${esc(v.name)}</option>`).join('')}</select></div>
+  const lw=bigModal({title:'Print barcode labels',size:'wide',body:`<div class="iform"><div class="field if-wide"><label for="lbl-fmt">Label size</label><select id="lbl-fmt">${Object.entries(LABELS).map(([k,v])=>`<option value="${k}" ${k===(LABELS[lastFmt]||lastFmt==='custom'?lastFmt:'a5160')?'selected':''}>${esc(v.name)}</option>`).join('')}<option value="custom" ${lastFmt==='custom'?'selected':''}>Roll · custom size…</option></select></div>
+      <div class="field" id="lbl-cw-f" hidden><label for="lbl-cw">Label width (inches)</label><input id="lbl-cw" inputmode="decimal" value="${Feat.cfg().lblW||2}"></div><div class="field" id="lbl-ch-f" hidden><label for="lbl-ch">Label height (inches)</label><input id="lbl-ch" inputmode="decimal" value="${Feat.cfg().lblH||1}"></div>
       <div class="field"><label for="lbl-copies">Labels per item</label><select id="lbl-copies"><option value="1">1 each</option><option value="on">As many as units on hand</option><option value="2">2 each</option><option value="5">5 each</option><option value="10">10 each</option></select></div>
       <div class="field" id="lbl-skip-f"><label for="lbl-skip">Skip labels already used</label><input id="lbl-skip" inputmode="numeric" value="0"><small class="hint">For a partly used sheet</small></div>
       <div class="field if-wide"><label class="tgl"><input type="checkbox" id="lbl-price"><span></span>Show the price on the label</label></div></div>
     <div class="lbl-list">${rows||'<p class="view-sub">No tracked items yet.</p>'}</div>`,
-    actions:[{label:'Cancel'},{label:'Make PDF',kind:'primary',act:w=>{
+    actions:[{label:'Cancel'},{label:'Export CSV',act:w=>{
+      const picked=[...w.querySelectorAll('[data-lbl]:checked')].map(c=>S.items[c.dataset.lbl]).filter(Boolean);
+      if(!picked.length){ toast('Pick at least one item'); return false; }
+      const rows=[['Name','Part #','Barcode','Price','Manufacturer','Location']]; for(const i of picked){ const it=INV.ensureCode(i); rows.push([it.name,it.sku,it.barcode,it.price?it.price.toFixed(2):'',it.mfr,it.loc||INV.defLoc()]); }
+      saveBlob(new Blob([invCsv(rows)],{type:'text/csv'}),`labels-${today()}.csv`,'text/csv'); toast('Exported for your label software'); return false; }},{label:'Make PDF',kind:'primary',act:w=>{
       const fmt=w.querySelector('#lbl-fmt').value, cp=w.querySelector('#lbl-copies').value, price=w.querySelector('#lbl-price').checked, skip=Math.max(0,Math.floor(parseMoney(w.querySelector('#lbl-skip').value)));
       const picked=[...w.querySelectorAll('[data-lbl]:checked')].map(c=>S.items[c.dataset.lbl]).filter(Boolean);
       if(!picked.length){ toast('Pick at least one item'); return false; }
+      let custom=null; if(fmt==='custom'){ const cw=parseMoney(w.querySelector('#lbl-cw').value), ch=parseMoney(w.querySelector('#lbl-ch').value); if(!(cw>=0.75&&cw<=8&&ch>=0.4&&ch<=8)){ toast('Label size: width 0.75–8 in, height 0.4–8 in'); return false; } custom={w:cw*72,h:ch*72}; Feat.set({lblW:cw,lblH:ch}); }
       try{ localStorage.setItem('bs-hub.lblfmt',fmt); }catch(e){}
-      printLabels(picked,{fmt,price,skip,copies:cp});
+      printLabels(picked,{fmt,price,skip,copies:cp,custom});
     }}]});
+  if(lw){ const f=lw.querySelector('#lbl-fmt'), sh=()=>{ const c=f.value==='custom'; lw.querySelector('#lbl-cw-f').hidden=!c; lw.querySelector('#lbl-ch-f').hidden=!c; lw.querySelector('#lbl-skip-f').hidden=!(LABELS[f.value]&&LABELS[f.value].sheet); }; f.addEventListener('change',sh); sh(); }
 }
-async function printLabels(items,{fmt='a5160',price=false,skip=0,copies='1'}={}){
+async function printLabels(items,{fmt='a5160',price=false,skip=0,copies='1',custom=null}={}){
   try{
     const entries=items.map(i=>{ const it=INV.ensureCode(i); const c=copies==='on'?Math.max(1,Math.round(INV.stock(it.id).on)):Math.max(1,+copies||1); return {item:it,copies:Math.min(c,500)}; });
-    const bytes=await buildLabelsPdf(entries,{fmt,price,skip});
+    const bytes=await buildLabelsPdf(entries,{fmt,price,skip,custom});
     INV.lastPdf=bytes; INV.lastLabels=entries.reduce((a,e)=>a+e.copies,0);
     const blob=new Blob([bytes],{type:'application/pdf'});
     const fine=!matchMedia('(pointer: coarse)').matches; let win=null;
@@ -12397,7 +12462,7 @@ const Scan={
     code=String(code||'').trim(); if(!code) return;
     if(!Role.mgr()){ toast('Scanned '+code); return; }
     const it=INV.find(code);
-    if(it){ closeModal(); if(it.track) invCard(it.id); else itemDialog(it); return; }
+    if(it){ closeModal(); if(it.track) invCard(it.id,{sn:it.serial&&INV.hasSerial(it.id,code)?code:''}); else itemDialog(it); return; }
     closeModal();
     openModal({title:'New barcode',body:`<p>No item uses the barcode <b>${esc(code)}</b> yet.</p>`,actions:[{label:'Not now'},{label:'Add a product with this barcode',kind:'primary',act:()=>{ setTimeout(()=>itemDialog(null,{preset:{track:true,barcode:code}}),40); }}]});
   },
@@ -12406,7 +12471,7 @@ const Scan={
     if(e._inv||e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
     if(typeof MODAL!=='undefined'&&MODAL) return;
     const t=e.target; if(t&&t.closest&&t.closest('input,textarea,select,[contenteditable="true"]')) return;
-    if(!Role.mgr()) return;
+    if(!Role.mgr()||!Feat.on('inv')||!Feat.on('barcode')) return;
     const key=e.key, now=e.timeStamp;
     if(key==='Enter'){
       if(this.buf.length>=3){ e.preventDefault(); e.stopImmediatePropagation(); const c=this.buf; this.reset(); this.handle(c); }
@@ -12474,7 +12539,7 @@ const Scan={
   },
 };
 document.addEventListener('keydown',e=>Scan.onKey(e),true);
-document.addEventListener('keydown',e=>{ if(e.target.id==='stk-q'&&e.key==='Enter'){ const v=e.target.value.trim(); const it=v&&INV.find(v); if(it){ e.preventDefault(); e.target.value=''; INV.ui.q=''; invCard(it.id); } else if(v&&/^[\w\-.\/ ]{6,}$/.test(v)&&!INV.tracked().some(i=>i.name.toLowerCase().includes(v.toLowerCase()))){ e.preventDefault(); Scan.handle(v); } } });
+document.addEventListener('keydown',e=>{ if(e.target.id==='stk-q'&&e.key==='Enter'){ const v=e.target.value.trim(); const it=v&&INV.find(v); if(it){ e.preventDefault(); e.target.value=''; INV.ui.q=''; invCard(it.id,{sn:it.serial&&INV.hasSerial(it.id,v)?v:''}); } else if(v&&/^[\w\-.\/ ]{6,}$/.test(v)&&!INV.tracked().some(i=>i.name.toLowerCase().includes(v.toLowerCase()))){ e.preventDefault(); Scan.handle(v); } } });
 
 /* ---------- actions ---------- */
 function invCsv(rows){ const q=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }; return rows.map(r=>r.map(q).join(',')).join('\r\n'); }
@@ -12522,24 +12587,38 @@ document.addEventListener('change',e=>{ if(e.target.id==='cnt-loc'){ INV.ui.loc=
 /* ---------- low stock on the dashboard, in the sidebar, and a heads-up on the home page ---------- */
 DASH_W.lowstock={title:'Low stock',icon:'stock',w:4,min:3,desc:'Items that have dropped to the reorder amount you set.'};
 DW.lowstock=()=>{
+  if(!Feat.on('inv')||!Feat.on('alerts')) return `<div class="group-empty">Low-stock alerts are turned off in Settings › Inventory &amp; features.</div>`;
   const low=INV.low();
   if(!INV.tracked().length) return `<div class="group-empty">Turn on stock tracking for an item to see low-stock alerts here. <button class="linkish" data-act="nav" data-view="inventory">Open Inventory</button></div>`;
   if(!low.length) return `<div class="group-empty">Nothing is running low.</div>`;
   return `<div class="dw-list">${low.slice(0,6).map(it=>{ const s=INV.stock(it.id); return `<button class="dw-row" data-act="stk-open" data-id="${it.id}"><span class="dw-t">${esc(it.name)}</span><span class="dw-m ${s.avail<=0?'neg':''}">${fmtQty(s.avail)} left</span></button>`; }).join('')}</div>${low.length>6?`<button class="linkish" data-act="stk-tab" data-val="low">See all ${low.length}</button>`:`<button class="linkish" data-act="nav" data-view="inventory">Open Inventory</button>`}`;
 };
 { const base=VIEWS.home; VIEWS.home=function(){ let h=base.apply(this,arguments);
-  try{ if(Role.mgr()){ const low=INV.low(); if(low.length&&!DASH.edit){ const ban=`<div class="inv-alert" role="status">${icon('stock')}<span><b>${low.length} item${low.length===1?' is':'s are'} low on stock</b> — ${esc(low.slice(0,3).map(i=>i.name).join(', '))}${low.length>3?` and ${low.length-3} more`:''}</span><button class="btn sm" data-act="stk-tab-go" data-val="low">Review</button></div>`; h=h.replace('<div class="dgrid"',ban+'<div class="dgrid"'); } } }catch(e){ console.error(e); }
+  try{ if(Role.mgr()&&Feat.on('inv')){ const low=INV.low(); if(low.length&&!DASH.edit){ const ban=`<div class="inv-alert" role="status">${icon('stock')}<span><b>${low.length} item${low.length===1?' is':'s are'} low on stock</b> — ${esc(low.slice(0,3).map(i=>i.name).join(', '))}${low.length>3?` and ${low.length-3} more`:''}</span><button class="btn sm" data-act="stk-tab-go" data-val="low">Review</button></div>`; h=h.replace('<div class="dgrid"',ban+'<div class="dgrid"'); } } }catch(e){ console.error(e); }
   return h; }; }
 { const base=visitsAction; visitsAction=function(act,a,e){ if(act==='stk-tab-go'){ INV.ui.tab=a.dataset.val; go('inventory'); return true; } return base(act,a,e); }; }
 { const base=renderNav; renderNav=function(){ base();
   const nav=$('#nav'); if(!nav) return;
-  if(!Role.mgr()) return;
+  if(!Role.mgr()||!Feat.on('inv')) return;
   const low=INV.low().length, n=INV.tracked().length, here=navArea()==='inventory';
   const el=document.createElement('div'); el.className='nav-top '+(here?'here':''); el.dataset.area='inventory';
   el.innerHTML=`<button class="nav-item nav-main ${here&&UI.view==='inventory'&&!UI.item&&!HUB.tool?'active':''}" data-act="nav" data-view="inventory">${icon('stock')}<span>Inventory</span><span class="count ${low?'alert':''}">${low||n||''}</span></button>`;
   const ref=nav.querySelector('.nav-top[data-area="invoices"]'); let after=ref; if(ref&&ref.nextElementSibling&&ref.nextElementSibling.classList.contains('nav-kids')) after=ref.nextElementSibling;
   if(after) after.after(el); else nav.appendChild(el);
 }; }
+
+/* ---------- Settings › Inventory & features: each company turns on only what it uses ---------- */
+{ const base=VIEWS.settings; VIEWS.settings=function(){ const h=base.apply(this,arguments); if(!Role.mgr()) return h;
+  const row=(k,t,d)=>`<div class="feat-row"><label class="tgl" aria-label="${t}"><input type="checkbox" data-feat="${k}" ${Feat.on(k)?'checked':''}><span></span></label><span><b>${t}</b><small>${d}</small></span></div>`;
+  const on=Feat.on('inv');
+  const card=`<section class="scard feat-card"><h2>${icon('stock')}Inventory &amp; features</h2><p class="s-p">Turn on what your company uses. Anything you turn off disappears from the app, and nothing is lost: turn it back on and it's all still there.</p>
+    ${row('inv','Inventory','Stock levels, locations, stock counts and what each job is holding.')}
+    ${row('barcode','Barcodes','Create and print barcode labels, and scan items with a scanner or the phone camera.')}
+    ${row('alerts','Low-stock alerts','Reorder amounts per item, a heads-up when stock gets low, and a reorder list by vendor.')}
+    ${row('serials','Serial numbers','Lets you track individual units (readers, cameras, panels) by serial number. You choose which items.')}
+    ${on?`<div class="feat-b"><button class="btn sm" data-act="stk-locs">${icon('pin')}Stock locations</button><button class="btn sm" data-act="nav" data-view="inventory">${icon('stock')}Open Inventory</button></div>`:''}</section>`;
+  return h.includes('<section class="scard dc-scard">')?h.replace('<section class="scard dc-scard">',card+'<section class="scard dc-scard">'):h.replace('<section class="scard">',card+'<section class="scard">'); }; }
+document.addEventListener('change',e=>{ const k=e.target.dataset&&e.target.dataset.feat; if(k) Feat.set({[k]:e.target.checked}); });
 
 /* =========================================================
    Boot
@@ -12585,7 +12664,7 @@ window.__punch={S,UI,Store,parseQuick,sanitize,runSearch,parseSched,occurrences,
 boot();
 if('launchQueue' in window){ window.launchQueue.setConsumer(async p=>{ const h=p.files&&p.files[0]; if(!h) return; try{ const f=await h.getFile(); const text=await f.text(); Maps.withApi(api=>api.openText(text,{}),{show:'markup'}); }catch(e){ toast('Couldn’t open that file'); } }); }
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(e=>console.warn('offline support unavailable',e&&e.message));
-window.__hub={INV,Scan,Code128,buildLabelsPdf,S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),newQuote:()=>{ const q=createQuote({title:""}); openQuote(q.id); return q.id; },fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
+window.__hub={INV,Feat,Scan,Code128,buildLabelsPdf,S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),newQuote:()=>{ const q=createQuote({title:""}); openQuote(q.id); return q.id; },fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
 })();
 
 </script>
