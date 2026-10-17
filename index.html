@@ -2812,6 +2812,46 @@ button.inv-row:hover{background:var(--hover)}
 .sn-hit{background:rgba(242,116,15,.16);border-radius:6px}
 .inv-list.sn>div{font-size:13px}
 
+/* ---- purchasing ---- */
+.inv-row.po{grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 110px 100px 90px 130px}
+.inv-row.mat{grid-template-columns:minmax(0,2fr) 80px 110px 80px 90px}
+.inv-row.mat.po{grid-template-columns:minmax(0,2fr) 100px 0 0 140px}
+.inv-row .due{display:block;color:var(--warn,#B9770E);font-size:11px}
+.po-note{display:block;color:var(--accent,#0B84F3);font-size:11px;margin-top:2px}
+.inv-onorder{display:flex;gap:8px;align-items:center;margin:8px 0;padding:8px 10px;border-radius:8px;background:rgba(11,132,243,.09);font-size:13px}
+.inv-onorder svg{width:16px;height:16px;flex:none}
+.po-win{display:flex;flex-direction:column;gap:12px}
+.po-tools{display:flex;gap:8px;justify-content:flex-end}
+.po-lines{border:1px solid var(--line,#dfe2e8);border-radius:10px;overflow:hidden}
+.po-line{display:grid;grid-template-columns:minmax(0,2fr) 70px 100px minmax(0,1.2fr) 90px 34px;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line,#dfe2e8)}
+.po-line.head{border-top:0;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute,#6b7280);background:rgba(127,127,127,.06)}
+.po-line:first-child{border-top:0}
+.po-line input,.po-line select{width:100%;min-width:0}
+.po-nm small,.rc-line small{display:block;color:var(--mute,#6b7280);font-size:11px}
+.po-c{display:flex;align-items:center;gap:3px}
+.po-t{text-align:right}.po-t small{display:block}
+.po-add{position:relative}.po-add input{width:100%}
+.po-res{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--card,#fff);border:1px solid var(--line,#dfe2e8);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:280px;overflow:auto}
+.po-r{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;padding:9px 12px;border:0;background:none;border-bottom:1px solid var(--line,#dfe2e8);color:inherit;cursor:pointer;font:inherit}
+.po-r small{grid-column:1;color:var(--mute,#6b7280)}.po-r span{grid-row:1/3;grid-column:2;align-self:center}
+.po-r:hover{background:rgba(127,127,127,.1)}.po-r.new{display:flex;gap:6px;align-items:center}
+.po-tot{text-align:right}.po-hist{font-size:13px}
+.rc-lines{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.rc-line{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line,#dfe2e8);border-radius:10px}
+.rc-line textarea{grid-column:1/3}.rc-n{grid-column:1/3}
+.mat-h{margin:16px 0 6px;font-size:14px}
+@media(max-width:720px){
+  .inv-row.po,.inv-row.mat{grid-template-columns:minmax(0,1fr) auto auto}
+  .inv-row.po .inv-hide,.inv-row.mat .inv-n:nth-child(n+4){display:none}
+  .po-line{grid-template-columns:84px minmax(0,1fr) auto;grid-auto-rows:auto}
+  .po-line.head{display:none}
+  .po-line .po-nm{grid-column:1/3;grid-row:1}.po-line .icon-btn{grid-column:3;grid-row:1;justify-self:end}
+  .po-line .po-q{grid-column:1;grid-row:2}.po-line .po-c{grid-column:2;grid-row:2}.po-line .po-t{grid-column:3;grid-row:2}
+  .po-line select{grid-column:1/-1;grid-row:3}
+  .po-tools{justify-content:flex-start}
+  .rc-line{grid-template-columns:1fr}.rc-line textarea,.rc-n{grid-column:1}
+}
+
 /* ===================== QuaField brand: logo colors + blueprint background =====================
    Orange (logo gear) = the main action buttons. Teal (logo gauge) = what's selected, links, focus.
    Navy blueprint with a faint grid behind the content. */
@@ -2912,7 +2952,7 @@ html .btn.primary:disabled{opacity:.5}
   'use strict';
   const URL_ = 'https://supnxniswyhhewybtxlh.supabase.co';
   const KEY = 'sb_publishable_X4WEE552X0yXK3kzG32Ytg_wtCWSt_h';
-  const TABLES = ['folders', 'tasks', 'notes', 'people', 'sched', 'views', 'jobs', 'maps', 'quotes', 'items', 'expenses', 'settings', 'contacts', 'invoices', 'payments', 'visitlog', 'catalog', 'moves'];
+  const TABLES = ['folders', 'tasks', 'notes', 'people', 'sched', 'views', 'jobs', 'maps', 'quotes', 'items', 'expenses', 'settings', 'contacts', 'invoices', 'payments', 'visitlog', 'catalog', 'moves','porders'];
   const $ = s => document.querySelector(s);
   const escH = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -9877,14 +9917,14 @@ function itemJob(j){
   const occ=occurrences(addDays(t0,-60),addDays(t0,180)).filter(o=>jobKey(o.e.job)===jobKey(j.name)).sort((a,b)=>a.date.localeCompare(b.date)||(a.e.start||'').localeCompare(b.e.start||''));
   const upcoming=occ.filter(o=>o.endDate>=t0).slice(0,20), past=occ.filter(o=>o.endDate<t0).slice(-8).reverse();
   const maps=jobMaps(j), qs=jobQuotes(j), xs=jobExpenses(j), mo=jobMoney(j);
-  const tab=JOB_TABS.some(t=>t[0]===UI.jobTab)?UI.jobTab:'overview';
+  const tab=JOB_TABS.some(t=>t[0]===UI.jobTab&&(typeof jobTabOk!=='function'||jobTabOk(t[0])))?UI.jobTab:'overview';
   const badges=[`<span class="chip jst" style="--c:${si[2]}"><span class="dot round"></span>${esc(si[1])}</span>`];
   for(const s of j.systems){ const x=JOB_SYSTEMS.find(y=>y[0]===s); if(x) badges.push(`<span class="chip" style="--c:${x[2]}"><span class="dot round"></span>${esc(x[1])}</span>`); }
   if(j.start||j.end) badges.push(`<span class="chip date">${icon('cal')}${esc([j.start&&fmtDay(j.start),j.end&&fmtDay(j.end)].filter(Boolean).join(' → '))}</span>`);
   const hero=`<section class="ip-hero" style="--c:${j.color||si[2]}"><div class="ip-kicker"><span>${j.type==='project'?'Project':'Job'}</span>${projOf(j)?`<span>·</span><button type="button" class="ip-kick-link" data-act="open-job" data-id="${projOf(j).id}">${icon('project')}Part of ${esc(projOf(j).name)}</button>`:''}${j.client?`<span>·</span><span>${esc(j.client)}</span>`:''}</div><div class="ip-title-row"><h1 class="ip-title">${esc(j.name)}</h1></div><div class="ip-badges">${badges.join('')}</div>
     <div class="job-actions"><button class="btn sm primary" data-act="quote-new" data-job="${j.id}">${icon('quote')}New quote</button><button class="btn sm" data-act="job-task" data-id="${j.id}">${icon('check')}Add task</button><button class="btn sm" data-act="job-sched" data-id="${j.id}">${icon('sched')}Schedule a visit</button><button class="btn sm" data-act="exp-new" data-job="${j.id}">${icon('receipt')}Add expense</button><button class="btn sm" data-act="map-new" data-mode="upload" data-id="${j.id}">${icon('markup')}New markup</button><button class="btn sm" data-act="map-new" data-mode="layout" data-id="${j.id}">${icon('layout')}New layout</button></div></section>`;
-  const n={invoices:Object.values(S.invoices).filter(i=>i.jobId===j.id).length,quotes:qs.length,schedule:upcoming.length,tasks:open.length,maps:maps.length,expenses:xs.length};
-  const tabs=`<nav class="jtabs" role="tablist" aria-label="${esc(j.name)}">${JOB_TABS.map(([k,l,ic])=>`<button role="tab" class="jtab ${tab===k?'on':''}" data-act="job-tab" data-val="${k}" aria-selected="${tab===k}">${icon(ic)}<span>${l}</span>${n[k]?`<span class="count">${n[k]}</span>`:''}</button>`).join('')}</nav>`;
+  const n={invoices:Object.values(S.invoices).filter(i=>i.jobId===j.id).length,quotes:qs.length,schedule:upcoming.length,tasks:open.length,maps:maps.length,expenses:xs.length,materials:(typeof PO!=='undefined'&&Feat.on('po'))?PO.jobCount(j.id):0};
+  const tabs=`<nav class="jtabs" role="tablist" aria-label="${esc(j.name)}">${JOB_TABS.filter(t=>typeof jobTabOk!=='function'||jobTabOk(t[0])).map(([k,l,ic])=>`<button role="tab" class="jtab ${tab===k?'on':''}" data-act="job-tab" data-val="${k}" aria-selected="${tab===k}">${icon(ic)}<span>${l}</span>${n[k]?`<span class="count">${n[k]}</span>`:''}</button>`).join('')}</nav>`;
   let body='';
   if(tab==='overview'){
     const F=[], unset=[];
@@ -9929,6 +9969,7 @@ function itemJob(j){
     </div></section>`;
   }
   else if(tab==='invoices'){ body=jobInvoicesTab(j); }
+  else if(tab==='materials'&&typeof invMaterialsTab==='function'){ body=invMaterialsTab(j); }
   else if(tab==='expenses'){
     const byCat=EXP_CATS.map(c=>[c,xs.filter(x=>x.category===c[0]).reduce((a,x)=>a+x.amount,0)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
     body=`<div class="jmoney"><div><span>Collected</span><b class="pos">${fmtMoney(mo.collected)}</b>${mo.contract?`<small>of ${fmtMoney(mo.contract)} contract</small>`:''}</div><div><span>Expenses</span><b>${fmtMoney(mo.expenses)}</b>${mo.estCost?`<small>Quote estimated ${fmtMoney(mo.estCost)} in costs</small>`:''}</div><div><span>Profit so far</span><b class="${mo.profit<0?'neg':''}">${fmtMoney(mo.profit)}</b>${mo.collected?`<small>${pct(mo.margin)} margin</small>`:mo.contract?`<small>${fmtMoney(mo.expected)} expected when paid in full</small>`:''}</div></div>
@@ -10776,7 +10817,7 @@ function applyRole(){
   document.body.classList.toggle('team-mode',Role.team());
   if(Role.tech()){
     for(const k of MONEY_WIDGETS) delete DASH_W[k];
-    for(const k of ['quotes','invoices','expenses']){ const i=JOB_TABS.findIndex(t=>t[0]===k); if(i>=0) JOB_TABS.splice(i,1); }
+    for(const k of ['quotes','invoices','expenses','materials']){ const i=JOB_TABS.findIndex(t=>t[0]===k); if(i>=0) JOB_TABS.splice(i,1); }
   }
   if(Role.admin()&&Role.team()) Team.load();
   Maps.ensure&&setTimeout(()=>{ if(Maps.api&&Maps.api.setRole) Maps.api.setRole(Role.get()); },0);
@@ -12082,7 +12123,7 @@ const jobLabel=id=>S.jobs[id]?S.jobs[id].name:'(removed job)';
 const fmtWhen=t=>new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
 
 /* per-company switches: each company turns on only what it uses */
-const FEAT_DEF={inv:true,barcode:true,alerts:true,serials:false};
+const FEAT_DEF={inv:true,barcode:true,alerts:true,serials:false,po:true};
 const Feat={
   cfg(){ return S.settings.features||{}; },
   on(k){ const c=this.cfg(); return k in c?!!c[k]:FEAT_DEF[k]; },
@@ -12201,21 +12242,22 @@ NAV.push(['inventory','Inventory','stock']);
 MONEY_WIDGETS.push('lowstock');
 
 /* ---------- the page ---------- */
-const INV_TABS=[['stock','Stock'],['low','Low stock'],['count','Count'],['moves','Activity']];
+const INV_TABS=[['stock','Stock'],['low','Low stock'],['count','Count'],['orders','Orders'],['moves','Activity']];
 VIEWS.inventory=()=>{
   if(!Role.mgr()) return `<div class="content-inner">${viewHead('Inventory')}${emptyState('Inventory is for managers','Ask an admin if you need stock numbers.')}</div>`;
   if(!Feat.on('inv')) return `<div class="content-inner">${viewHead('Inventory')}${emptyState('Inventory is turned off','Your company isn’t using inventory right now. Turn it on in Settings › Inventory & features.')}<p style="text-align:center"><button class="btn primary" data-act="nav" data-view="settings">Open Settings</button></p></div>`;
   const u=INV.ui, all=INV.tracked(), low=INV.low();
-  const tabs=INV_TABS.filter(t=>t[0]!=='low'||Feat.on('alerts'));
+  const tabs=INV_TABS.filter(t=>(t[0]!=='low'||Feat.on('alerts'))&&(t[0]!=='orders'||Feat.on('po')));
   const tab=tabs.some(t=>t[0]===u.tab)?u.tab:'stock';
   const seg=`<div class="seg" role="group">${tabs.map(([k,l])=>`<button data-act="stk-tab" data-val="${k}" aria-pressed="${tab===k}">${l}${k==='low'&&low.length?` <span class="count alert">${low.length}</span>`:''}</button>`).join('')}</div>`;
   const tools=`${seg}${tab==='stock'||tab==='moves'?`<label class="search sm jobs-q">${icon('search')}<input id="stk-q" placeholder="${tab==='moves'?'Find an item, job or note…':'Search or scan a barcode…'}" value="${esc(tab==='moves'?u.mq:u.q)}" autocomplete="off"></label>`:''}<span class="spacer"></span>
     ${Feat.on('barcode')?`<button class="btn" data-act="stk-scan">${icon('scan')}Scan</button><button class="btn" data-act="stk-labels" ${all.length?'':'disabled'}>${icon('print')}Labels</button>`:''}<button class="btn" data-act="stk-locs">${icon('pin')}Locations</button><button class="btn primary" data-act="stk-add">${icon('plus')}Add product</button>`;
   let body='';
-  if(!all.length&&tab!=='moves') body=invEmpty();
+  if(!all.length&&tab!=='moves'&&tab!=='orders') body=invEmpty();
   else if(tab==='stock') body=invStock(all);
   else if(tab==='low') body=invLow(low);
   else if(tab==='count') body=invCount(all);
+  else if(tab==='orders') body=invOrders();
   else body=invMoves();
   return `<div class="content-inner wide inv">${viewHead('Inventory',{tools,sub:'Stock levels, barcodes and low-stock alerts'})}${all.length&&tab==='stock'?invKpis(all,low):''}${body}</div>`;
 };
@@ -12250,8 +12292,8 @@ function invLow(low){
   const by={}; for(const it of low) (by[it.vendor||'No vendor set']=by[it.vendor||'No vendor set']||[]).push(it);
   const vs=Object.keys(by).sort((a,b)=>a==='No vendor set'?1:b==='No vendor set'?-1:a.localeCompare(b));
   return `<div class="inv-reorder-bar"><b>${low.length} item${low.length===1?'':'s'} to reorder</b> from ${vs.length} vendor${vs.length===1?'':'s'}<span class="spacer"></span><button class="btn sm" data-act="stk-low-csv">${icon('download')}Export list</button></div>`
-    +vs.map(v=>`<section class="scard inv-vendor"><div class="inv-vh"><h2>${esc(v)}</h2><span class="spacer"></span><button class="btn sm" data-act="stk-copy" data-vendor="${esc(v)}">${icon('link')}Copy order list</button></div>
-      <div class="itable inv-table"><div class="inv-row low head"><span>Item</span><span class="inv-n">Available</span><span class="inv-n inv-hide">Reorder at</span><span class="inv-n">Suggested</span><span></span></div>${by[v].map(it=>{ const s=INV.stock(it.id); return `<div class="inv-row low"><button class="ir-name linkish" data-act="stk-open" data-id="${it.id}"><b>${esc(it.name)}</b><small>${esc([it.sku,it.mfr].filter(Boolean).join(' · '))}</small></button><span class="inv-n"><b class="${s.avail<=0?'neg':''}">${fmtQty(s.avail)}</b></span><span class="inv-n inv-hide">${fmtQty(it.reorder)}</span><span class="inv-n"><b>${fmtQty(INV.suggest(it))}</b></span><span class="inv-s"><button class="btn sm" data-act="stk-receive" data-id="${it.id}">Receive</button></span></div>`; }).join('')}</div></section>`).join('');
+    +vs.map(v=>`<section class="scard inv-vendor"><div class="inv-vh"><h2>${esc(v)}</h2><span class="spacer"></span>${Feat.on('po')?`<button class="btn sm primary" data-act="stk-po-vendor" data-vendor="${esc(v)}">${icon('plus')}Create purchase order</button>`:''}<button class="btn sm" data-act="stk-copy" data-vendor="${esc(v)}">${icon('link')}Copy order list</button></div>
+      <div class="itable inv-table"><div class="inv-row low head"><span>Item</span><span class="inv-n">Available</span><span class="inv-n inv-hide">Reorder at</span><span class="inv-n">Suggested</span><span></span></div>${by[v].map(it=>{ const s=INV.stock(it.id); return `<div class="inv-row low"><button class="ir-name linkish" data-act="stk-open" data-id="${it.id}"><b>${esc(it.name)}</b><small>${esc([it.sku,it.mfr].filter(Boolean).join(' · '))}</small>${Feat.on('po')?PO.onOrderNote(it.id):''}</button><span class="inv-n"><b class="${s.avail<=0?'neg':''}">${fmtQty(s.avail)}</b></span><span class="inv-n inv-hide">${fmtQty(it.reorder)}</span><span class="inv-n"><b>${fmtQty(INV.suggest(it))}</b></span><span class="inv-s"><button class="btn sm" data-act="stk-receive" data-id="${it.id}">Receive</button></span></div>`; }).join('')}</div></section>`).join('');
 }
 function invCount(all){
   const loc=INV.locs().includes(INV.ui.loc)?INV.ui.loc:INV.defLoc();
@@ -12282,7 +12324,7 @@ function invCard(id,{sn=''}={}){
   bigModal({title:it.name,size:'wide',body:`<div class="inv-card" data-item="${id}">
       <p class="inv-sub">${esc([it.mfr,it.sku,it.vendor].filter(Boolean).join(' · '))||'&nbsp;'} ${INV.isLow(it)?`<span class="chip inv-st low">Low</span>`:''}</p>
       <div class="inv-tiles">${tile(fmtQty(s.on),'On hand')}${tile(fmtQty(s.held),'Held for jobs')}${tile(fmtQty(s.avail),'Available to sell',st==='ok'?'':st)}${Feat.on('alerts')?tile(it.reorder?fmtQty(it.reorder):'—','Reorder at'):''}</div>
-      <div class="inv-btns"><button class="btn primary" data-act="stk-receive" data-id="${id}" data-back="1">Receive</button><button class="btn" data-act="stk-use" data-id="${id}" data-back="1">Use on job</button><button class="btn" data-act="stk-adjust" data-id="${id}" data-back="1">Adjust</button>${INV.locs().length>1?`<button class="btn" data-act="stk-transfer" data-id="${id}" data-back="1">Move</button>`:''}<button class="btn" data-act="item-open" data-id="${id}">${icon('edit')}Edit item</button></div>
+      ${Feat.on('po')?PO.cardNote(id):''}<div class="inv-btns"><button class="btn primary" data-act="stk-receive" data-id="${id}" data-back="1">Receive</button><button class="btn" data-act="stk-use" data-id="${id}" data-back="1">Use on job</button><button class="btn" data-act="stk-adjust" data-id="${id}" data-back="1">Adjust</button>${INV.locs().length>1?`<button class="btn" data-act="stk-transfer" data-id="${id}" data-back="1">Move</button>`:''}<button class="btn" data-act="item-open" data-id="${id}">${icon('edit')}Edit item</button></div>
       ${Feat.on('barcode')?`<div class="inv-bcbox">${it.barcode?`<div class="inv-bcimg">${Code128.svg(it.barcode,{h:56,scale:2})}<code>${esc(it.barcode)}</code></div><button class="btn sm" data-act="stk-label" data-id="${id}">${icon('print')}Print label</button>`:`<span class="view-sub">No barcode yet.</span><button class="btn sm" data-act="stk-gen" data-id="${id}">${icon('barcode')}Create a barcode</button>`}</div>`:''}
       ${it.serial?`<h4>Serial numbers in stock <small>(${sns.length})</small></h4>${sns.length?`<div class="inv-list sn">${sns.map(([x,i])=>`<div class="${sn&&x.toLowerCase()===String(sn).toLowerCase()?'sn-hit':''}"><span><b>${esc(x)}</b> · ${esc(i.loc)}${i.job?' · held for '+esc(jobLabel(i.job)):''}</span></div>`).join('')}</div>`:'<p class="view-sub">None in stock. Receive some to add their serial numbers.</p>'}`:''}
       ${locs.length>1||(locs.length===1&&INV.locs().length>1)?`<h4>Where it is</h4><div class="inv-list">${locs.map(([l,q])=>`<div><span>${esc(l)}</span><b>${fmtQty(q)}</b></div>`).join('')}</div>`:''}
@@ -12294,7 +12336,7 @@ function invCard(id,{sn=''}={}){
 /* ---------- receive / use on job / adjust / move ---------- */
 const jobOptions=(sel='')=>sortJobs(jobsOf().filter(j=>j.status!=='done')).map(j=>`<option value="${j.id}" ${j.id===sel?'selected':''}>${esc(j.name)}</option>`).join('');
 const locOptions=(sel='')=>INV.locs().map(l=>`<option ${l===sel?'selected':''}>${esc(l)}</option>`).join('');
-function moveDialog(kind,id,{back=false}={}){
+function moveDialog(kind,id,{back=false,job:presetJob=''}={}){
   const it=S.items[id]; if(!it) return;
   const ser=!!it.serial, dl=it.loc||INV.defLoc(), s=INV.stock(id);
   const reopen=()=>{ if(back) setTimeout(()=>invCard(id),40); };
@@ -12315,7 +12357,7 @@ function moveDialog(kind,id,{back=false}={}){
         const job=w.querySelector('#mv-job').value;
         INV.add({item:id,qty:q,sn,type:'receive',loc:locOf(w),job,cost:parseMoney(w.querySelector('#mv-cost').value),ref:w.querySelector('#mv-ref').value.trim(),note:w.querySelector('#mv-note').value.trim()});
         toast(job?`Received ${fmtQty(q)} ${it.name} — held for ${jobLabel(job)}`:`Received ${fmtQty(q)} ${it.name}`); }},
-    use:{title:`Use ${it.name} on a job`,btn:'Use',body:`<div class="iform"><div class="field if-wide"><label for="mv-job">Job</label><select id="mv-job"><option value="">Choose a job…</option>${jobOptions()}</select></div>${ser?(INV.locs().length>1?locField('Taken from'):'')+pickBox(dl):qtyField('Quantity used')+(INV.locs().length>1?locField('Taken from'):'')}${note}</div>`,
+    use:{title:`Use ${it.name} on a job`,btn:'Use',body:`<div class="iform"><div class="field if-wide"><label for="mv-job">Job</label><select id="mv-job"><option value="">Choose a job…</option>${jobOptions(presetJob)}</select></div>${ser?(INV.locs().length>1?locField('Taken from'):'')+pickBox(dl):qtyField('Quantity used')+(INV.locs().length>1?locField('Taken from'):'')}${note}</div>`,
       go:w=>{ const job=w.querySelector('#mv-job').value, loc=locOf(w); if(!job) return 'Choose the job';
         let q,sn=[]; if(ser){ sn=picked(w); q=sn.length; if(!q) return 'Pick the units that were used'; } else { q=parseMoney(w.querySelector('#mv-qty').value); if(!(q>0)) return 'Enter how many were used'; const have=r3(INV.stock(id).locs[loc]||0); if(q>have) return `Only ${fmtQty(have)} on hand${INV.locs().length>1?' at '+loc:''}`; }
         INV.add({item:id,qty:-q,sn,type:'job',loc,job,note:w.querySelector('#mv-note').value.trim()}); toast(`${fmtQty(q)} ${it.name} used on ${jobLabel(job)}`); }},
@@ -12620,6 +12662,236 @@ DW.lowstock=()=>{
   return h.includes('<section class="scard dc-scard">')?h.replace('<section class="scard dc-scard">',card+'<section class="scard dc-scard">'):h.replace('<section class="scard">',card+'<section class="scard">'); }; }
 document.addEventListener('change',e=>{ const k=e.target.dataset&&e.target.dataset.feat; if(k) Feat.set({[k]:e.target.checked}); });
 
+/* ---- fm-po.js ---- */
+/* =========================================================
+   Purchasing: purchase orders by vendor, partial receiving into the stock ledger, job materials
+   A PO line is either for store stock (jobId '') or for a job: received job lines are held for that job
+   (in the building, not sellable). Receiving writes ledger rows (ref = the PO number), so stock, the job's
+   Materials tab and the PO always agree.
+   ========================================================= */
+const PO_STATUS=[['draft','Draft','#8A8F98'],['sent','Sent','#0B84F3'],['partial','Partly received','#E8A317'],['received','Received','#30A46C'],['cancelled','Cancelled','#E5484D']];
+const poStatus=s=>PO_STATUS.find(x=>x[0]===s)||PO_STATUS[0];
+KINDS.push('porders'); S.porders={};
+NORM.porders=o=>({id:str(o.id),num:num(o.num),number:str(o.number).slice(0,40),vendor:str(o.vendor).slice(0,120),status:PO_STATUS.some(x=>x[0]===o.status)?o.status:'draft',
+  date:isDate(o.date)?o.date:today(),expected:isDate(o.expected)?o.expected:'',ref:str(o.ref).slice(0,80),notes:str(o.notes).slice(0,4000),ship:posNum(o.ship),tax:posNum(o.tax),
+  lines:Array.isArray(o.lines)?o.lines.filter(l=>l&&typeof l==='object').slice(0,300).map(l=>({id:validId(l.id)?l.id:uid('pl'),itemId:validId(l.itemId)?l.itemId:'',name:str(l.name).slice(0,300),sku:str(l.sku).slice(0,80),unit:str(l.unit).slice(0,20)||'ea',qty:posNum(l.qty),cost:finNum(l.cost),jobId:validId(l.jobId)?l.jobId:'',recv:posNum(l.recv)})):[],
+  history:Array.isArray(o.history)?o.history.filter(h=>h&&typeof h==='object').slice(-40).map(h=>({at:num(h.at),what:str(h.what).slice(0,300)})):[],
+  by:str(o.by).slice(0,120),createdAt:num(o.createdAt,Date.now()),updatedAt:num(o.updatedAt,Date.now())});
+
+const PO={
+  list(){ return Object.values(S.porders).sort((a,b)=>b.num-a.num||b.createdAt-a.createdAt); },
+  open(p){ return p.status==='sent'||p.status==='partial'; },
+  out(l){ return Math.max(0,r3(l.qty-l.recv)); },
+  sub(p){ return money(p.lines.reduce((a,l)=>a+l.qty*l.cost,0)); },
+  total(p){ return money(PO.sub(p)+p.ship+p.tax); },
+  nextNum(){ return Math.max(num(INV.cfg().nextPo,1001),...Object.values(S.porders).map(p=>p.num+1)); },
+  /* a new draft PO (saved) */
+  make({vendor='',lines=[],jobId='',notes=''}={}){
+    const n=this.nextNum();
+    const p=NORM.porders({id:uid('po'),num:n,number:(INV.cfg().poPrefix||'PO-')+n,vendor,notes,status:'draft',by:Who.name(),lines:lines.map(l=>({...l,jobId:l.jobId||jobId,recv:0})),history:[{at:Date.now(),what:'Created'}]});
+    Store.put('porders',p); INV.saveCfg({nextPo:n+1}); scheduleRender(); return p;
+  },
+  save(p,what){ const o=NORM.porders({...p,history:[...(p.history||[]),...(what?[{at:Date.now(),what}]:[])],updatedAt:Date.now()}); Store.put('porders',o); scheduleRender(); return o; },
+  /* still to arrive for an item, on sent / partly received orders */
+  onOrder(itemId){ let n=0; const by=[]; for(const p of this.list()) if(this.open(p)) for(const l of p.lines) if(l.itemId===itemId&&PO.out(l)>0){ n+=PO.out(l); by.push(p); } return {n:r3(n),pos:by}; },
+  onOrderNote(itemId){ const o=this.onOrder(itemId); return o.n?`<small class="po-note">${fmtQty(o.n)} on order · ${esc([...new Set(o.pos.map(p=>p.number))].join(', '))}</small>`:''; },
+  cardNote(itemId){ const o=this.onOrder(itemId); if(!o.n) return ''; return `<div class="inv-onorder">${icon('box')}<span><b>${fmtQty(o.n)} on order</b> — ${o.pos.map(p=>`<button class="linkish" data-act="stk-po-open" data-id="${p.id}">${esc(p.number)}</button>${p.expected?' due '+esc(fmtShort(p.expected)):''}`).join(', ')}</span></div>`; },
+  /* purchase orders touching a job (any line for it) */
+  forJob(jobId){ return this.list().filter(p=>p.status!=='cancelled'&&p.lines.some(l=>l.jobId===jobId)); },
+  jobCount(jobId){ return this.forJob(jobId).length; },
+  fromLow(vendor){
+    const lines=[]; for(const it of INV.low()){ if((it.vendor||'No vendor set')!==vendor) continue; const q=r3(INV.suggest(it)-this.onOrder(it.id).n); if(q>0) lines.push({itemId:it.id,name:it.name,sku:it.sku,unit:it.unit,qty:q,cost:it.cost}); }
+    if(!lines.length){ toast('Everything low from this vendor is already on order'); return null; }
+    return this.make({vendor:vendor==='No vendor set'?'':vendor,lines});
+  },
+  fromQuote(q){
+    const m=new Map(); for(const sec of q.sections) for(const l of sec.lines){ if(l.type!=='item'||!(l.qty>0)||l.optional) continue; const k=(l.itemId&&S.items[l.itemId]?l.itemId:'n:'+l.name.toLowerCase()); const e=m.get(k); if(e) e.qty+=l.qty; else m.set(k,{itemId:l.itemId&&S.items[l.itemId]?l.itemId:'',name:l.name,sku:l.sku,unit:l.unit,qty:l.qty,cost:l.cost}); }
+    return this.make({lines:[...m.values()],jobId:q.jobId,notes:`From quote ${q.number}`});
+  },
+};
+Object.assign(FEAT_DEF,{});
+
+/* ---------- Inventory › Orders tab ---------- */
+function invOrders(){
+  const f=INV.ui.pof==='all'?'all':'open';
+  const all=PO.list(); const list=f==='all'?all:all.filter(p=>p.status==='draft'||PO.open(p));
+  const seg=`<div class="seg" role="group">${[['open','Open'],['all','All']].map(([k,l])=>`<button data-act="stk-pof" data-val="${k}" aria-pressed="${f===k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="inv-reorder-bar">${seg}<span class="spacer"></span><button class="btn primary" data-act="stk-po-new">${icon('plus')}New purchase order</button></div>`;
+  if(!list.length) return head+emptyState(all.length?'No open orders':'No purchase orders yet','Order from a vendor for store stock or for a job. Receive what arrives (all of it, or part) and it goes straight into inventory, held for the job when the line is for one.');
+  return head+`<div class="itable inv-table"><div class="inv-row po head"><span>Order</span><span>Vendor</span><span class="inv-hide">Date</span><span class="inv-n">Total</span><span class="inv-n inv-hide">Received</span><span>Status</span></div>${list.slice(0,300).map(p=>{ const st=poStatus(p.status), q=p.lines.reduce((a,l)=>a+l.qty,0), r=p.lines.reduce((a,l)=>a+Math.min(l.recv,l.qty),0);
+    return `<button class="inv-row po" data-act="stk-po-open" data-id="${p.id}"><span class="ir-name"><b>${esc(p.number)}</b><small>${p.lines.length} line${p.lines.length===1?'':'s'}${p.lines.some(l=>l.jobId)?' · for '+esc([...new Set(p.lines.filter(l=>l.jobId).map(l=>jobLabel(l.jobId)))].slice(0,2).join(', ')):''}</small></span><span>${esc(p.vendor||'—')}</span><span class="inv-hide">${esc(fmtShort(p.date))}${p.expected?`<small>due ${esc(fmtShort(p.expected))}</small>`:''}</span><span class="inv-n"><b>${fmtMoney(PO.total(p))}</b></span><span class="inv-n inv-hide">${q?`${fmtQty(r)} / ${fmtQty(q)}`:'—'}</span><span class="inv-s"><span class="chip" style="--c:${st[2]}"><span class="dot round"></span>${esc(st[1])}</span></span></button>`; }).join('')}</div>`;
+}
+
+/* ---------- the purchase order window ---------- */
+function poDialog(id,seed={}){
+  let p=id?S.porders[id]:null;
+  if(id&&!p) return;
+  const st={vendor:p?p.vendor:seed.vendor||'',expected:p?p.expected:'',ref:p?p.ref:'',notes:p?p.notes:seed.notes||'',ship:p?p.ship:0,tax:p?p.tax:0,
+    lines:p?p.lines.map(l=>({...l})):(seed.lines||[]).map(l=>({id:uid('pl'),recv:0,jobId:seed.jobId||'',...l}))};
+  const status=p?p.status:'draft', editable=!p||status==='draft'||status==='sent';
+  const vendors=[...new Set([...Object.values(S.items).map(i=>i.vendor),...PO.list().map(x=>x.vendor)].filter(Boolean))].sort();
+  const lineHtml=l=>{ const it=l.itemId&&S.items[l.itemId]; const ro=!editable;
+    return `<div class="po-line" data-l="${l.id}"><span class="po-nm">${l.itemId?`<b>${esc(l.name)}</b>`:`<input data-f="name" value="${esc(l.name)}" placeholder="Item" ${ro?'disabled':''} aria-label="Item name">`}<small>${esc([l.sku,it&&it.track?(it.serial?'serial #s':'tracked'):l.itemId?'not tracked':'not in the library'].filter(Boolean).join(' · '))}</small></span>
+      <input class="po-q" data-f="qty" inputmode="decimal" value="${l.qty||''}" ${ro?'disabled':''} aria-label="Quantity"><span class="po-c"><span>$</span><input data-f="cost" inputmode="decimal" value="${l.cost?l.cost.toFixed(2):''}" placeholder="0.00" ${ro?'disabled':''} aria-label="Cost each"></span>
+      <select data-f="jobId" ${ro?'disabled':''} aria-label="For"><option value="">Store stock</option>${jobOptions(l.jobId)}</select>
+      <span class="po-t">${l.recv?`<small>${fmtQty(l.recv)} rec’d</small>`:''}<b>${fmtMoney(l.qty*l.cost)}</b></span>${ro||l.recv?'<span></span>':`<button class="icon-btn sm" data-rm="${l.id}" aria-label="Remove line">${icon('trash')}</button>`}</div>`; };
+  const body=`<div class="po-win"><div class="iform">
+      <div class="field"><label for="po-v">Vendor</label><input id="po-v" list="po-vl" maxlength="120" value="${esc(st.vendor)}" placeholder="Who you’re ordering from" ${editable?'':'disabled'}><datalist id="po-vl">${vendors.map(v=>`<option value="${esc(v)}">`).join('')}</datalist></div>
+      <div class="field"><label for="po-exp">Expected</label><input id="po-exp" type="date" value="${esc(st.expected)}" ${editable?'':'disabled'}></div>
+      <div class="field"><label for="po-ref">Vendor order / confirmation #</label><input id="po-ref" maxlength="80" value="${esc(st.ref)}"></div></div>
+    <div class="po-lines"><div class="po-line head"><span>Item</span><span>Qty</span><span>Cost each</span><span>For</span><span class="po-t">Total</span><span></span></div><div id="po-ls">${st.lines.map(lineHtml).join('')}</div></div>
+    ${editable?`<div class="po-add"><input id="po-add" placeholder="Add an item: name, part # or barcode" autocomplete="off"><div id="po-res" class="po-res" hidden></div></div>`:''}
+    <div class="iform po-foot"><div class="field if-wide"><label for="po-notes">Notes <small>(printed on the order)</small></label><textarea id="po-notes" rows="2" maxlength="4000">${esc(st.notes)}</textarea></div>
+      <div class="field"><label for="po-ship">Shipping</label><div class="money-in"><span>$</span><input id="po-ship" inputmode="decimal" value="${st.ship?st.ship.toFixed(2):''}" placeholder="0.00"></div></div><div class="field"><label for="po-tax">Tax</label><div class="money-in"><span>$</span><input id="po-tax" inputmode="decimal" value="${st.tax?st.tax.toFixed(2):''}" placeholder="0.00"></div></div></div>
+    <div class="po-tot"><span id="po-sum"></span></div>
+    ${p&&p.history.length?`<details class="po-hist"><summary>History</summary>${p.history.slice().reverse().map(h=>`<div><small>${esc(fmtWhen(h.at))}</small> ${esc(h.what)}</div>`).join('')}</details>`:''}</div>`;
+  const read=w=>{ st.vendor=w.querySelector('#po-v').value.trim(); st.expected=w.querySelector('#po-exp').value; st.ref=w.querySelector('#po-ref').value.trim(); st.notes=w.querySelector('#po-notes').value.trim(); st.ship=parseMoney(w.querySelector('#po-ship').value); st.tax=parseMoney(w.querySelector('#po-tax').value); };
+  const persist=(w,newStatus,what)=>{
+    read(w);
+    const lines=st.lines.filter(l=>l.name.trim()&&l.qty>0);
+    if(!lines.length){ toast('Add at least one item with a quantity'); return false; }
+    if(newStatus==='sent'&&!st.vendor){ toast('Who is this order going to? Add the vendor'); w.querySelector('#po-v').focus(); return false; }
+    let o;
+    const patch={vendor:st.vendor,expected:st.expected,ref:st.ref,notes:st.notes,ship:st.ship,tax:st.tax,lines};
+    if(p) o=PO.save({...p,...patch,status:newStatus||p.status},what||(newStatus&&newStatus!==p.status?'Marked '+poStatus(newStatus)[1].toLowerCase():'Edited'));
+    else { o=PO.make({vendor:st.vendor,lines:[],notes:st.notes}); o=PO.save({...o,...patch,status:newStatus||'draft'},newStatus==='sent'?'Marked sent':''); }
+    toast(`${o.number} ${newStatus==='sent'?'marked sent':'saved'}`); return o;
+  };
+  const acts=[{label:'Close'}];
+  if(editable&&(!p||status==='draft')) acts.push({label:'Save draft',act:w=>persist(w)===false?false:undefined},{label:'Save & mark sent',kind:'primary',act:w=>persist(w,'sent')===false?false:undefined});
+  else if(editable) acts.push({label:'Cancel order',kind:'danger',act:()=>{ PO.save({...p,status:'cancelled'},'Cancelled'); toast(`${p.number} cancelled`); }},{label:'Save',act:w=>persist(w)===false?false:undefined},{label:'Receive…',kind:'primary',act:w=>{ const o=persist(w); if(o===false) return false; setTimeout(()=>poReceiveDialog(o.id),40); }});
+  else if(status==='partial') acts.push({label:'Close the order',act:()=>{ PO.save({...p,status:'received'},'Closed with items outstanding'); toast(`${p.number} closed`); }},{label:'Receive more…',kind:'primary',act:()=>{ setTimeout(()=>poReceiveDialog(p.id),40); }});
+  const w=bigModal({title:p?`Purchase order ${p.number}`:'New purchase order',size:'wide',body,actions:acts,autofocus:false});
+  if(!w) return;
+  const sumUp=()=>{ read(w); const sub=money(st.lines.reduce((a,l)=>a+l.qty*l.cost,0)); w.querySelector('#po-sum').innerHTML=`Subtotal <b>${fmtMoney(sub)}</b>${st.ship?` · Shipping ${fmtMoney(st.ship)}`:''}${st.tax?` · Tax ${fmtMoney(st.tax)}`:''} · Total <b>${fmtMoney(sub+st.ship+st.tax)}</b>`; };
+  const draw=()=>{ w.querySelector('#po-ls').innerHTML=st.lines.map(lineHtml).join('')||'<p class="view-sub" style="padding:10px 12px">No items yet. Add one below.</p>'; sumUp(); };
+  draw();
+  const extra=document.createElement('div'); extra.className='po-tools';
+  extra.innerHTML=`${p?`<button class="btn sm" data-po-pdf>${icon('pdf')}PDF</button>`:''}${p&&status==='draft'?`<button class="btn sm danger" data-po-del>${icon('trash')}Delete</button>`:''}`;
+  if(extra.children.length) w.querySelector('.po-win').prepend(extra);
+  w.addEventListener('input',e=>{
+    const t=e.target, row=t.closest('.po-line');
+    if(row&&t.dataset.f){ const l=st.lines.find(x=>x.id===row.dataset.l); if(!l) return; const f=t.dataset.f; if(f==='qty') l.qty=parseMoney(t.value); else if(f==='cost') l.cost=parseMoney(t.value); else if(f==='name') l.name=t.value; else l[f]=t.value; row.querySelector('.po-t b').textContent=fmtMoney(l.qty*l.cost); sumUp(); }
+    else if(t.id==='po-ship'||t.id==='po-tax') sumUp();
+    else if(t.id==='po-add'){ const q=t.value.trim(), res=w.querySelector('#po-res'); if(!q){ res.hidden=true; return; }
+      const hits=searchItems(q,{limit:8}); const bc=INV.find(q);
+      res.innerHTML=(bc&&!hits.includes(bc)?[bc,...hits]:hits).map(i=>`<button type="button" class="po-r" data-pick="${i.id}"><b>${esc(i.name)}</b><small>${esc([i.sku,i.mfr,i.vendor].filter(Boolean).join(' · '))}</small><span>${i.cost?fmtMoney(i.cost):''}</span></button>`).join('')+`<button type="button" class="po-r new" data-free="${esc(q)}">${icon('plus')}Add “${esc(q)}” as a new line</button>`; res.hidden=false; }
+  });
+  const addLine=l=>{ st.lines.push({id:uid('pl'),recv:0,jobId:'',unit:'ea',qty:1,cost:0,...l}); draw(); const a=w.querySelector('#po-add'); a.value=''; w.querySelector('#po-res').hidden=true; a.focus(); const last=w.querySelector('#po-ls .po-line:last-child .po-q'); last&&last.select(); };
+  w.addEventListener('click',e=>{
+    const pk=e.target.closest('[data-pick]'), fr=e.target.closest('[data-free]'), rm=e.target.closest('[data-rm]');
+    if(pk){ const it=S.items[pk.dataset.pick]; if(it){ if(!st.vendor&&it.vendor){ w.querySelector('#po-v').value=it.vendor; } const ex=st.lines.find(l=>l.itemId===it.id&&!l.jobId&&!l.recv); if(ex){ ex.qty+=1; draw(); w.querySelector('#po-add').value=''; w.querySelector('#po-res').hidden=true; } else addLine({itemId:it.id,name:it.name,sku:it.sku,unit:it.unit,cost:it.cost,qty:it.track?Math.max(1,r3(INV.suggest(it))):1}); } }
+    else if(fr) addLine({name:fr.dataset.free});
+    else if(rm){ st.lines=st.lines.filter(l=>l.id!==rm.dataset.rm); draw(); }
+    else if(e.target.closest('[data-po-pdf]')) poPdf(p);
+    else if(e.target.closest('[data-po-del]')){ const old=p; Store.del('porders',p.id); scheduleRender(); closeModal(); toast(`${old.number} deleted`,{action:()=>{ Store.put('porders',old); scheduleRender(); }}); }
+  });
+  w.addEventListener('keydown',e=>{ if(e.target.id==='po-add'&&e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); const b=w.querySelector('#po-res [data-pick]')||w.querySelector('#po-res [data-free]'); b&&b.click(); } });
+  if(!p&&!st.lines.length){ const a=w.querySelector('#po-add'); a&&a.focus(); }
+}
+
+/* ---------- receiving ---------- */
+function poReceiveDialog(id){
+  const p=S.porders[id]; if(!p) return;
+  const lines=p.lines.filter(l=>PO.out(l)>0);
+  if(!lines.length){ toast('Everything on this order has been received'); return; }
+  const rows=lines.map(l=>{ const it=l.itemId&&S.items[l.itemId], ser=!!(it&&it.track&&it.serial);
+    return `<div class="rc-line" data-l="${l.id}"><span class="po-nm"><b>${esc(l.name)}</b><small>${esc(l.jobId?'for '+jobLabel(l.jobId):'store stock')} · ordered ${fmtQty(l.qty)}${l.recv?`, ${fmtQty(l.recv)} already in`:''}${it&&it.track?'':' · not tracked: recorded on the order only'}</small></span>
+      ${ser?`<textarea data-sn rows="3" placeholder="Serial numbers, one per line (${fmtQty(PO.out(l))} to come)"></textarea><small class="rc-n">0 units</small>`:`<input class="po-q" data-q inputmode="decimal" value="${fmtQty(PO.out(l))}" aria-label="Receive now">`}</div>`; }).join('');
+  const w=bigModal({title:`Receive ${p.number}`,size:'wide',body:`<p class="s-p">Type what actually arrived. Anything you leave short stays on order.</p>${INV.locs().length>1?`<div class="field"><label for="rc-loc">Into</label><select id="rc-loc">${locOptions(INV.defLoc())}</select></div>`:''}<div class="rc-lines">${rows}</div><div class="field"><label for="rc-note">Note <small>(packing slip #, damage…)</small></label><input id="rc-note" maxlength="300"></div>`,
+    actions:[{label:'Cancel'},{label:'Receive',kind:'primary',act:w=>{
+      const loc=(w.querySelector('#rc-loc')||{}).value||INV.defLoc(), note=w.querySelector('#rc-note').value.trim();
+      const todo=[]; let err='';
+      for(const row of w.querySelectorAll('.rc-line')){ const l=p.lines.find(x=>x.id===row.dataset.l), it=l.itemId&&S.items[l.itemId], sn=row.querySelector('[data-sn]');
+        if(sn){ const arr=snLines(sn.value); if(!arr.length) continue; const seen=new Set(); for(const x of arr){ const k=x.toLowerCase(); if(seen.has(k)){ err=`Serial ${x} is listed twice`; break; } seen.add(k); const o=INV.serialOwner(x); if(o){ err=`Serial ${x} is already in stock (${o.name})`; break; } } if(err) break; todo.push({l,it,qty:arr.length,sn:arr}); }
+        else { const q=parseMoney(row.querySelector('[data-q]').value); if(q>0) todo.push({l,it,qty:q,sn:[]}); } }
+      if(err){ toast(err); return false; }
+      if(!todo.length){ toast('Nothing to receive'); return false; }
+      const over=todo.find(x=>x.qty>PO.out(x.l)+1e-9);
+      const lines=p.lines.map(l=>{ const t=todo.find(x=>x.l.id===l.id); return t?{...l,recv:r3(l.recv+t.qty)}:l; });
+      for(const t of todo){ if(t.it&&t.it.track) INV.add({item:t.it.id,qty:t.qty,sn:t.sn,type:'receive',loc,job:t.l.jobId,cost:t.l.cost,ref:p.number,note}); }
+      const all=lines.every(l=>l.recv>=l.qty-1e-9);
+      const what=`Received ${todo.map(t=>`${fmtQty(t.qty)} × ${t.l.name}`).join(', ')}`;
+      PO.save({...p,lines,status:all?'received':'partial'},what);
+      toast(`${p.number}: ${all?'all received':'received part of the order'}${over?' (more than ordered)':''}`);
+    }}]});
+  if(!w) return;
+  w.addEventListener('input',e=>{ const t=e.target; if(t.matches('[data-sn]')){ const n=snLines(t.value).length; t.parentElement.querySelector('.rc-n').textContent=`${n} unit${n===1?'':'s'}`; } });
+}
+
+/* ---------- a PDF to send the vendor ---------- */
+async function poPdf(p){
+  try{
+    const L=await Libs.pdfLib(); const {PDFDocument,StandardFonts,rgb}=L; const co=company();
+    const doc=await PDFDocument.create(); const F=await doc.embedFont(StandardFonts.Helvetica), B=await doc.embedFont(StandardFonts.HelveticaBold);
+    const W=612,H=792,M=48,BOT=60; let page, y; const ink=rgb(.09,.1,.12), mute=rgb(.42,.45,.5), line=rgb(.84,.85,.88);
+    const clean=s=>String(s==null?'':s).replace(/[^\x20-\x7e]/g,c=>({'–':'-','—':'-','’':"'",'‘':"'",'“':'"','”':'"','×':'x','•':'*'}[c]||'?'));
+    const txt=(s,x,yy,{f=F,sz=10,c=ink,right=false}={})=>{ s=clean(s); if(!s) return; page.drawText(s,{x:right?x-f.widthOfTextAtSize(s,sz):x,y:yy,size:sz,font:f,color:c}); };
+    const fit=(s,f,sz,mw)=>{ s=clean(s); while(s.length>1&&f.widthOfTextAtSize(s,sz)>mw) s=s.slice(0,-1); return s; };
+    const np=()=>{ page=doc.addPage([W,H]); y=H-M; };
+    np();
+    txt(co.name||'',M,y-14,{f:B,sz:16}); txt('PURCHASE ORDER',W-M,y-14,{f:B,sz:16,right:true});
+    y-=34; for(const l of [co.address,[co.phone,co.email].filter(Boolean).join('  ')]) if(l){ for(const ln of clean(l).split('\n')){ txt(ln,M,y,{sz:9,c:mute}); y-=12; } }
+    txt(p.number,W-M,H-M-34,{f:B,sz:12,right:true}); txt('Date: '+fmtShort(p.date),W-M,H-M-48,{sz:9,c:mute,right:true}); if(p.expected) txt('Needed by: '+fmtShort(p.expected),W-M,H-M-60,{sz:9,c:mute,right:true}); if(p.ref) txt('Ref: '+p.ref,W-M,H-M-72,{sz:9,c:mute,right:true});
+    y=Math.min(y,H-M-90)-8; txt('VENDOR',M,y,{f:B,sz:8,c:mute}); y-=14; txt(p.vendor||'',M,y,{f:B,sz:12}); y-=12;
+    const jobs=[...new Set(p.lines.filter(l=>l.jobId).map(l=>jobLabel(l.jobId)))]; if(jobs.length){ txt('For: '+jobs.join(', '),M,y,{sz:9,c:mute}); y-=12; }
+    y-=14; const cx=[M,M+270,M+340,M+420,W-M];
+    const head=()=>{ page.drawLine({start:{x:M,y:y+12},end:{x:W-M,y:y+12},thickness:.7,color:line}); txt('ITEM',cx[0],y,{f:B,sz:8,c:mute}); txt('QTY',cx[2]-6,y,{f:B,sz:8,c:mute,right:true}); txt('COST',cx[3]-6,y,{f:B,sz:8,c:mute,right:true}); txt('TOTAL',cx[4],y,{f:B,sz:8,c:mute,right:true}); y-=8; page.drawLine({start:{x:M,y},end:{x:W-M,y},thickness:.7,color:line}); y-=14; };
+    head();
+    for(const l of p.lines){ if(y<BOT+50){ np(); head(); }
+      txt(fit(l.name,B,10,255),cx[0],y,{f:B}); if(l.sku) txt(fit('Part # '+l.sku,F,8,255),cx[0],y-10,{sz:8,c:mute});
+      txt(fmtQty(l.qty)+' '+l.unit,cx[2]-6,y,{right:true}); txt(fmtMoney(l.cost),cx[3]-6,y,{right:true}); txt(fmtMoney(l.qty*l.cost),cx[4],y,{right:true});
+      y-=l.sku?26:18; }
+    if(y<BOT+90){ np(); }
+    y-=4; page.drawLine({start:{x:M,y:y+8},end:{x:W-M,y:y+8},thickness:.7,color:line});
+    const row=(a,b,bold)=>{ txt(a,cx[3]-6,y,{f:bold?B:F,right:true}); txt(b,cx[4],y,{f:bold?B:F,right:true}); y-=15; };
+    row('Subtotal',fmtMoney(PO.sub(p))); if(p.ship) row('Shipping',fmtMoney(p.ship)); if(p.tax) row('Tax',fmtMoney(p.tax)); row('Total',fmtMoney(PO.total(p)),true);
+    if(p.notes){ y-=10; txt('NOTES',M,y,{f:B,sz:8,c:mute}); y-=13; for(const para of clean(p.notes).split('\n')){ let ln=''; for(const wd of para.split(/ +/)){ const t=ln?ln+' '+wd:wd; if(F.widthOfTextAtSize(t,9.5)>W-2*M){ txt(ln,M,y,{sz:9.5}); y-=12; ln=wd; } else ln=t; } txt(ln,M,y,{sz:9.5}); y-=12; } }
+    const bytes=await doc.save(); PO.lastPdf=bytes;
+    saveBlob(new Blob([bytes],{type:'application/pdf'}),`${p.number}.pdf`,'application/pdf');
+  }catch(e){ toast('Couldn’t make the PDF: '+(e.message||e)); }
+}
+
+/* ---------- a job's Materials tab ---------- */
+JOB_TABS.push(['materials','Materials','box']);
+function jobTabOk(k){ return k!=='materials'||(Role.mgr()&&Feat.on('inv')); }
+function invMaterialsTab(j){
+  const pos=Feat.on('po')?PO.forJob(j.id):[];
+  const items=new Map();
+  const ent=(key,name,sku)=>{ if(!items.has(key)) items.set(key,{name,sku,ordered:0,recv:0,used:0,held:0,pos:new Set()}); return items.get(key); };
+  for(const p of pos) for(const l of p.lines) if(l.jobId===j.id){ const e=ent(l.itemId||'n:'+l.name.toLowerCase(),l.name,l.sku); e.ordered+=l.qty; e.recv+=Math.min(l.recv,l.qty); e.pos.add(p.number); }
+  for(const m of Object.values(S.moves)) if(m.job===j.id&&S.items[m.item]){ const it=S.items[m.item], e=ent(it.id,it.name,it.sku); if(m.type==='job') e.used+=-m.qty; }
+  for(const [k,e] of items){ if(k.startsWith('n:')) continue; const s=INV.stock(k); e.held=Math.max(0,s.jobs[j.id]||0); }
+  const rows=[...items.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  const used=Object.values(S.moves).filter(m=>m.job===j.id&&m.type==='job'&&S.items[m.item]).sort((a,b)=>b.at-a.at);
+  const tools=`<span class="spacer"></span>${Feat.on('po')?`<button class="btn sm" data-act="stk-job-quote" data-job="${j.id}">${icon('quote')}Order from a quote</button><button class="btn sm" data-act="stk-job-po" data-job="${j.id}">${icon('plus')}Order materials</button>`:''}<button class="btn sm primary" data-act="stk-job-use" data-job="${j.id}">${icon('box')}Use stock on this job</button>`;
+  const table=rows.length?`<div class="itable inv-table"><div class="inv-row mat head"><span>Item</span><span class="inv-n">Ordered</span><span class="inv-n">Received</span><span class="inv-n">Used</span><span class="inv-n">Held now</span></div>${rows.map(e=>`<div class="inv-row mat"><span class="ir-name"><b>${esc(e.name)}</b><small>${esc([e.sku,[...e.pos].join(', ')].filter(Boolean).join(' · '))}</small></span><span class="inv-n">${e.ordered?fmtQty(e.ordered):'—'}</span><span class="inv-n">${e.ordered?`${fmtQty(e.recv)}${e.recv<e.ordered?`<small class="due">${fmtQty(e.ordered-e.recv)} to come</small>`:''}`:'—'}</span><span class="inv-n">${e.used?fmtQty(e.used):'—'}</span><span class="inv-n"><b>${e.held?fmtQty(e.held):'—'}</b></span></div>`).join('')}</div>`
+    :`<div class="ip-card"><div class="ip-empty">No materials yet. <b>Order materials</b> for this ${j.type}, or <b>Order from a quote</b>. Whatever arrives for it is held here, in the building but not for sale, until you use it.</div></div>`;
+  const poList=pos.length?`<h3 class="mat-h">Purchase orders</h3><div class="itable inv-table">${pos.map(p=>{ const st=poStatus(p.status); return `<button class="inv-row mat po" data-act="stk-po-open" data-id="${p.id}"><span class="ir-name"><b>${esc(p.number)}</b><small>${esc(p.vendor||'no vendor')} · ${esc(fmtShort(p.date))}</small></span><span class="inv-n"><b>${fmtMoney(PO.total(p))}</b></span><span></span><span></span><span class="inv-s"><span class="chip" style="--c:${st[2]}"><span class="dot round"></span>${esc(st[1])}</span></span></button>`; }).join('')}</div>`:'';
+  return `<section class="ip-sec job-mat"><h2 class="ip-sec-h">${icon('box')}Materials${tools}</h2>${table}${poList}${used.length?`<h3 class="mat-h">Used on this job</h3><div class="inv-list mv">${used.slice(0,15).map(m=>`<div><span>${esc(fmtWhen(m.at))} · ${esc(S.items[m.item].name)}${m.sn&&m.sn.length?' · '+esc(m.sn.join(', ')):''}</span><b class="neg">${fmtQty(m.qty)}</b></div>`).join('')}</div>`:''}</section>`;
+}
+
+/* ---------- actions ---------- */
+{ const base=visitsAction; visitsAction=function(act,a,e){
+  switch(act){
+    case 'stk-po-new': poDialog(null); return true;
+    case 'stk-po-open': e&&e.stopPropagation&&e.stopPropagation(); poDialog(a.dataset.id); return true;
+    case 'stk-pof': INV.ui.pof=a.dataset.val; scheduleRender(); return true;
+    case 'stk-po-vendor': { const p=PO.fromLow(a.dataset.vendor); if(p) setTimeout(()=>poDialog(p.id),40); return true; }
+    case 'stk-job-po': poDialog(null,{jobId:a.dataset.job}); return true;
+    case 'stk-job-quote': { const j=S.jobs[a.dataset.job]; const qs=j?jobQuotes(j):[]; if(!qs.length){ toast('This job has no quotes yet'); return true; }
+      openModal({title:'Order from a quote',body:`<p class="s-p">Pick the quote. Its parts go onto a new purchase order for this job, ready for you to add the vendor and adjust.</p><div class="qlist">${qs.map(q=>`<button class="irow tp" data-qpo="${q.id}"><span class="ir-name"><b>${esc(q.number)} · ${esc(q.title||'Quote')}</b><small>${esc(quoteStatus(q.status)[1])}</small></span><span class="ir-num">${fmtMoney(q.totals.total)}</span></button>`).join('')}</div>`,actions:[{label:'Cancel'}],
+        onOpen:w=>w.addEventListener('click',ev=>{ const b=ev.target.closest('[data-qpo]'); if(!b) return; const q=S.quotes[b.dataset.qpo]; const p=PO.fromQuote(q); if(!p.lines.length){ Store.del('porders',p.id); toast('That quote has no parts to order'); return; } closeModal(); setTimeout(()=>poDialog(p.id),40); })}); return true; }
+    case 'stk-job-use': { const jobId=a.dataset.job;
+      const w=bigModal({title:'Use stock on this job',size:'',body:`<div class="field"><label for="ju-q">Which item?</label><input id="ju-q" placeholder="Name, part # or barcode" autocomplete="off"></div><div class="itable tp-list" id="ju-list"></div>`,actions:[{label:'Cancel'}]});
+      if(w){ const show=q=>{ const l=INV.tracked().filter(i=>!q||searchItems(q,{limit:5000}).includes(i)).slice(0,30); w.querySelector('#ju-list').innerHTML=l.length?l.map(i=>`<button class="irow tp" data-ju="${i.id}"><span class="ir-name"><b>${esc(i.name)}</b><small>${esc(i.sku||'')}</small></span><span class="ir-num">${fmtQty(INV.stock(i.id).on)} on hand</span></button>`).join(''):'<p class="view-sub">No tracked item matches.</p>'; };
+        show(''); w.querySelector('#ju-q').addEventListener('input',ev=>show(ev.target.value)); w.querySelector('#ju-q').addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); ev.stopPropagation(); const code=ev.target.value.trim(), hit=INV.find(code); if(hit&&hit.track){ closeModal(); setTimeout(()=>moveDialog('use',hit.id,{job:jobId}),40); } } });
+        w.addEventListener('click',ev=>{ const b=ev.target.closest('[data-ju]'); if(b){ closeModal(); setTimeout(()=>moveDialog('use',b.dataset.ju,{job:jobId}),40); } }); }
+      return true; }
+  }
+  return base(act,a,e); }; }
+{ const base=VIEWS.inventory; VIEWS.inventory=function(){ return base.apply(this,arguments); }; }
+
 /* =========================================================
    Boot
    ========================================================= */
@@ -12664,7 +12936,7 @@ window.__punch={S,UI,Store,parseQuick,sanitize,runSearch,parseSched,occurrences,
 boot();
 if('launchQueue' in window){ window.launchQueue.setConsumer(async p=>{ const h=p.files&&p.files[0]; if(!h) return; try{ const f=await h.getFile(); const text=await f.text(); Maps.withApi(api=>api.openText(text,{}),{show:'markup'}); }catch(e){ toast('Couldn’t open that file'); } }); }
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(e=>console.warn('offline support unavailable',e&&e.message));
-window.__hub={INV,Feat,Scan,Code128,buildLabelsPdf,S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),newQuote:()=>{ const q=createQuote({title:""}); openQuote(q.id); return q.id; },fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
+window.__hub={PO,poDialog,poReceiveDialog,INV,Feat,Scan,Code128,buildLabelsPdf,S,UI,Store,Maps,HUB,go,openItem,createJob,createTask:(...a)=>createTask(...a),patch:(...a)=>patch(...a),openDetail:(...a)=>openDetail(...a),Groups,seedJobs,jobByName,renderAll:()=>scheduleRender(),newQuote:()=>{ const q=createQuote({title:""}); openQuote(q.id); return q.id; },fmPdf:n=>buildQuotePdf([...Object.values(S.quotes),...Object.values(S.invoices)].find(x=>x.number===n)),quoteCalc};
 })();
 
 </script>
