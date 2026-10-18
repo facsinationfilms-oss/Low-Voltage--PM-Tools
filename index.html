@@ -10944,6 +10944,13 @@ async function teamAction(act,a){
 /* the dashboard tells admins when someone is waiting */
 { const base=VIEWS.home; VIEWS.home=()=>{ const h=base(); const n=Role.admin()?Team.pending().length:0; if(!n) return h; return h.replace('<div class="content-inner','<div class="content-inner').replace(/(<div class="content-inner[^>]*>)/,`$1<div class="tm-banner">${icon('user')}<span><b>${n} ${n===1?'person is':'people are'} waiting for approval</b> — ${Team.pending().slice(0,3).map(m=>esc(m.name||m.email)).join(', ')}</span><button class="btn sm primary" data-act="nav" data-view="team">Review</button></div>`); }; }
 
+/* Technicians add and change work but can't delete jobs, contacts, maps, schedule, notes, lists, saved views or the time/photo log.
+   The database refuses it too; this stops the screen pretending it worked (a refused delete is silent on the server). */
+const MGR_ONLY_DEL=new Set(['jobs','contacts','maps','sched','notes','folders','views','visitlog']);
+{ const d=Store.del; Store.del=function(k,id){
+  if(Role.tech()&&MGR_ONLY_DEL.has(k)){ setTimeout(()=>{ toast('Only a manager can delete that'); scheduleRender(); },80); return; }
+  return d.apply(this,arguments); }; }
+
 /* ---- fm-assign.js ---- */
 /* =========================================================
    Tasks belong to the people on them.
