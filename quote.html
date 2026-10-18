@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Your quote</title>
 <meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://supnxniswyhhewybtxlh.supabase.co blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F4F5F7">
 <link rel="icon" href="favicon-64.png">
 <style>
@@ -114,6 +116,7 @@ h1{margin:4px 0 2px;font-size:26px;line-height:1.2;letter-spacing:-.015em}
   const URL_='https://supnxniswyhhewybtxlh.supabase.co', KEY='sb_publishable_X4WEE552X0yXK3kzG32Ytg_wtCWSt_h';
   const $=s=>document.querySelector(s);
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeLogo=u=>/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+\/=]+$/.test(String(u||''))?u:'';
   const money=n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const day=s=>{ if(!s) return ''; const [y,m,d]=String(s).slice(0,10).split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); };
   const stamp=s=>s?new Date(s).toLocaleString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'';
@@ -123,7 +126,8 @@ h1{margin:4px 0 2px;font-size:26px;line-height:1.2;letter-spacing:-.015em}
   let sb=null, Q=null, pdfBytes=null;
   try{ sb=window.supabase.createClient(URL_,KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:'bs-quote-view'}}); }catch(e){}
   const fail=(title,msg)=>{ $('#app').innerHTML=`<div class="card" style="margin-top:40px;text-align:center;padding:40px 22px"><h1 style="font-size:22px">${esc(title)}</h1><p style="color:var(--ink2)">${msg}</p></div>`; };
-  const pdfUrl=()=>URL_+'/storage/v1/object/public/quote-pdfs/'+Q.pdf_path.split('/').map(encodeURIComponent).join('/')+'?v='+encodeURIComponent(Q.updated_at||'');
+  const okPath=p=>/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.pdf$/.test(String(p||''))&&!/\.\./.test(p);
+  const pdfUrl=()=>{ if(!okPath(Q.pdf_path)) throw new Error('bad path'); return URL_+'/storage/v1/object/public/quote-pdfs/'+Q.pdf_path.split('/').map(encodeURIComponent).join('/')+'?v='+encodeURIComponent(Q.updated_at||''); };
   async function load(){
     if(!token) return fail('This link isn’t complete','Open the link from your email again, or ask for a new one.');
     if(!sb) return fail('Couldn’t load','Check your connection and reload the page.');
@@ -144,7 +148,7 @@ h1{margin:4px 0 2px;font-size:26px;line-height:1.2;letter-spacing:-.015em}
     else if(Q.status==='declined') state=`<div class="note bad">${ic('x')}<div><b>You declined this quote</b>${Q.responded_at?esc(stamp(Q.responded_at))+'. ':''}If that was a mistake or you’d like changes, contact ${esc(co.name||'us')}.</div></div>`;
     else if(expired) state=`<div class="note warn">${ic('clock')}<div><b>This quote expired on ${esc(day(i.validUntil))}</b>Contact ${esc(co.name||'us')} for an updated quote.</div></div>`;
     const contact=[co.phone?`<a href="tel:${esc(co.phone.replace(/[^\d+]/g,''))}">Call ${esc(co.phone)}</a>`:'',co.email?`<a href="mailto:${esc(co.email)}?subject=${encodeURIComponent('Question about quote '+(i.number||''))}">Email</a>`:''].join('');
-    $('#app').innerHTML=`<header class="head">${co.logo?`<img class="logo" src="${co.logo}" alt="${esc(co.name)}">`:`<span class="coname">${esc(co.name||'')}</span>`}<span class="spacer"></span><div class="contact">${contact}</div></header>
+    $('#app').innerHTML=`<header class="head">${safeLogo(co.logo)?`<img class="logo" src="${safeLogo(co.logo)}" alt="${esc(co.name)}">`:`<span class="coname">${esc(co.name||'')}</span>`}<span class="spacer"></span><div class="contact">${contact}</div></header>
       <section class="card"><div class="sum"><div><div class="kicker">Quote ${esc(i.number||'')}</div><h1>${esc(i.title||'Quote')}</h1><div class="for">Prepared for ${esc([i.customer,i.customerCompany].filter(Boolean).join(', ')||'you')}${i.from?' by '+esc(i.from):''}${co.name?' · '+esc(co.name):''}</div></div>
         <div class="tot"><span>Total</span><b>${money(i.total)}</b>${i.deposit?`<small>${money(i.deposit)} deposit due on acceptance</small>`:''}</div></div>
         <div class="meta"><span>Date <b>${esc(day(i.date))}</b></span>${i.validUntil?`<span>Valid until <b>${esc(day(i.validUntil))}</b></span>`:''}</div>
@@ -173,7 +177,7 @@ h1{margin:4px 0 2px;font-size:26px;line-height:1.2;letter-spacing:-.015em}
     const contact=[co.phone?`<a href="tel:${esc(co.phone.replace(/[^\d+]/g,''))}">Call ${esc(co.phone)}</a>`:'',co.email?`<a href="mailto:${esc(co.email)}?subject=${encodeURIComponent('Invoice '+(i.number||''))}">Email</a>`:''].join('');
     const dueTxt=!i.dueDate||i.dueDate<=i.date?'Due on receipt':'Due '+day(i.dueDate);
     const howPay=i.payInstr&&st!=='paid'&&st!=='void'?`<div class="pay"><h2>How to pay</h2><div class="pay-t">${esc(i.payInstr)}</div><p>Please include invoice <b>${esc(i.number||'')}</b> with your payment.</p></div>`:'';
-    $('#app').innerHTML=`<header class="head">${co.logo?`<img class="logo" src="${co.logo}" alt="${esc(co.name)}">`:`<span class="coname">${esc(co.name||'')}</span>`}<span class="spacer"></span><div class="contact">${contact}</div></header>
+    $('#app').innerHTML=`<header class="head">${safeLogo(co.logo)?`<img class="logo" src="${safeLogo(co.logo)}" alt="${esc(co.name)}">`:`<span class="coname">${esc(co.name||'')}</span>`}<span class="spacer"></span><div class="contact">${contact}</div></header>
       <section class="card"><div class="sum"><div><div class="kicker">Invoice ${esc(i.number||'')}</div><h1>${esc(i.title||'Invoice')}</h1><div class="for">Billed to ${esc([i.customer,i.customerCompany].filter(Boolean).join(', ')||'you')}${co.name?' · from '+esc(co.name):''}</div></div>
         <div class="tot ${st==='paid'?'paid':''}"><span>${st==='paid'?'Paid':'Amount due'}</span><b>${money(st==='paid'?paid:st==='void'?0:bal)}</b><small>${st==='paid'||st==='void'?'Invoice total '+money(i.total):paid>0?`of ${money(i.total)} · ${money(paid)} paid`:esc(dueTxt)}</small></div></div>
         <div class="meta"><span>Date <b>${esc(day(i.date))}</b></span>${st!=='paid'&&st!=='void'?`<span>Due <b>${i.dueDate&&i.dueDate>i.date?esc(day(i.dueDate)):'On receipt'}</b></span>`:''}</div>
