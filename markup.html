@@ -2373,6 +2373,7 @@ function prunedPhotos(project) {
   for (const pl of project.plans) {
     for (const d of pl.devices) for (const p of d.photos || []) used.add(p);
     if (pl.layout) for (const r of pl.layout.rooms || []) for (const p of r.photos || []) used.add(p);   // room photos
+    for (const m of pl.markups || []) for (const p of m.photos || []) used.add(p);   // cable run photos
   }
   const out = {};
   for (const id of used) if (project.photos[id]) out[id] = project.photos[id];
@@ -6196,13 +6197,14 @@ const Side = {
   photoTarget() {
     if (this.mode === 'device') return Editor.findItem(this.id);
     if (this.mode === 'layout' && Layout.kindOf(this.id) === 'room') return Editor.findItem(this.id);
+    if (this.mode === 'markup') { const m = Editor.findItem(this.id); if (m && m.kind === 'cable') return m; }
     return null;
   },
 
   async addPhotos(files) {
     const d = this.photoTarget();
     if (!d) return;
-    const isRoom = this.mode === 'layout';
+    const isRoom = this.mode === 'layout', isRun = this.mode === 'markup';
     Busy.show(`Adding ${plural(files.length, 'photo')}…`);
     let n = 0;
     try {
@@ -6218,11 +6220,12 @@ const Side = {
     } finally { Busy.hide(); }
     if (!n) return;
     d.updatedAt = Date.now();
-    if (isRoom) MapView.renderLayout(); else MapView.renderDevs();
+    if (isRoom) MapView.renderLayout(); else if (isRun) MapView.renderMarks(); else MapView.renderDevs();
     Editor.changed();
     if (this.mode === 'device' && this.id === d.id) this.renderDevice(true);
     if (this.mode === 'layout' && this.id === d.id) this.renderLayout(true);
-    const nm = isRoom ? (d.name || 'the room') : d.label;
+    if (isRun && this.id === d.id) this.renderMarkup();
+    const nm = isRoom ? (d.name || 'the room') : isRun ? (d.label || 'the cable run') : d.label;
     if (n === 1) toast(`Added a photo to ${nm}`, { kind: 'ok', action: 'Mark up', ms: 9000, onAction: () => PhotoMark.edit(d, d.photos.length - 1) });
     else toast(`Added ${plural(n, 'photo')} to ${nm}`, { kind: 'ok' });
   },
@@ -6303,6 +6306,12 @@ const Side = {
           <p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
           <p class="tiny muted">Drag the dots on the map to reshape the run. ${plural(m.points.length, 'point')}. The cable type and total feet go into estimates and quotes in the Office Hub.</p>` : ''}
         ${m.kind === 'cable' && MapView.cableLabelGeo(m) ? this.lblControls(m, false) : ''}
+        ${m.kind === 'cable' ? this.section('photos', `Photos${(m.photos || []).length ? ' (' + m.photos.length + ')' : ''}`, `
+          <div class="photo-grid" id="sd-photos">
+            ${(m.photos || []).map((pid, i) => App.project.photos[pid] ? `<button class="ph${App.project.photos[pid].marks && App.project.photos[pid].marks.length ? ' marked' : ''}" data-i="${i}" title="${esc(App.project.photos[pid].caption || 'Photo ' + (i + 1))}"><img src="${App.project.photos[pid].data}" alt="" loading="lazy"></button>` : '').join('')}
+            <button class="ph ph-add" id="sd-addph" title="Add photos to this cable run">${ic('CameraPlus')}<span>Add photos</span></button>
+          </div>
+          <p class="tiny muted">Customers see these when you share a customer view link.</p>`, 'Photo') : ''}
         <div class="mk-actions">
           <button class="btn sm" id="mk-dup">${ic('Copy')}<span>Duplicate</span></button>
           <button class="btn sm danger-ghost" id="mk-del">${ic('Trash')}<span>Delete</span></button>
@@ -6330,6 +6339,10 @@ const Side = {
     const fl = $('#mk-fill'); if (fl) fl.oninput = () => { m.fill = +fl.value || 0; $('#mk-fill-v').textContent = Math.round(m.fill * 100) + '%'; touch(); };
     const both = $('#mk-both'); if (both) both.onchange = () => { m.both = both.checked; touch('now'); };
     if (m.kind === 'cable') this.wireLbl(m, false, () => touch());
+    if (m.kind === 'cable') {
+      $('#sd-addph').onclick = async () => { const files = await pickFiles({ accept: 'image/*', multiple: true }); if (files.length) this.addPhotos(files); };
+      $$('#sd-photos .ph[data-i]', this.el).forEach(b => b.onclick = () => Lightbox.open(m, +b.dataset.i));
+    }
     $('#mk-dup').onclick = () => { Editor.duplicateSelection(); const id = [...MapView.sel][0]; if (id) this.showMarkup(id); };
     $('#mk-del').onclick = () => Editor.deleteSelection();
   },
@@ -6592,7 +6605,7 @@ const Lightbox = {
     this.show();
   },
   cur() { const id = this.d.photos[this.i]; return App.project.photos[id]; },
-  name() { return this.d.label || this.d.name || 'Room'; },
+  name() { return this.d.label || this.d.name || (this.d.kind === 'cable' ? 'Cable run' : 'Room'); },
   show() {
     const ph = this.cur();
     if (!ph) { this.close(); return; }
@@ -6622,6 +6635,7 @@ const Lightbox = {
     setTimeout(() => { el.hidden = true; }, 150);
     if (Side.mode === 'device') Side.renderDevice(true);
     if (Side.mode === 'layout') Side.renderLayout(true);
+    if (Side.mode === 'markup') Side.renderMarkup();
   },
 };
 
@@ -7787,7 +7801,8 @@ const Exporter = {
 /* ---- 13-viewer.js ---- */
 /* ===== Customer view: publish a clean, read-only snapshot of a map for customers =====
    What is shared is a SNAPSHOT: the plain background picture, device positions, type names + short
-   descriptions and coverage areas. No manufacturer, model, IP, notes, photos, or the project file itself. */
+   descriptions and coverage areas, plus (if you leave them on) cable runs and the photos you added to devices and cable runs.
+   Never manufacturer, model, IP, notes, or the project file itself. */
 
 const Viewer = {
   MAX_PX: 2400,
@@ -7824,7 +7839,18 @@ const Viewer = {
   /* Build the payload. opts: {plans:[ids], marks:bool, title, descs:{typeId:text}, by} */
   async build(opts) {
     const p = App.project;
-    const typeKeys = new Map(), types = {}, plans = [], images = [];
+    const typeKeys = new Map(), types = {}, plans = [], images = [], photoKeys = new Map();
+    const MAXP = 40;
+    const photoRefs = (ids) => {
+      if (!opts.photos) return null;
+      const out = [];
+      for (const id of ids || []) {
+        const ph = p.photos[id]; if (!ph) continue;
+        if (!photoKeys.has(id)) { if (photoKeys.size >= MAXP) continue; photoKeys.set(id, 'k' + photoKeys.size); }
+        out.push({ k: photoKeys.get(id), c: String(ph.caption || '').slice(0, 160) });
+      }
+      return out.length ? out : null;
+    };
     for (const pl of p.plans.filter(x => opts.plans.includes(x.id))) {
       const u = planUnit(pl);
       const devs = [];
@@ -7835,13 +7861,18 @@ const Viewer = {
         }
         const k = typeKeys.get(t.id);
         const cone = d.cone && d.cone.show !== false ? { len: round1(d.cone.len), angle: round1(d.cone.angle), o: round1(clamp(coverOpacity(pl, d), 0, 1) * 100) / 100 } : null;
-        devs.push({ id: 'd' + i, x: round1(d.x), y: round1(d.y), s: round1(devSize(pl, d)), l: String(d.label || '').slice(0, 40), t: k, r: round1(d.rot || 0), c: cone, lo: d.lblOff ? [round1(d.lblOff[0]), round1(d.lblOff[1])] : null, lr: round1(d.lblRot || 0) });
+        devs.push({ id: 'd' + i, x: round1(d.x), y: round1(d.y), s: round1(devSize(pl, d)), l: String(d.label || '').slice(0, 40), t: k, r: round1(d.rot || 0), c: cone, lo: d.lblOff ? [round1(d.lblOff[0]), round1(d.lblOff[1])] : null, lr: round1(d.lblRot || 0), ph: photoRefs(d.photos) });
       });
-      plans.push({ id: pl.id.replace(/[^A-Za-z0-9]/g, '').slice(0, 24) || 'p' + plans.length, name: String(pl.name || 'Plan').slice(0, 80), w: pl.bg.w, h: pl.bg.h, ls: round1(12.5 * u * (pl.iconScale || 1) * (pl.labelScale || 1)), base: '', devices: devs, _src: pl });
+      const runs = !opts.runs ? [] : pl.markups.filter(m => m.kind === 'cable' && m.points.length >= 2).slice(0, 300).map((m, i) => ({ id: 'r' + i, pts: m.points.slice(0, 200).map(q => [round1(q[0]), round1(q[1])]), c: /^#[0-9a-fA-F]{3,8}$/.test(m.color || '') ? m.color : '#0891b2', w: round1((m.width || 3.5 * u)), dash: m.dash === 'dash' || m.dash === 'dot' ? m.dash : '', l: String(m.label || '').slice(0, 80), ph: photoRefs(m.photos) }));
+      plans.push({ id: pl.id.replace(/[^A-Za-z0-9]/g, '').slice(0, 24) || 'p' + plans.length, name: String(pl.name || 'Plan').slice(0, 80), w: pl.bg.w, h: pl.bg.h, ls: round1(12.5 * u * (pl.iconScale || 1) * (pl.labelScale || 1)), base: '', devices: devs, runs, _src: pl });
     }
     for (const [tid, key] of typeKeys) {
       const t = Reg.type(tid);
       types[key] = { name: String(t.name || 'Device').slice(0, 80), desc: String(opts.descs && opts.descs[tid] != null ? opts.descs[tid] : t.desc || '').slice(0, 400), color: Reg.color(t), icon: await this.typeIcon(t) };
+    }
+    for (const [pid, key] of photoKeys) {
+      const r = await resizeImage(p.photos[pid].data, 1400, { type: 'image/jpeg', quality: 0.8 });
+      images.push({ key, name: key + '.jpg', blob: dataURLtoBlob(r.data) });
     }
     for (const pp of plans) {
       images.push({ planId: pp.id, name: pp.id + '.jpg', blob: await this.baseImage(pp._src, opts.marks) });
@@ -7858,15 +7889,18 @@ const Viewer = {
     const used = new Map();
     for (const pl of p.plans) for (const d of pl.devices) used.set(d.type, Reg.type(d.type));
     const body = document.createElement('div');
+    let nPh = 0; for (const pl of p.plans) { for (const d of pl.devices) nPh += (d.photos || []).length; for (const m of pl.markups) if (m.kind === 'cable') nPh += (m.photos || []).length; }
     const link = () => { const t = this.token(); return t ? bridge.link(t) : ''; };
     const draw = () => {
       const lk = link();
       body.innerHTML = `
-        <p class="hint">${ic('InfoCircle')}Customers get a clean, read-only copy: zoom and tap devices to see what each one does and its coverage. They never see model numbers, IP addresses, notes, photos, or your project file. After you change the map, press <b>Update</b> to refresh the same link.</p>
+        <p class="hint">${ic('InfoCircle')}Customers get a clean, read-only copy: zoom and tap devices to see what each one does and its coverage. They never see model numbers, IP addresses, notes, or your project file. Only the photos you choose to include are shared. After you change the map, press <b>Update</b> to refresh the same link.</p>
         ${lk ? `<label class="fld"><span>Customer link</span><input class="inp" id="cv-link" readonly value="${esc(lk)}"></label><div class="row" style="gap:8px;margin-bottom:10px"><button class="btn sm" id="cv-copy">${ic('Copy')}<span>Copy link</span></button><button class="btn sm" id="cv-open">${ic('ExternalLink')}<span>Preview</span></button><button class="btn sm danger" id="cv-stop">${ic('Trash')}<span>Stop sharing</span></button></div>` : ''}
         <label class="fld"><span>Title shown to the customer</span><input class="inp" id="cv-title" maxlength="120" value="${esc(p.name)}"></label>
         <div class="fld"><span>Plans to include</span>${p.plans.map(pl => `<label class="chk-row"><input type="checkbox" class="chk cv-plan" value="${esc(pl.id)}" checked><span>${esc(pl.name)} · ${pl.devices.length} device${pl.devices.length === 1 ? '' : 's'}</span></label>`).join('')}</div>
-        <label class="chk-row"><input type="checkbox" class="chk" id="cv-marks"><span>Also show my drawn lines, shapes and text</span></label>
+        <label class="chk-row"><input type="checkbox" class="chk" id="cv-runs" checked><span>Show cable runs (customers can tap them)</span></label>
+        <label class="chk-row"><input type="checkbox" class="chk" id="cv-photos" checked><span>Include the photos I added to devices and cable runs${nPh ? ` (${nPh})` : ''}, with any markup on them</span></label>
+        <label class="chk-row"><input type="checkbox" class="chk" id="cv-marks"><span>Also show my drawn lines, shapes and text on the map</span></label>
         <div class="fld"><span>What customers read for each device type</span>${[...used.values()].map(t => `<label class="fld" style="margin:6px 0"><b style="font-size:13px">${esc(t.name)}</b><textarea class="inp cv-desc" data-t="${esc(t.id)}" rows="2" maxlength="400">${esc(t.desc || '')}</textarea></label>`).join('') || '<p class="hint">No devices placed yet.</p>'}</div>`;
       const go = document.querySelector('[data-id=cv-go] span'); if (go) go.textContent = lk ? 'Update link' : 'Create link';
       const c = body.querySelector('#cv-copy');
@@ -7889,7 +7923,7 @@ const Viewer = {
         const descs = {}; $$('.cv-desc', body).forEach(t => { descs[t.dataset.t] = t.value.trim(); });
         Busy.show('Creating the customer view…');
         try {
-          const built = await this.build({ plans, marks: $('#cv-marks', body).checked, title: $('#cv-title', body).value.trim(), descs });
+          const built = await this.build({ plans, marks: $('#cv-marks', body).checked, runs: $('#cv-runs', body).checked, photos: $('#cv-photos', body).checked, title: $('#cv-title', body).value.trim(), descs });
           Busy.msg('Publishing…');
           const r = await bridge.publish({ token: this.token(), projectId: p.id, title: built.data.title, data: built.data, images: built.images });
           this.setToken(r.token);
