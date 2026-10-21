@@ -1074,6 +1074,29 @@ html.phone .ov-sec-h { gap: 8px; }
 #pano .pn-flat { flex: 1; overflow: auto; padding: 12px; }
 #pano .pn-flat img { max-width: none; height: 100%; }
 #pano .lb-cap { padding: 8px 10px; background: rgba(0,0,0,.55); }
+
+/* ---- show / hide devices ---- */
+.ov-sec-hw { display: flex; align-items: stretch; }
+.ov-sec-hw .ov-sec-h { flex: 1; min-width: 0; }
+.ov-eye { position: relative; flex: none; width: 44px; min-height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text); cursor: pointer; border-radius: 10px; }
+.ov-eye:hover { background: rgba(127,127,127,.14); }
+.ov-eye svg { width: 22px; height: 22px; }
+.ov-eye.off, .ov-eye[aria-pressed="false"] { color: var(--muted); }
+.ov-eye.part { color: #d97706; }
+.ov-eye i { position: absolute; right: 3px; top: 5px; font-style: normal; font-size: 10px; font-weight: 700; background: #d97706; color: #fff; border-radius: 999px; padding: 0 4px; min-width: 14px; text-align: center; }
+.ov-eye.sm { width: 40px; min-height: 40px; }
+.ov-eyes { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; }
+.ov-only { border: 1px solid var(--line, rgba(127,127,127,.35)); background: transparent; color: var(--muted); border-radius: 999px; font-size: 11px; font-weight: 600; padding: 4px 9px; cursor: pointer; }
+.ov-only:hover { color: var(--text); }
+.ov-devrow { display: flex; align-items: center; }
+.ov-devrow .ov-dev { flex: 1; min-width: 0; }
+.ov-devrow.off .ov-dev { opacity: .5; }
+.ov-g:has([data-eye="grp"].off) .ov-ico, .ov-g:has([data-eye="grp"].off) .ov-g-t { opacity: .5; }
+.ov-sec:has(> .ov-sec-hw [data-eye="sys"].off) .ov-sec-h b { opacity: .5; text-decoration: line-through; }
+.ov-hidbar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 0 0 12px; border-radius: 12px; background: rgba(217,119,6,.12); border: 1px solid rgba(217,119,6,.4); font-size: 13.5px; }
+.ov-hidbar svg { width: 20px; height: 20px; color: #d97706; flex: none; }
+.ov-hidbar span { flex: 1; }
+.vis-chip { color: #b45309 !important; font-weight: 600; }
 </style>
 </head>
 <body data-view="home">
@@ -1195,6 +1218,7 @@ html.phone .ov-sec-h { gap: 8px; }
         <button class="btn sm glass" id="btn-layers" title="Choose what shows on the map"><i data-ic="Stack2"></i><span>Layers</span></button>
         <button class="btn sm glass" id="btn-disp" title="Icon size, labels and coverage"><i data-ic="AdjustmentsHorizontal"></i><span>Display</span></button>
         <button class="btn sm glass" id="scale-chip"></button>
+        <button class="btn sm glass vis-chip" id="vis-chip" hidden title="Some devices are hidden. Tap to show everything again."><i data-ic="EyeOff"></i><span></span></button>
         <button class="btn sm glass" id="snap-chip" hidden title="Snapping options"><i data-ic="Magnet"></i><span>Snap</span></button>
       </div>
       <div class="vcb glass" id="vcb" hidden><span id="vcb-lbl">Length</span><input id="vcb-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"><button class="icon-btn sm" id="vcb-ok" title="Apply"><i data-ic="Check"></i></button></div>
@@ -3529,6 +3553,26 @@ const Editor = {
   plan: null,
   views: new Map(),     // planId -> {k, tx, ty}
   hiddenSystems: new Set(),
+  hiddenDevs: new Set(),      // single devices switched off (from the Overview); like hiddenSystems this is a view setting, not saved in the file
+  devHidden(d) { return this.hiddenSystems.has(Reg.type(d.type).system) || this.hiddenDevs.has(d.id); },
+  hiddenCount() { return this.plan ? this.plan.devices.filter(d => this.devHidden(d)).length : 0; },
+  visChanged() { MapView.renderAll(); this.updateVisChip(); },
+  updateVisChip() {
+    const chip = $('#vis-chip'); if (!chip) return;
+    const n = this.hiddenCount();
+    chip.hidden = !n;
+    if (n) chip.querySelector('span').textContent = `${n} hidden · Show all`;
+  },
+  showAllDevices() { this.hiddenSystems.clear(); this.hiddenDevs.clear(); this.visChanged(); if (typeof Overview !== 'undefined' && Overview.isOpen()) Overview.render(); },
+  /* hide or show a list of devices */
+  setDevsHidden(ids, hide) { for (const id of ids) hide ? this.hiddenDevs.add(id) : this.hiddenDevs.delete(id); this.visChanged(); },
+  /* show only these devices, hide everything else on every plan */
+  solo(ids) {
+    const keep = new Set(ids);
+    this.hiddenSystems.clear(); this.hiddenDevs.clear();
+    for (const pl of this.project.plans) for (const d of pl.devices) if (!keep.has(d.id)) this.hiddenDevs.add(d.id);
+    this.visChanged();
+  },
   undo: [], redo: [],
   lastSnap: null,
   clipboard: null,
@@ -3574,6 +3618,7 @@ const Editor = {
     $('#btn-disp').onclick = (e) => this.displayMenu(e.currentTarget);
     $('#scale-chip').onclick = () => this.setTool('scale');
     $('#snap-chip').onclick = (e) => LayoutUI.snapPopover(e.currentTarget);
+    $('#vis-chip').onclick = () => this.showAllDevices();
     $$('#pal-tabs button').forEach(b => b.onclick = () => this.setPalTab(b.dataset.pt));
     LayoutUI.vcbInit();
     $('#empty-plan-add').onclick = () => this.addPlansFromFiles();
@@ -3586,7 +3631,7 @@ const Editor = {
   open(project) {
     this.project = project;
     this.views.clear();
-    this.hiddenSystems = new Set();
+    this.hiddenSystems = new Set(); this.hiddenDevs = new Set();
     this.palTabs = {};
     this.undo = []; this.redo = [];
     this.clipboard = this.clipboard || null;
@@ -4411,7 +4456,7 @@ const Editor = {
     el.style.top = Math.max(8, r.top - el.offsetHeight - 8) + 'px';
     openMenuEl = el;
     $$('[data-lay]', el).forEach(c => c.onchange = () => { this.plan.layout[c.dataset.lay] = c.checked; MapView.renderBg(); MapView.renderAll(); App.changed(); this.commit(); });
-    $$('[data-sys]', el).forEach(c => c.onchange = () => { c.checked ? this.hiddenSystems.delete(c.dataset.sys) : this.hiddenSystems.add(c.dataset.sys); MapView.renderAll(); });
+    $$('[data-sys]', el).forEach(c => c.onchange = () => { c.checked ? this.hiddenSystems.delete(c.dataset.sys) : this.hiddenSystems.add(c.dataset.sys); this.visChanged(); });
     $$('[data-opt]', el).forEach(c => c.onchange = () => {
       const k = c.dataset.opt;
       Settings.set(k, k === 'hideMarkups' ? !c.checked : c.checked);
@@ -4640,9 +4685,8 @@ const MapView = {
 
   visibleDevices() {
     if (!this.plan) return [];
-    const hid = Editor.hiddenSystems;
-    if (!hid.size) return this.plan.devices;
-    return this.plan.devices.filter(d => !hid.has(Reg.type(d.type).system));
+    if (!Editor.hiddenSystems.size && !Editor.hiddenDevs.size) return this.plan.devices;
+    return this.plan.devices.filter(d => !Editor.devHidden(d));
   },
 
   conePath(d, L, angle) {
@@ -4765,6 +4809,7 @@ const MapView = {
   },
 
   renderDevs() {
+    Editor.updateVisChip();
     const L = this.layers.devs;
     if (!this.plan) { L.innerHTML = ''; return; }
     Stack.sync(this.plan);
@@ -4929,7 +4974,7 @@ const MapView = {
       const it = Editor.findItem(id);
       if (!it) continue;
       if (Editor.isDevice(id)) {
-        if (Editor.hiddenSystems.has(Reg.type(it.type).system)) continue;
+        if (Editor.devHidden(it)) continue;
         const s = devSize(this.plan, it);
         html += `<circle cx="${it.x}" cy="${it.y}" r="${s * 0.62 + 4 / k}" class="sel-ring" stroke-width="${2 / k}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
         if (single && Settings.data.showLabels && it.label) html += this.labelHandles(this.devLabelGeo(it), hr, sw, k, it.lblOff || it.lblRot ? [it.x, it.y] : null);
@@ -7745,8 +7790,8 @@ const Exporter = {
     const save = { plan: MapView.plan, sel: MapView.sel };
     MapView.plan = plan; MapView.sel = new Set();
     const hid = Editor.hiddenSystems;
-    const prevHid = new Set(hid);
-    if (plan !== Editor.plan) hid.clear();
+    const prevHid = new Set(hid), prevDevs = new Set(Editor.hiddenDevs);
+    if (plan !== Editor.plan) { hid.clear(); Editor.hiddenDevs.clear(); }
     try {
       const u = planUnit(plan);
       const W = plan.bg.w, H = plan.bg.h;
@@ -7795,7 +7840,7 @@ const Exporter = {
       return { svg, w: W, h: totalH };
     } finally {
       MapView.plan = save.plan; MapView.sel = save.sel;
-      if (plan !== Editor.plan) { hid.clear(); prevHid.forEach(x => hid.add(x)); }
+      if (plan !== Editor.plan) { hid.clear(); prevHid.forEach(x => hid.add(x)); Editor.hiddenDevs.clear(); prevDevs.forEach(x => Editor.hiddenDevs.add(x)); }
     }
   },
 
@@ -10645,7 +10690,7 @@ const Overview = {
     Combo.close();
     if (this.el) this.el.hidden = true;
     document.documentElement.classList.remove('ov-open');
-    try { MapView.renderDevs(); Side.refresh(); } catch (e) {}
+    try { MapView.renderAll(); Side.refresh(); } catch (e) {}
   },
   isOpen() { return !!(this.el && !this.el.hidden); },
 
@@ -10684,7 +10729,7 @@ const Overview = {
       const open = this.open[sys.id] !== false;
       const todo = groups.filter(g => !g.model).reduce((a, g) => a + g.items.length, 0);
       return `<section class="ov-sec ${open ? 'open' : ''}" data-sys="${esc(sys.id)}" style="--c:${sys.color}">
-        <button class="ov-sec-h" data-ov="sec" aria-expanded="${open}"><span class="ov-dot"></span><b class="ov-long">${esc(sys.name)}</b><b class="ov-short">${esc(sys.short || sys.name)}</b><span class="ov-n">${n} device${n === 1 ? '' : 's'}</span>${todo ? `<span class="ov-todo">${todo} <span class="ov-long">need a model</span><span class="ov-short">to fill in</span></span>` : `<span class="ov-ok">${ic('Check')}ready</span>`}${ic('ChevronDown', 'chev')}</button>
+        <div class="ov-sec-hw"><button class="ov-sec-h" data-ov="sec" aria-expanded="${open}"><span class="ov-dot"></span><b class="ov-long">${esc(sys.name)}</b><b class="ov-short">${esc(sys.short || sys.name)}</b><span class="ov-n">${n} device${n === 1 ? '' : 's'}</span>${todo ? `<span class="ov-todo">${todo} <span class="ov-long">need a model</span><span class="ov-short">to fill in</span></span>` : `<span class="ov-ok">${ic('Check')}ready</span>`}${ic('ChevronDown', 'chev')}</button>${this.sysEye(sys, groups)}</div>
         ${open ? `<div class="ov-sec-b">${groups.map(g => this.groupHtml(g)).join('')}</div>` : ''}</section>`;
     }).join('');
     const lay = this.layoutHtml();
@@ -10696,7 +10741,8 @@ const Overview = {
       </div>
       <div class="ov-body">
         ${tiles}
-        <p class="ov-tip">${ic('InfoCircle')}Each line is one kind of device with the same make &amp; model. Fill it in once — every device on the line gets it. Pick a model and its description and price come along.</p>
+        ${Editor.hiddenSystems.size || Editor.hiddenDevs.size ? `<div class="ov-hidbar">${ic('EyeOff')}<span>Some devices are hidden on the map.</span><button class="btn sm" id="ov-showall">Show everything</button></div>` : ''}
+        <p class="ov-tip">${ic('InfoCircle')}Tap the eye on a system, a line or a single device to hide or show it on the map. Each line is one kind of device with the same make &amp; model. Fill it in once — every device on the line gets it. Pick a model and its description and price come along.</p>
         ${sections || `<div class="ov-empty">No devices on ${this.plan === 'all' ? 'this project' : 'this plan'} yet. Add some on the map, then come back here to fill in their make, model and cable at once.</div>`}
         ${lay}
       </div>`;
@@ -10742,6 +10788,7 @@ const Overview = {
         <span class="ov-ico">${typeIconHtml(g.type, 34)}</span>
         <span class="ov-g-t"><b>${esc(g.type.name)} <span class="ov-x">× ${n}</span></b><small class="ov-g-mm">${g.model ? esc([g.mfr, g.model].filter(Boolean).join(' ')) : g.mfr ? esc(g.mfr) + ' · no model yet' : 'No make or model yet'}</small></span>
         <span class="ov-g-p">${unit ? `<b>${this.money(unit * n)}</b><small>${this.money(unit)} each</small>` : ''}</span>
+        ${this.groupEye(g)}
       </div>
       <div class="ov-fields">
         <label class="fld"><span>Manufacturer</span><input class="inp" data-ovf="manufacturer" value="${esc(f('manufacturer') ?? '')}" placeholder="${f('manufacturer') === null ? 'Mixed — type to set all' : 'Pick or type'}"></label>
@@ -10752,8 +10799,24 @@ const Overview = {
         <label class="fld"><span>Status</span><select class="inp" data-ovs="status">${stVal === null ? '<option value="">— mixed —</option>' : ''}${STATUSES.map(s => `<option value="${s.id}" ${stVal === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
       </div>
       <button class="ov-devs-t" data-ov="devs" aria-expanded="${shown}">${ic('ChevronRight', 'chev')}<span>${shown ? 'Hide' : 'Show'} the ${n} device${n === 1 ? '' : 's'}</span><small>${esc(names.slice(0, 6).join(', '))}${n > 6 ? '…' : ''}</small></button>
-      ${shown ? `<div class="ov-devs">${g.items.map(({ d, pl }) => `<button class="ov-dev" data-dev="${d.id}" data-plan="${pl.id}" title="Show it on the map"><b>${esc(d.label || 'Device')}</b><small>${esc([(d.fields || {}).location, this.plan === 'all' && App.project.plans.length > 1 ? pl.name : ''].filter(Boolean).join(' · ') || 'No location')}</small>${ic('Crosshair')}</button>`).join('')}</div>` : ''}
+      ${shown ? `<div class="ov-devs">${g.items.map(({ d, pl }) => `<div class="ov-devrow ${Editor.hiddenDevs.has(d.id) ? 'off' : ''}"><button class="ov-dev" data-dev="${d.id}" data-plan="${pl.id}" title="Show it on the map"><b>${esc(d.label || 'Device')}</b><small>${esc([(d.fields || {}).location, this.plan === 'all' && App.project.plans.length > 1 ? pl.name : ''].filter(Boolean).join(' · ') || 'No location')}</small>${ic('Crosshair')}</button><button class="ov-eye sm" data-eye="dev" data-id="${d.id}" aria-pressed="${!Editor.hiddenDevs.has(d.id)}" title="${Editor.hiddenDevs.has(d.id) ? 'Hidden on the map — tap to show' : 'Showing on the map — tap to hide'}">${ic(Editor.hiddenDevs.has(d.id) ? 'EyeOff' : 'Eye')}</button></div>`).join('')}</div>` : ''}
     </div>`;
+  },
+
+  sysEye(sys, groups) {
+    const off = Editor.hiddenSystems.has(sys.id);
+    const ids = groups.flatMap(g => g.items.map(x => x.d.id));
+    const some = ids.filter(id => Editor.hiddenDevs.has(id)).length;
+    const title = off ? `${sys.name} is hidden on the map — tap to show` : some ? `${some} of ${ids.length} hidden — tap to hide the whole system` : `Showing on the map — tap to hide all ${sys.name}`;
+    return `<button class="ov-eye ${off ? 'off' : some ? 'part' : ''}" data-eye="sys" data-id="${esc(sys.id)}" aria-pressed="${!off}" title="${esc(title)}">${ic(off ? 'EyeOff' : 'Eye')}${some && !off ? `<i>${some}</i>` : ''}</button>`;
+  },
+  groupEye(g) {
+    const ids = g.items.map(x => x.d.id);
+    const hid = ids.filter(id => Editor.hiddenDevs.has(id)).length;
+    const sysOff = Editor.hiddenSystems.has(g.type.system);
+    const off = sysOff || hid === ids.length;
+    const title = sysOff ? 'The whole system is hidden' : off ? 'Hidden on the map — tap to show' : hid ? `${hid} of ${ids.length} hidden — tap to hide the rest` : 'Showing on the map — tap to hide';
+    return `<span class="ov-eyes"><button class="ov-only" data-eye="only" title="Show only these on the map, hide everything else">Only</button><button class="ov-eye ${off ? 'off' : hid ? 'part' : ''}" data-eye="grp" aria-pressed="${!off}" title="${esc(title)}">${ic(off ? 'EyeOff' : 'Eye')}${hid && !off ? `<i>${hid}</i>` : ''}</button></span>`;
   },
 
   layoutHtml() {
@@ -10793,6 +10856,26 @@ const Overview = {
     $$('[data-ov="sec"]', el).forEach(b => b.onclick = () => { const s = b.closest('.ov-sec').dataset.sys; this.open[s] = this.open[s] === false; this.render(); });
     const all = this.groups().flatMap(s => s.groups);
     const byKey = new Map(all.map(g => [g.key, g]));
+    if ($('#ov-showall', el)) $('#ov-showall', el).onclick = () => Editor.showAllDevices();
+    $$('.ov-sec-hw [data-eye="sys"]', el).forEach(b => b.onclick = () => {
+      const id = b.dataset.id; Editor.hiddenSystems.has(id) ? Editor.hiddenSystems.delete(id) : Editor.hiddenSystems.add(id);
+      Editor.visChanged(); this.render();
+    });
+    $$('.ov-g', el).forEach(box => {
+      const g = byKey.get(box.dataset.g); if (!g) return; const ids = g.items.map(x => x.d.id);
+      const eye = box.querySelector('[data-eye="grp"]'), only = box.querySelector('[data-eye="only"]');
+      if (eye) eye.onclick = () => {
+        if (Editor.hiddenSystems.has(g.type.system)) {   // one line switched on while its whole system is off: the system comes back, but only this line shows
+          const sys = g.type.system;
+          for (const pl of App.project.plans) for (const d of pl.devices) if (Reg.type(d.type).system === sys) Editor.hiddenDevs.add(d.id);
+          Editor.hiddenSystems.delete(sys); Editor.setDevsHidden(ids, false);
+        }
+        else Editor.setDevsHidden(ids, !ids.every(id => Editor.hiddenDevs.has(id)));
+        this.render();
+      };
+      if (only) only.onclick = () => { Editor.solo(ids); this.render(); toast('Showing only these on the map', { action: 'Show all', onAction: () => Editor.showAllDevices() }); };
+      $$('[data-eye="dev"]', box).forEach(b => b.onclick = () => { Editor.setDevsHidden([b.dataset.id], !Editor.hiddenDevs.has(b.dataset.id)); this.render(); });
+    });
     $$('.ov-g', el).forEach(box => {
       const g = byKey.get(box.dataset.g); if (!g) return;
       const t = g.type;
