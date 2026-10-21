@@ -12,6 +12,10 @@
   Cache-Control: no-cache
   X-Robots-Tag: noindex
   Referrer-Policy: no-referrer
+/view.html
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex
+  Referrer-Policy: no-referrer
 /*.mjs
   Content-Type: text/javascript
 /*
@@ -23,3 +27,5 @@
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://supnxniswyhhewybtxlh.supabase.co; media-src 'self' blob: data:; connect-src 'self' https://supnxniswyhhewybtxlh.supabase.co wss://supnxniswyhhewybtxlh.supabase.co blob: data:; worker-src 'self' blob:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 /quote.html
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://supnxniswyhhewybtxlh.supabase.co blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+/view.html
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://supnxniswyhhewybtxlh.supabase.co; connect-src https://supnxniswyhhewybtxlh.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
