@@ -1020,6 +1020,33 @@ html.phone .ov-sec-h { gap: 8px; }
 .stk-name b { font-weight: 700; }
 .stk-name em { font-style: normal; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stk-st { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+
+/* Photo markup */
+.lb-mark, .lb-orig { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.2); color: #fff; }
+.lb-orig.on { background: #fff; color: #0f172a; }
+.ph.marked::after { content: ''; position: absolute; right: 4px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: #ef4444 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><path d='M5 19L19 5M19 5H9M19 5V15'/></svg>") center/10px no-repeat; border: 1.5px solid #fff; }
+#photomark { position: fixed; inset: 0; z-index: 1300; background: #0b1220; display: flex; flex-direction: column; color: #fff; }
+.pm-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px; }
+.pm-title { font-weight: 700; }
+.pm-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.pm-wrap { position: relative; touch-action: none; box-shadow: 0 8px 30px rgba(0,0,0,.55); }
+.pm-wrap img, .pm-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.pm-wrap svg { touch-action: none; cursor: crosshair; }
+.pm-input { position: absolute; z-index: 2; width: 150px; font: 700 16px Arial, sans-serif; padding: 6px 8px; border-radius: 8px; border: 2px solid #3b82f6; background: #fff; color: #0f172a; }
+.pm-bar { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; background: #111a2c; border-top: 1px solid rgba(255,255,255,.1); }
+.pm-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pm-tool { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 58px; padding: 6px 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #fff; font-size: 11px; cursor: pointer; }
+.pm-tool.on { background: #fff; color: #0f172a; border-color: #fff; }
+.pm-tool .ic { width: 22px; height: 22px; }
+#pm-colors { display: flex; gap: 6px; }
+.pm-col { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+.pm-col.on { border-color: #fff; box-shadow: 0 0 0 2px #3b82f6; }
+.pm-sizes { display: flex; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; overflow: hidden; }
+.pm-sizes button { background: transparent; color: #fff; border: 0; width: 36px; height: 34px; font-weight: 700; cursor: pointer; }
+.pm-sizes button.on { background: #fff; color: #0f172a; }
+.pm-ic { color: #fff; }
+.pm-ic:disabled { opacity: .3; }
+@media (max-width: 600px) { .pm-row .spacer { display: none; } }
 </style>
 </head>
 <body data-view="home">
@@ -5878,7 +5905,7 @@ const Side = {
 
         ${this.section('photos', `Photos${photos.length ? ' (' + photos.length + ')' : ''}`, `
           <div class="photo-grid" id="sd-photos">
-            ${photos.map((ph, i) => `<button class="ph" data-i="${i}" title="${esc(ph.caption || 'Photo ' + (i + 1))}"><img src="${ph.data}" alt="" loading="lazy">${ph.caption ? `<span>${esc(ph.caption)}</span>` : ''}</button>`).join('')}
+            ${photos.map((ph, i) => `<button class="ph${ph.marks && ph.marks.length ? ' marked' : ''}" data-i="${i}" title="${esc(ph.caption || 'Photo ' + (i + 1))}${ph.marks && ph.marks.length ? ' (marked up)' : ''}"><img src="${ph.data}" alt="" loading="lazy">${ph.caption ? `<span>${esc(ph.caption)}</span>` : ''}</button>`).join('')}
             <button class="ph ph-add" id="sd-addph" title="Add photos (or drop / paste images here)">${ic('CameraPlus')}<span>Add photos</span></button>
           </div>
           <p class="tiny muted">${Device.touch ? 'Tap Add photos to take a picture or pick from your photos.' : 'Drop images here, paste with Ctrl+V, or click Add. On a phone or tablet you can take a picture.'}</p>`, 'Photo')}
@@ -6071,7 +6098,9 @@ const Side = {
     Editor.changed();
     if (this.mode === 'device' && this.id === d.id) this.renderDevice(true);
     if (this.mode === 'layout' && this.id === d.id) this.renderLayout(true);
-    toast(`Added ${plural(n, 'photo')} to ${isRoom ? (d.name || 'the room') : d.label}`, { kind: 'ok' });
+    const nm = isRoom ? (d.name || 'the room') : d.label;
+    if (n === 1) toast(`Added a photo to ${nm}`, { kind: 'ok', action: 'Mark up', ms: 9000, onAction: () => PhotoMark.edit(d, d.photos.length - 1) });
+    else toast(`Added ${plural(n, 'photo')} to ${nm}`, { kind: 'ok' });
   },
 
   /* ---------- Layout elements ---------- */
@@ -6403,13 +6432,15 @@ const Side = {
 /* ===== Photo viewer ===== */
 const Lightbox = {
   open(device, i) {
-    this.d = device; this.i = i;
+    this.d = device; this.i = i; this.showOrig = false;
     let el = $('#lightbox');
     if (!el) {
       el = document.createElement('div');
       el.id = 'lightbox';
       el.innerHTML = `
         <div class="lb-top"><span id="lb-title"></span><span class="spacer"></span>
+          <button class="btn lb-mark" id="lb-mark" title="Draw arrows, circles and notes on this photo">${ic('Scribble')}<span>Mark up</span></button>
+          <button class="btn lb-orig" id="lb-orig" title="Show the photo without markup" hidden>${ic('Eye')}<span>Original</span></button>
           <button class="icon-btn lb-btn" id="lb-dl" title="Download photo">${ic('Download')}</button>
           <button class="icon-btn lb-btn" id="lb-del" title="Delete photo">${ic('Trash')}</button>
           <button class="icon-btn lb-btn" id="lb-x" title="Close (Esc)">${ic('X')}</button></div>
@@ -6420,6 +6451,8 @@ const Lightbox = {
       $('#lb-prev').onclick = () => this.go(-1);
       $('#lb-next').onclick = () => this.go(1);
       $('#lb-del').onclick = () => this.del();
+      $('#lb-mark').onclick = () => PhotoMark.edit(this.d, this.i);
+      $('#lb-orig').onclick = () => { this.showOrig = !this.showOrig; this.show(); };
       $('#lb-dl').onclick = () => {
         const ph = this.cur();
         downloadBlob(dataURLtoBlob(ph.data), `${safeFileName(this.name())}-${this.i + 1}.jpg`);
@@ -6437,12 +6470,14 @@ const Lightbox = {
   show() {
     const ph = this.cur();
     if (!ph) { this.close(); return; }
-    $('#lb-img').src = ph.data;
+    $('#lb-img').src = this.showOrig && ph.orig ? ph.orig : ph.data;
+    $('#lb-orig').hidden = !ph.orig; $('#lb-orig').classList.toggle('on', !!this.showOrig && !!ph.orig);
+    $('#lb-mark').querySelector('span').textContent = ph.marks && ph.marks.length ? 'Edit markup' : 'Mark up';
     $('#lb-title').textContent = `${this.name()} — photo ${this.i + 1} of ${this.d.photos.length}`;
     $('#lb-caption').value = ph.caption || '';
     $('#lb-prev').hidden = $('#lb-next').hidden = this.d.photos.length < 2;
   },
-  go(dir) { const n = this.d.photos.length; this.i = (this.i + dir + n) % n; this.show(); },
+  go(dir) { const n = this.d.photos.length; this.i = (this.i + dir + n) % n; this.showOrig = false; this.show(); },
   async del() {
     const ok = await confirmDialog('Delete photo?', `Remove this photo from ${this.d.label ? 'the device' : 'the room'}?`, { ok: 'Delete', danger: true });
     if (!ok) return;
@@ -6663,6 +6698,166 @@ const DevCatUI = {
       if (String(f.manufacturer || '').trim()) CatSrc.add({ cat: d.type, mfr: f.manufacturer, model: f.model || '', desc: f.description || '', msrp: +f.msrp || 0 });
     }, 700); };
     for (const el of [mfr, model, desc, msrp]) if (el) el.addEventListener('change', save);
+  },
+};
+
+/* ---- 10b-photomark.js ---- */
+/* ===== Photo markup: draw arrows, circles, boxes, pen strokes and text on a photo =====
+   The photo keeps its untouched original (ph.orig) and the list of marks (ph.marks) so it can be edited again.
+   ph.data is the finished picture with the marks drawn in, so reports, the map and anyone opening the photo see the markup. */
+
+const PhotoMark = {
+  COLORS: ['#ef4444', '#facc15', '#22c55e', '#3b82f6', '#ffffff', '#111827'],
+  TOOLS: [['arrow', 'ArrowUpRight', 'Arrow'], ['ellipse', 'Circle', 'Circle'], ['rect', 'Square', 'Box'], ['pen', 'Scribble', 'Pen'], ['text', 'Typography', 'Text']],
+
+  /* the SVG for one mark, in the photo's own pixel space */
+  markSvg(m, base) {
+    const c = m.c, w = m.w;
+    if (m.t === 'arrow') {
+      const [x1, y1] = m.a, [x2, y2] = m.b;
+      const ang = Math.atan2(y2 - y1, x2 - x1), L = Math.max(w * 4.5, 14), W = Math.max(w * 2.6, 8);
+      const bx = x2 - L * Math.cos(ang), by = y2 - L * Math.sin(ang), px = -Math.sin(ang) * W, py = Math.cos(ang) * W;
+      return `<g><line x1="${x1}" y1="${y1}" x2="${bx + (x2 - bx) * 0.2}" y2="${by + (y2 - by) * 0.2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><polygon points="${x2},${y2} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${c}" stroke="${c}" stroke-width="${w * 0.3}" stroke-linejoin="round"/></g>`;
+    }
+    if (m.t === 'ellipse') {
+      const x = Math.min(m.a[0], m.b[0]), y = Math.min(m.a[1], m.b[1]), rx = Math.abs(m.b[0] - m.a[0]) / 2, ry = Math.abs(m.b[1] - m.a[1]) / 2;
+      return `<ellipse cx="${x + rx}" cy="${y + ry}" rx="${rx}" ry="${ry}" fill="none" stroke="${c}" stroke-width="${w}"/>`;
+    }
+    if (m.t === 'rect') {
+      const x = Math.min(m.a[0], m.b[0]), y = Math.min(m.a[1], m.b[1]);
+      return `<rect x="${x}" y="${y}" width="${Math.abs(m.b[0] - m.a[0])}" height="${Math.abs(m.b[1] - m.a[1])}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round"/>`;
+    }
+    if (m.t === 'pen') {
+      return `<polyline points="${m.pts.map(p => p[0] + ',' + p[1]).join(' ')}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    if (m.t === 'text') {
+      const dark = c === '#111827';
+      return `<text x="${m.a[0]}" y="${m.a[1]}" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${m.s}" fill="${c}" stroke="${dark ? '#fff' : '#000'}" stroke-width="${m.s * 0.16}" paint-order="stroke" stroke-linejoin="round" dominant-baseline="hanging">${esc(m.txt)}</text>`;
+    }
+    return '';
+  },
+
+  async flatten(src, w, h, marks) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><image href="${src}" width="${w}" height="${h}"/>${marks.map(m => this.markSvg(m)).join('')}</svg>`;
+    const blob = await Exporter.rasterize(svg, w, h, 1, 'image/jpeg', 0.88);
+    return await readFileAsDataURL(blob);
+  },
+
+  /* open the editor for a stored photo; resolves true if it was changed */
+  open(ph) {
+    return new Promise(resolve => {
+      const src = ph.orig || ph.data, W = ph.w, H = ph.h, base = Math.max(W, H) / 1000;
+      let marks = JSON.parse(JSON.stringify(ph.marks || [])), redo = [], tool = 'arrow', color = this.COLORS[0], size = 1, cur = null, input = null;
+      const SZ = [0.6, 1, 1.8];
+      const el = document.createElement('div');
+      el.id = 'photomark';
+      el.innerHTML = `
+        <div class="pm-top"><button class="btn" id="pm-cancel">Cancel</button><span class="pm-title">Mark up photo</span><button class="btn primary" id="pm-done">${ic('Check')}<span>Done</span></button></div>
+        <div class="pm-stage" id="pm-stage"><div class="pm-wrap" id="pm-wrap"><img id="pm-img" alt="" src="${src}"><svg id="pm-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><g id="pm-marks"></g><g id="pm-temp"></g></svg></div></div>
+        <div class="pm-bar">
+          <div class="pm-row" id="pm-tools">${this.TOOLS.map(([k, i, n]) => `<button class="pm-tool" data-t="${k}" title="${n}">${ic(i)}<span>${n}</span></button>`).join('')}</div>
+          <div class="pm-row"><div id="pm-colors">${this.COLORS.map(c => `<button class="pm-col" data-c="${c}" style="background:${c}" aria-label="Colour ${c}"></button>`).join('')}</div>
+            <div class="pm-sizes" id="pm-sizes"><button data-s="0">S</button><button data-s="1">M</button><button data-s="2">L</button></div>
+            <span class="spacer"></span>
+            <button class="icon-btn pm-ic" id="pm-undo" title="Undo">${ic('ArrowBackUp')}</button><button class="icon-btn pm-ic" id="pm-redo" title="Redo">${ic('ArrowForwardUp')}</button><button class="icon-btn pm-ic" id="pm-clear" title="Clear all marks">${ic('Trash')}</button></div>
+        </div>`;
+      document.body.appendChild(el);
+      const $e = s => el.querySelector(s), svg = $e('#pm-svg'), wrap = $e('#pm-wrap');
+      const fit = () => {
+        const st = $e('#pm-stage').getBoundingClientRect(), k = Math.min((st.width - 16) / W, (st.height - 16) / H);
+        wrap.style.width = Math.max(40, W * k) + 'px'; wrap.style.height = Math.max(40, H * k) + 'px';
+      };
+      const draw = () => {
+        $e('#pm-marks').innerHTML = marks.map(m => this.markSvg(m)).join('');
+        $e('#pm-temp').innerHTML = cur ? this.markSvg(cur) : '';
+        $e('#pm-undo').disabled = !marks.length; $e('#pm-redo').disabled = !redo.length; $e('#pm-clear').disabled = !marks.length;
+        el.querySelectorAll('.pm-tool').forEach(b => b.classList.toggle('on', b.dataset.t === tool));
+        el.querySelectorAll('.pm-col').forEach(b => b.classList.toggle('on', b.dataset.c === color));
+        el.querySelectorAll('#pm-sizes button').forEach(b => b.classList.toggle('on', +b.dataset.s === size));
+      };
+      const pt = e => { const r = svg.getBoundingClientRect(); return [Math.round((e.clientX - r.left) / r.width * W * 10) / 10, Math.round((e.clientY - r.top) / r.height * H * 10) / 10]; };
+      const commit = m => { marks.push(m); redo = []; cur = null; draw(); };
+      const askText = (p) => {
+        if (input) input.remove();
+        const r = svg.getBoundingClientRect(), inp = document.createElement('input');
+        input = inp; inp.className = 'pm-input'; inp.placeholder = 'Type, then Enter'; inp.maxLength = 80;
+        inp.style.left = Math.min(r.width - 150, Math.max(0, p[0] / W * r.width)) + 'px'; inp.style.top = (p[1] / H * r.height) + 'px';
+        wrap.appendChild(inp); inp.focus();
+        const done = ok => { if (input !== inp) return; input = null; const v = inp.value.trim(); inp.remove(); if (ok && v) commit({ t: 'text', a: p, s: Math.round(base * 24 * SZ[size]), c: color, txt: v }); };
+        inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); };
+        inp.onblur = () => done(true);
+      };
+      svg.addEventListener('pointerdown', e => {
+        if (e.button > 0) return;
+        if (input) { input.blur(); return; }
+        const p = pt(e);
+        if (tool === 'text') { e.preventDefault(); askText(p); return; }
+        svg.setPointerCapture(e.pointerId);
+        const w = Math.max(2, base * 5 * SZ[size]);
+        cur = tool === 'pen' ? { t: 'pen', pts: [p], c: color, w } : { t: tool, a: p, b: p, c: color, w };
+        draw();
+      });
+      svg.addEventListener('pointermove', e => {
+        if (!cur) return;
+        const p = pt(e);
+        if (cur.t === 'pen') cur.pts.push(p); else cur.b = p;
+        $e('#pm-temp').innerHTML = this.markSvg(cur);
+      });
+      const up = () => {
+        if (!cur) return;
+        const m = cur;
+        const len = m.t === 'pen' ? m.pts.length : Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1]);
+        if (m.t === 'pen' && m.pts.length < 2) m.pts.push([m.pts[0][0] + 0.1, m.pts[0][1]]);
+        if (m.t !== 'pen' && len < base * 8) { cur = null; draw(); return; }   // a tap, not a drag
+        commit(m);
+      };
+      svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', () => { cur = null; draw(); });
+      el.querySelectorAll('.pm-tool').forEach(b => b.onclick = () => { tool = b.dataset.t; draw(); });
+      el.querySelectorAll('.pm-col').forEach(b => b.onclick = () => { color = b.dataset.c; draw(); });
+      el.querySelectorAll('#pm-sizes button').forEach(b => b.onclick = () => { size = +b.dataset.s; draw(); });
+      $e('#pm-undo').onclick = () => { if (marks.length) { redo.push(marks.pop()); draw(); } };
+      $e('#pm-redo').onclick = () => { if (redo.length) { marks.push(redo.pop()); draw(); } };
+      $e('#pm-clear').onclick = () => { if (marks.length) { redo = marks.slice().reverse(); marks = []; draw(); } };
+      const close = v => { document.removeEventListener('keydown', onKey, true); window.removeEventListener('resize', fit); el.remove(); resolve(v); };
+      const onKey = e => {
+        if (input) return;
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+        else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.stopPropagation(); $e(e.shiftKey ? '#pm-redo' : '#pm-undo').click(); }
+      };
+      document.addEventListener('keydown', onKey, true);
+      window.addEventListener('resize', fit);
+      $e('#pm-cancel').onclick = () => close(false);
+      $e('#pm-done').onclick = async () => {
+        if (input) input.blur();
+        const btn = $e('#pm-done'); btn.disabled = true;
+        try {
+          if (marks.length) {
+            const data = await this.flatten(src, W, H, marks);
+            ph.orig = ph.orig || ph.data; ph.marks = marks; ph.data = data;
+          } else if (ph.orig) { ph.data = ph.orig; delete ph.orig; delete ph.marks; }
+          else { close(false); return; }
+          ph.markedAt = Date.now();
+          close(true);
+        } catch (e) { btn.disabled = false; toast('Could not save the markup: ' + e.message, { kind: 'error' }); }
+      };
+      const im = $e('#pm-img'); im.onload = fit; fit(); draw();
+    });
+  },
+
+  /* open from the photo viewer or after adding a photo */
+  async edit(d, i) {
+    const ph = App.project.photos[d.photos[i]];
+    if (!ph) return false;
+    const ok = await this.open(ph);
+    if (ok) {
+      d.updatedAt = Date.now();
+      MapView.renderDevs(); MapView.renderLayout();
+      Editor.changed();
+      if (Lightbox.isOpen() && Lightbox.d === d) Lightbox.show();
+      Side.refresh();
+      toast(ph.marks && ph.marks.length ? 'Markup saved on the photo' : 'Markup removed', { kind: 'ok' });
+    }
+    return ok;
   },
 };
 
@@ -10553,7 +10748,7 @@ const HubField = {
         const thumbs = [];
         for (const pid of (d.photos || []).slice(0, 6)) {
           const ph = p.photos[pid]; if (!ph || !ph.data) continue;
-          try { const r = await resizeImage(ph.data, 360, { type: 'image/jpeg', quality: 0.78 }); thumbs.push({ id: pid, data: r.data, caption: ph.caption || '' }); } catch (e) {}
+          try { const r = await resizeImage(ph.data, 1100, { type: 'image/jpeg', quality: 0.8 }); thumbs.push({ id: pid, data: r.data, caption: ph.caption || '' }); } catch (e) {}
         }
         const f = {};
         for (const [k] of this.FIELDS) if (d.fields && d.fields[k] !== undefined) f[k] = d.fields[k];
