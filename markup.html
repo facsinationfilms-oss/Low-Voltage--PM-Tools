@@ -1120,6 +1120,45 @@ html.phone .shape-fly.in { transform: none; }
 .sp-grid button { height: 40px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--text); display: grid; place-items: center; cursor: pointer; padding: 0; }
 .sp-grid button:hover { background: var(--hover); }
 .sp-grid button.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* ===== A phone held sideways: very little height, so every bar gets slimmer ===== */
+@media (orientation: landscape) and (max-height: 520px) {
+  html.touch .ed-top { height: 42px; gap: 6px; padding: 0 6px; }
+  html.touch .ed-top .btn, html.touch .ed-top .ibtn, html.touch .ed-top .icon-btn { height: 34px; min-height: 34px; }
+  html.touch .title-inp { font-size: 15px; padding: 5px 6px; }
+  html.touch .toolrail { width: 46px; padding: 4px 0; gap: 2px; }
+  html.touch .tool { width: 38px; height: 34px; }
+  html.touch .rail-sep { margin: 3px 0; }
+  html.touch .plan-tabs { height: 34px; }
+  html.touch .ptab, html.touch .ptab-add { font-size: 12px; }
+  html.touch .bgopt { padding: 7px 10px; }
+  html.touch .bgopt span { font-size: 11.5px; }
+  html.touch .np-sec { margin: 6px 0 2px; }
+  html.touch .np-grid { gap: 6px 10px; }
+  html.touch .fab { height: 40px; bottom: 62px; padding: 0 16px 0 12px; }
+  html.touch .zoombar { bottom: 6px; right: 8px; }
+  html.touch .viewbar { left: 8px; bottom: 6px; gap: 6px; }
+  html.touch .viewbar .btn { height: 34px; min-height: 34px; padding: 0 10px; font-size: 13px; }
+  html.touch .viewbar .btn span { display: none; }
+  html.touch .viewbar .btn { padding: 0 9px; }
+  html.touch .vcb { height: 34px; }
+  html.touch .stage-top { top: 6px; }
+  html.touch .stage-hint { padding: 5px 12px; font-size: 12px; }
+  html.touch .vcb, html.touch #editor.side-open .vcb { bottom: 6px; }
+  html.touch .modal-back { padding: 6px; align-items: center; }
+  html.touch .modal { max-height: calc(100vh - 12px); max-height: calc(100dvh - 12px); width: min(560px, 100%); }
+  html.touch .modal-head { padding: 8px 14px 2px; }
+  html.touch .modal-ic { width: 26px; height: 26px; }
+  html.touch .modal-head h2 { font-size: 15px; }
+  html.touch .modal-body { padding: 6px 14px 4px; }
+  html.touch .modal-foot { padding: 8px 14px 10px; }
+  html.touch .modal-foot .btn { min-height: 38px; }
+  html.touch .home-top { padding: 6px 14px; gap: 10px; }
+  html.touch .home-main { padding: 12px 14px 40px; }
+  html.touch .home-hero { margin-bottom: 10px; }
+  html.touch .home-hero h1 { font-size: 22px; }
+  html.touch .home-tabs [data-tab] { height: 36px; }
+}
 </style>
 </head>
 <body data-view="home">

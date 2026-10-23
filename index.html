@@ -1347,6 +1347,11 @@ body.tool-mode .appbar .search,body.tool-mode .appbar .top-actions{visibility:hi
 .jlay button{display:inline-flex;align-items:center;gap:5px}.jlay svg.i{width:15px;height:15px}
 @media (max-width:700px){.jlay span{display:none}.jb-meta{display:none}.jbar.wide .jb-main small{white-space:normal}}
 
+/* phone turned sideways: the tools take the whole screen, like a phone held upright */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  body.tool-mode .appbar,body.tool-mode .hub-bottom{display:none}
+}
+
 /* ===================== Field management ===================== */
 :root{--c-rev:#2a78d6;--c-exp:#eb6834;--c-prof:#1baf7a;--ok-ink:#157347}
 :root:not([data-bs-theme="light"]){--c-rev:#3987e5;--c-exp:#d95926;--c-prof:#199e70;--ok-ink:#4ED69A}
