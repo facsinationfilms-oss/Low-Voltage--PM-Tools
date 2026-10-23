@@ -3506,7 +3506,7 @@ function drawSampleFloorplan() {
 }
 
 function buildSampleProject() {
-  const p = newProject({ name: 'Sample Office', client: 'Example Co.', address: '100 Main St, Manchester, NH', contact: 'Site manager', notes: 'A sample project to try things out. Feel free to edit or delete it.' });
+  const p = newProject({ name: 'Sample Office', client: 'Example Co.', address: '100 Main St, Anytown, ST', contact: 'Site manager', notes: 'A sample project to try things out. Feel free to edit or delete it.' });
   Reg.rebuild(p);
   const plan = newPlan('First Floor', drawSampleFloorplan());
   plan.scale = { pxPerFt: 20 };
@@ -8234,14 +8234,15 @@ const Exporter = {
     try {
       const st = projectStats(p);
       let html = `<style>@page { size: ${o.paper}; margin: 0.45in; } @page land { size: ${o.paper} landscape; margin: 0.4in; }</style>`;
-      const header = (sub) => `<div class="rp-hdr"><span class="rp-logo">B&amp;S</span><b>${esc(p.name)}</b><span>${esc(sub || '')}</span><em>${esc(fmtDate(Date.now()))}</em></div>`;
+      const brandMark = () => { if (!HUB) return 'B&S'; const w = String(Hub.notify('company') || '').trim().split(/\s+/).filter(Boolean); return w.length ? w.slice(0, 3).map(x => x[0].toUpperCase()).join('') : 'QF'; };
+      const header = (sub) => `<div class="rp-hdr"><span class="rp-logo">${esc(brandMark())}</span><b>${esc(p.name)}</b><span>${esc(sub || '')}</span><em>${esc(fmtDate(Date.now()))}</em></div>`;
       if (o.cover) {
         const counts = new Map();
         for (const pl of o.plans) for (const d of pl.devices) { const t = Reg.type(d.type); counts.set(t.id, (counts.get(t.id) || 0) + 1); }
         const bySys = {};
         for (const [id, n] of counts) { const t = Reg.type(id); (bySys[t.system] = bySys[t.system] || []).push({ t, n }); }
         html += `<section class="rp-page rp-cover">
-          <div class="rp-brand"><span class="rp-logo big">B&amp;S</span><div><div class="rp-kicker">Site survey &amp; device plan</div><h1>${esc(p.name)}</h1></div></div>
+          <div class="rp-brand"><span class="rp-logo big">${esc(brandMark())}</span><div><div class="rp-kicker">Site survey &amp; device plan</div><h1>${esc(p.name)}</h1></div></div>
           <table class="rp-info">
             ${[['Client', p.client], ['Site address', p.address], ['Contact', p.contact], ['Phone', p.phone], ['Email', p.email], ['Report date', fmtDate(Date.now())]].filter(r => r[1]).map(r => `<tr><th>${r[0]}</th><td>${esc(r[1])}</td></tr>`).join('')}
           </table>
