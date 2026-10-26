@@ -4446,6 +4446,22 @@ const Editor = {
       <div class="lp-slider"><span>Opacity (all)</span><input type="range" min="0" max="1" step="0.01" value="${coverOpacity(plan, null)}" data-d="cover"><em>${pct(coverOpacity(plan, null))}</em></div>
       <label class="lp-row"><input type="checkbox" class="chk" data-pb="barrier" ${plan.barrier !== false ? 'checked' : ''}><span>Walls &amp; barriers block coverage</span></label>
       <div class="dp-note">Sets every coverage area on this plan${coneN ? ` (${coneN})` : ''}. Lower = more see-through. Each device can still be changed in its panel.</div>
+      ${Layout.is(plan) ? '' : (() => {
+        const g = plan.grid || Grid.def(plan), cu = plan.grid ? Grid.cellUnits(plan) : (plan.scale ? g.size / plan.scale.pxPerFt / Grid.unitFt() : null), un = Grid.unitName();
+        const fx = v => v == null ? '' : String(+v.toFixed(2));
+        return `<div class="menu-sep"></div>
+      <div class="menu-head">Grid</div>
+      <label class="lp-row"><input type="checkbox" class="chk" data-g="on" ${g.on ? 'checked' : ''}><span>Show grid</span></label>
+      <label class="lp-row"><input type="checkbox" class="chk" data-g="snap" ${g.snap ? 'checked' : ''}><span>Snap to grid <small>(hold Alt to skip)</small></span></label>
+      <div class="lp-slider"><span>Square size (${plan.scale ? un : 'px'})</span><input type="number" step="any" min="0.01" data-g="size" value="${fx(plan.scale ? cu : g.size)}" style="width:84px"></div>
+      <div class="lp-slider"><span>Squares across the map</span><input type="number" step="1" min="1" max="400" data-g="across" value="${fx(plan.bg.w / g.size)}" style="width:84px"></div>
+      <div class="lp-slider"><span>Line opacity</span><input type="range" min="0.05" max="1" step="0.05" value="${g.op}" data-g="op"><em>${pct(g.op)}</em></div>
+      <div class="lp-slider"><span>Shift sideways</span><input type="range" min="0" max="${+g.size.toFixed(2)}" step="0.5" value="${g.ox}" data-g="ox"><em></em></div>
+      <div class="lp-slider"><span>Shift up / down</span><input type="range" min="0" max="${+g.size.toFixed(2)}" step="0.5" value="${g.oy}" data-g="oy"><em></em></div>
+      <div class="lp-slider"><span>One square is really (${un})</span><input type="number" step="any" min="0.01" data-g="real" value="${fx(cu)}" style="width:84px"></div>
+      <div class="dp-btns"><button class="btn sm ghost" data-a="grid-scale">${ic('Ruler')}<span>Set map scale from the grid</span></button></div>
+      <div class="dp-note">Fit the grid to the map with “Squares across the map” or “Square size”. Or fit the map to the grid: type what one square really is, then “Set map scale from the grid” (this also sets measuring and camera ranges).</div>`;
+      })()}
       <div class="menu-sep"></div>
       <div class="dp-btns"><button class="btn sm ghost" data-a="all-plans">${ic('Copy')}<span>Use these settings on every plan</span></button></div>
       <div class="menu-sep"></div>` : '';
@@ -4471,8 +4487,38 @@ const Editor = {
       s.onchange = () => { this.commit(); Side.refresh(); };
     });
     $$('[data-o]', el).forEach(c => c.onchange = () => { Settings.set(c.dataset.o, c.checked); MapView.renderAll(); });
+    const gset = (fn) => { const g = Grid.ensure(plan); fn(g); MapView.renderBg(); App.changed(); this.commit(); };
+    const gsync = () => { const g = plan.grid, q = k => $(`[data-g="${k}"]`, el), cu = Grid.cellUnits(plan);
+      if (document.activeElement !== q('size')) q('size').value = String(+(plan.scale ? cu : g.size).toFixed(2));
+      if (document.activeElement !== q('across')) q('across').value = String(+(plan.bg.w / g.size).toFixed(2));
+      if (document.activeElement !== q('real') && cu != null) q('real').value = String(+cu.toFixed(2));
+      for (const k of ['ox', 'oy']) q(k).max = +g.size.toFixed(2); };
+    $$('[data-g]', el).forEach(c => {
+      const k = c.dataset.g;
+      if (c.type === 'checkbox') c.onchange = () => gset(g => { g[k] = c.checked; });
+      else if (c.type === 'range') c.oninput = () => { gset(g => { g[k] = +c.value; }); if (k === 'op') c.nextElementSibling.textContent = pct(+c.value); };
+      else c.onchange = () => {
+        const v = parseFloat(c.value);
+        if (!(v > 0) || k === 'real') { if (k === 'real' && v > 0) Grid.ensure(plan); return; }
+        gset(g => {
+          if (k === 'size') { if (plan.scale) Grid.setCellUnits(plan, v); else g.size = v; }
+          if (k === 'across') Grid.fitAcross(plan, v);
+          g.on = true;
+        });
+        gsync();
+      };
+    });
     $$('[data-pb]', el).forEach(c => c.onchange = () => { plan[c.dataset.pb] = c.checked ? undefined : false; if (c.checked) delete plan[c.dataset.pb]; redraw(); this.commit(); });
     $$('[data-a]', el).forEach(b => b.onclick = () => {
+      if (b.dataset.a === 'grid-scale') {
+        const v = parseFloat($('[data-g="real"]', el).value);
+        if (!(v > 0)) { toast('Type how big one square really is first', { kind: 'warn' }); return; }
+        Grid.ensure(plan).on = true;
+        Grid.scaleToGrid(plan, v);
+        MapView.renderAll(); App.changed(); this.updateScaleChip(); this.commit(); gsync();
+        toast(`Map scale set: one square = ${v} ${Grid.unitName()}`, { kind: 'ok' });
+        return;
+      }
       if (b.dataset.a === 'reset-sizes') {
         for (const d of plan.devices) delete d.size;
         redraw(); this.commit(); Side.refresh(); closeMenu(); toast('Icon sizes reset');
@@ -4788,7 +4834,7 @@ const MapView = {
       if (typeId) {
         e.preventDefault();
         if (!this.plan) { toast('Add a floor plan first', { kind: 'warn' }); return; }
-        const p = this.toPlan(e.clientX, e.clientY);
+        const p = this.gsnap(this.toPlan(e.clientX, e.clientY), e);
         Editor.placeDevice(typeId, p[0], p[1]);
         return;
       }
@@ -5335,9 +5381,10 @@ const MapView = {
       this.drag = null;
       return;
     }
-    const p = this.toPlan(e.clientX, e.clientY);
+    const p0 = this.toPlan(e.clientX, e.clientY);
     const loc = this.local(e);
     const tool = this.tool;
+    const p = (tool === 'select' || tool === 'pan') ? p0 : this.gsnap(p0, e);
     this.altDown = (e.altKey || Touch.free);
     if (this._touch && this.pointers.size === 1) {
       // press and hold = right-click menu
@@ -5435,8 +5482,9 @@ const MapView = {
       this.setView(k2, c[0] - (pc.c[0] - pc.tx) * f, c[1] - (pc.c[1] - pc.ty) * f);
       return;
     }
-    const p = this.toPlan(e.clientX, e.clientY);
+    const p0 = this.toPlan(e.clientX, e.clientY);
     const loc = this.local(e);
+    const p = (this.tool === 'select' || this.tool === 'pan') ? p0 : this.gsnap(p0, e);
     this.hover = p;
     const d = this.drag;
     this.altDown = (e.altKey || Touch.free);
@@ -5458,7 +5506,11 @@ const MapView = {
       case 'move': {
         if (!d.moved && !movedFar) return;
         d.moved = true;
-        const dx = p[0] - d.start[0], dy = p[1] - d.start[1];
+        let dx = p[0] - d.start[0], dy = p[1] - d.start[1];
+        if (Grid.snapOn(this.plan) && !(e.altKey || Touch.free)) {   // land the first thing you drag on a grid point
+          const a = d.orig.devs[0] ? [d.orig.devs[0].x, d.orig.devs[0].y] : (d.orig.marks[0] && d.orig.marks[0].pts[0]);
+          if (a) { const q = Grid.snap(this.plan, [a[0] + dx, a[1] + dy]); dx = q[0] - a[0]; dy = q[1] - a[1]; }
+        }
         this.applyMove(d.orig, dx, dy, { start: d.start, alt: (e.altKey || Touch.free), shift: e.shiftKey });
         // dropping devices onto another device stacks them (hold Alt to just place them there)
         if (!d.orig.marks.length && !(d.orig.lay && d.orig.lay.any) && d.orig.devs.length) {
@@ -5535,7 +5587,8 @@ const MapView = {
     $('#stage').classList.remove('panning', 'moving');
     if (!d || !this.plan) return;
     if (cancel) { if (d.mode === 'move' && d.moved) this.restoreMoveOrig(d); this.renderAll(); return; }
-    const p = this.toPlan(e.clientX, e.clientY);
+    const p0 = this.toPlan(e.clientX, e.clientY);
+    const p = (this.tool === 'select' || this.tool === 'pan') ? p0 : this.gsnap(p0, e);
     // two quick taps in the same spot = double-click
     if (e.pointerType === 'touch' && !d.moved && !cancel) {
       const now = Date.now(), lt = this._lastTap;
@@ -6249,6 +6302,60 @@ const Barrier = {
     rm.apply(this, arguments);
     const p = this.plan;
     if (p && Barrier.active(p) && p.markups.some(m => m.barrier) && p.devices.some(d => d.cone)) this.renderCones();
+  };
+}
+
+/* ---- 09c-grid.js ---- */
+/* Markup grid: optional grid over the plan, adjustable cell size, snap-to-grid,
+   and "fit" helpers (grid -> map via squares across, or map -> grid via scale). */
+const Grid = {
+  get(plan) { return plan && plan.grid; },
+  on(plan) { return !!(plan && !Layout.is(plan) && plan.grid && plan.grid.on); },
+  snapOn(plan) { return !!(plan && !Layout.is(plan) && plan.grid && plan.grid.snap); },
+  def(plan) {
+    const u = planUnit(plan), ppf = plan.scale && plan.scale.pxPerFt, m = Settings.data.units === 'm';
+    return { on: false, snap: false, size: ppf ? ppf * (m ? 3.28084 : 5) : 50 * u, ox: 0, oy: 0, op: 0.35 };
+  },
+  ensure(plan) { if (!plan.grid) plan.grid = this.def(plan); return plan.grid; },
+  unitFt() { return Settings.data.units === 'm' ? 3.28084 : 1; },
+  unitName() { return Settings.data.units === 'm' ? 'm' : 'ft'; },
+  snap(plan, p) {
+    const g = plan.grid, s = g.size;
+    if (!(s > 0)) return p;
+    return [Math.round((p[0] - g.ox) / s) * s + g.ox, Math.round((p[1] - g.oy) / s) * s + g.oy];
+  },
+  svg(plan) {
+    const g = plan.grid, { w, h } = plan.bg, s = g.size;
+    if (!(s > 2)) return '';
+    const u = planUnit(plan);
+    let d = '', n = 0;
+    const x0 = ((g.ox % s) + s) % s, y0 = ((g.oy % s) + s) % s;
+    for (let x = x0; x <= w && n < 1500; x += s, n++) d += `M${+x.toFixed(2)} 0V${h}`;
+    for (let y = y0; y <= h && n < 3000; y += s, n++) d += `M0 ${+y.toFixed(2)}H${w}`;
+    return `<path class="mk-grid" d="${d}" fill="none" stroke="#1E6FA8" stroke-width="${0.8 * u}" opacity="${g.op}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+  },
+  /* real-world size of one square, in the display unit (null when no scale) */
+  cellUnits(plan) { const f = plan.scale && plan.scale.pxPerFt; return f ? plan.grid.size / f / this.unitFt() : null; },
+  setCellUnits(plan, v) { plan.grid.size = v * this.unitFt() * plan.scale.pxPerFt; },
+  /* map -> grid: each square is v real units, so the map scale becomes size / v */
+  scaleToGrid(plan, v) {
+    plan.scale = { pxPerFt: plan.grid.size / (v * this.unitFt()) };
+    for (const d of plan.devices) if (d.cone) d.fields.fovRange = Math.round(d.cone.len / plan.scale.pxPerFt);
+  },
+  /* grid -> map: exactly n squares across the width */
+  fitAcross(plan, n) { plan.grid.size = plan.bg.w / Math.max(1, n); plan.grid.ox = 0; plan.grid.oy = 0; },
+};
+
+{
+  const base = MapView.renderBg;
+  MapView.renderBg = function (...a) {
+    base.apply(this, a);
+    if (this.plan && Grid.on(this.plan)) this.layers.bg.insertAdjacentHTML('beforeend', Grid.svg(this.plan));
+  };
+  /* snapping helper used by pointer handlers */
+  MapView.gsnap = function (p, e) {
+    if (!this.plan || !Grid.snapOn(this.plan) || (e && (e.altKey || Touch.free))) return p;
+    return Grid.snap(this.plan, p);
   };
 }
 
