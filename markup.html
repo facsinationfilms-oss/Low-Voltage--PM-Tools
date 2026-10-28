@@ -1185,6 +1185,14 @@ html.phone .shape-fly.in { transform: none; }
 .lock-row .lock-t small { color: var(--muted); font-size: 12px; font-weight: 400; }
 .lock-row.multi { cursor: default; }
 .lk-off { opacity: .45; }
+/* ===== Layers ===== */
+.lay-row { margin: 10px 14px 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.lay-row .lay-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.lay-row .lay-h small { color: var(--muted); font-size: 12px; }
+.lay-row .lay-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.lay-row .lay-btns .btn { padding: 6px 4px; font-size: 12px; justify-content: center; white-space: nowrap; }
+.lay-row .chk-row { margin-top: 6px; align-items: flex-start; }
+.lay-row .lay-sm { display: block; color: var(--muted); font-size: 11.5px; font-weight: 400; }
 </style>
 </head>
 <body data-view="home">
@@ -1293,6 +1301,7 @@ html.phone .shape-fly.in { transform: none; }
         <g id="vp">
           <g id="l-bg"></g>
           <g id="l-layout"></g>
+          <g id="l-under"></g>
           <g id="l-cones"></g>
           <g id="l-marks"></g>
           <g id="l-devs"></g>
@@ -4829,7 +4838,7 @@ const MapView = {
     this.svg = $('#map');
     this.vp = $('#vp');
     this.layers = {
-      bg: $('#l-bg'), layout: $('#l-layout'), cones: $('#l-cones'), marks: $('#l-marks'), devs: $('#l-devs'), sel: $('#l-sel'), temp: $('#l-temp'),
+      bg: $('#l-bg'), layout: $('#l-layout'), under: $('#l-under'), cones: $('#l-cones'), marks: $('#l-marks'), devs: $('#l-devs'), sel: $('#l-sel'), temp: $('#l-temp'),
     };
     this.defs = $('#map-defs');
     const s = this.svg;
@@ -5240,9 +5249,11 @@ const MapView = {
   },
 
   renderMarks() {
-    const L = this.layers.marks;
-    if (!this.plan || Settings.data.hideMarkups) { L.innerHTML = ''; return; }
-    L.innerHTML = this.plan.markups.map(m => this.markSvg(m)).join('');
+    const L = this.layers.marks, U = this.layers.under;
+    if (!this.plan || Settings.data.hideMarkups) { L.innerHTML = ''; if (U) U.innerHTML = ''; return; }
+    // a markup flagged `under` is drawn beneath the coverage cones; the rest sit above them
+    L.innerHTML = this.plan.markups.filter(m => !m.under).map(m => this.markSvg(m)).join('');
+    if (U) U.innerHTML = this.plan.markups.filter(m => m.under).map(m => this.markSvg(m)).join('');
   },
 
   markBBox(m) {
@@ -5902,6 +5913,7 @@ const MapView = {
           { label: 'Edit', icon: 'Edit', onClick: () => Side.showMarkup(m.id, { focusText: m.kind === 'text' }) },
           { label: 'Bring to front', icon: 'ArrowsMaximize', onClick: () => { this.plan.markups = this.plan.markups.filter(x => x !== m).concat(m); this.renderMarks(); Editor.changed(); } },
           { label: 'Send to back', icon: 'ArrowsMaximize', onClick: () => { this.plan.markups = [m, ...this.plan.markups.filter(x => x !== m)]; this.renderMarks(); Editor.changed(); } },
+          { label: m.under ? 'Draw above the coverage' : 'Draw under the coverage', icon: 'Stack', onClick: () => { Layers.setUnder([m], !m.under); } },
           '-',
           Lock.menuItem(),
         { label: 'Duplicate', icon: 'Copy', kbd: 'Ctrl+D', onClick: () => Editor.duplicateSelection() },
@@ -6021,7 +6033,7 @@ const MapView = {
   renderSelState() {
     // fast class toggles instead of full re-render
     $$('.dev', this.layers.devs).forEach(g => g.classList.toggle('sel', this.sel.has(g.dataset.dev)));
-    $$('.mk', this.layers.marks).forEach(g => g.classList.toggle('sel', this.sel.has(g.dataset.mk)));
+    $$('.mk', this.layers.marks).concat($$('.mk', this.layers.under)).forEach(g => g.classList.toggle('sel', this.sel.has(g.dataset.mk)));
     this.renderSel();
   },
 
@@ -8372,8 +8384,9 @@ const Exporter = {
         <defs>${used}<pattern id="xp-grid" width="${step}" height="${step}" patternUnits="userSpaceOnUse"><path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="#dbe2ec" stroke-width="${1.2 * u}"/></pattern></defs>
         <rect width="${W}" height="${totalH}" fill="#fff"/>
         ${bg}
+        <g>${Settings.data.hideMarkups ? '' : plan.markups.filter(m => m.under).map(m => MapView.markSvg(m, true)).join('')}</g>
         <g>${this.conesHtml(plan)}</g>
-        <g>${Settings.data.hideMarkups ? '' : plan.markups.map(m => MapView.markSvg(m, true)).join('')}</g>
+        <g>${Settings.data.hideMarkups ? '' : plan.markups.filter(m => !m.under).map(m => MapView.markSvg(m, true)).join('')}</g>
         <g>${MapView.devicesSvg(devs, null)}</g>
         ${leg}
       </svg>`;
@@ -11872,6 +11885,76 @@ const Lsym = {
     const it = Editor.findItem(d.id);
     if (it && it.kind === 'lsym') { Lsym.dragHandle(it, this.plan, d.h, p, shift); this.renderMarks(); this.renderSel(); return; }
     return dh.call(this, d, p, shift);
+  };
+}
+
+/* ---- 17e-layers.js ---- */
+/* ===== Layers: choose what a shape draws above or below =====
+   Markups (shapes, lines, text, layout symbols) are drawn in plan.markups order, later = on top.
+   `under: true` moves a markup beneath the coverage cones so the coverage shows on top of it.
+   Shown in the details panel of a markup / layout symbol and for a multi-selection. */
+const Layers = {
+  sel() { const ids = MapView.sel; return (Editor.plan ? Editor.plan.markups : []).filter(m => ids.has(m.id)); },
+  /* step: 'front' | 'back' | 'fwd' | 'bwd' — moves among markups that share the same side of the coverage */
+  move(list, step) {
+    const pl = Editor.plan; if (!pl || !list.length) return;
+    const set = new Set(list), arr = pl.markups;
+    if (step === 'front') pl.markups = arr.filter(m => !set.has(m)).concat(arr.filter(m => set.has(m)));
+    else if (step === 'back') pl.markups = arr.filter(m => set.has(m)).concat(arr.filter(m => !set.has(m)));
+    else {
+      const a = arr.slice(), g = m => !!m.under;
+      if (step === 'fwd') { for (let i = a.length - 2; i >= 0; i--) if (set.has(a[i]) && !set.has(a[i + 1])) { let j = i + 1; while (j < a.length && (set.has(a[j]) || g(a[j]) !== g(a[i]))) j++; if (j < a.length) { const [x] = a.splice(i, 1); a.splice(j, 0, x); } } }
+      else { for (let i = 1; i < a.length; i++) if (set.has(a[i]) && !set.has(a[i - 1])) { let j = i - 1; while (j >= 0 && (set.has(a[j]) || g(a[j]) !== g(a[i]))) j--; if (j >= 0) { const [x] = a.splice(i, 1); a.splice(j, 0, x); } } }
+      pl.markups = a;
+    }
+    this.after();
+  },
+  setUnder(list, v) {
+    for (const m of list) { if (v) m.under = true; else delete m.under; }
+    this.after();
+  },
+  after() {
+    MapView.renderMarks(); MapView.renderSelState(); Editor.changed();
+    try { if (this.cur && Side.el) this.inject(Side.el, this.cur()); } catch (e) { console.error(e); }
+  },
+  rowHtml(list) {
+    const under = list.length && list.every(m => m.under), some = list.some(m => m.under);
+    return `<div class="lay-row"><div class="lay-h"><b>Layer</b><small>${list.length > 1 ? list.length + ' items' : under ? 'Under the coverage' : 'Above the coverage'}</small></div>
+      <div class="lay-btns">
+        <button type="button" class="btn sm" data-lay="back" title="Send to back">To back</button>
+        <button type="button" class="btn sm" data-lay="bwd" title="Move down one layer">${ic('ArrowDown')} Back</button>
+        <button type="button" class="btn sm" data-lay="fwd" title="Move up one layer">${ic('ArrowUp')} Forward</button>
+        <button type="button" class="btn sm" data-lay="front" title="Bring to front">To front</button>
+      </div>
+      <label class="chk-row"><input type="checkbox" class="chk" id="lay-under" ${under ? 'checked' : ''}><span>Draw under the coverage${some && !under ? ' (some)' : ''}<small class="lay-sm">Coverage and sensor cones show on top of this shape</small></span></label></div>`;
+  },
+  inject(host, list) {
+    if (!host || !list.length) return;
+    const head = host.querySelector('.side-head'); if (!head) return;
+    host.querySelectorAll('.lay-row').forEach(x => x.remove());
+    const after = host.querySelector('.lock-row') || head;
+    after.insertAdjacentHTML('afterend', this.rowHtml(list));
+    host.querySelectorAll('[data-lay]').forEach(b => b.onclick = () => this.move(list, b.dataset.lay));
+    const cb = host.querySelector('#lay-under');
+    cb.onchange = () => this.setUnder(list, cb.checked);
+  },
+};
+
+{
+  const rmk = Side.renderMarkup;
+  Side.renderMarkup = function (...a) {
+    const r = rmk.apply(this, a);
+    try {
+      const m = Editor.findItem(this.id);
+      if (m && Side.mode === 'markup' && Editor.plan.markups.includes(m)) { Layers.cur = () => [m]; Layers.inject(this.el, [m]); }
+    } catch (e) { console.error(e); }
+    return r;
+  };
+  const sm = Side.showMulti;
+  Side.showMulti = function (...a) {
+    const r = sm.apply(this, a);
+    try { Layers.cur = () => Layers.sel(); const l = Layers.sel(); if (l.length) Layers.inject(this.el, l); } catch (e) { console.error(e); }
+    return r;
   };
 }
 
