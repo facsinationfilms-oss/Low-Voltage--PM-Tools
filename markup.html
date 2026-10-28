@@ -6245,7 +6245,7 @@ const Barrier = {
       }
     }
     for (const m of plan.markups || []) {
-      if (!m.barrier) continue;
+      if (m.barrier !== true) continue;
       const P = m.points || [];
       if (m.kind === 'line') { for (let i = 1; i < P.length; i++) out.push({ a: P[i - 1], b: P[i], t: (m.width || 3 * u) }); }
       else if (m.kind === 'rect' && P.length >= 2) {
@@ -6328,20 +6328,26 @@ const Barrier = {
   },
 };
 
-/* keep the coverage in step with the walls and barrier lines as they change */
+/* keep the coverage in step with the walls and barrier lines as they change.
+   Remember what the coverage was last drawn against, so removing the LAST barrier (delete, undo, untick) clears the clipping too. */
 {
+  const sig = p => {
+    if (!p) return '';
+    const lw = p.layout && p.layout.walls ? p.layout.walls.length + ':' + p.layout.walls.map(w => w.a + '>' + w.b).join('|') + '#' + (p.layout.openings || []).map(o => o.id + o.w).join('|') : '';
+    const mk = (p.markups || []).filter(m => m.barrier === true).map(m => m.kind + (m.points || []).join(',') + (m.width || '')).join('|');
+    return p.id + '/' + (p.barrier !== false) + '/' + lw + '/' + mk + '/' + p.devices.filter(d => d.cone).length;
+  };
+  const sync = (mv) => {
+    const p = mv.plan; if (!p) return;
+    const s = sig(p); if (mv._bsig === s) return;
+    mv._bsig = s; mv.renderCones();
+  };
   const rl = MapView.renderLayout;
-  MapView.renderLayout = function () {
-    rl.apply(this, arguments);
-    const p = this.plan;
-    if (p && Barrier.active(p) && p.layout && p.layout.walls && p.layout.walls.length && p.devices.some(d => d.cone)) this.renderCones();
-  };
+  MapView.renderLayout = function () { rl.apply(this, arguments); sync(this); };
   const rm = MapView.renderMarks;
-  MapView.renderMarks = function () {
-    rm.apply(this, arguments);
-    const p = this.plan;
-    if (p && Barrier.active(p) && p.markups.some(m => m.barrier) && p.devices.some(d => d.cone)) this.renderCones();
-  };
+  MapView.renderMarks = function () { rm.apply(this, arguments); sync(this); };
+  const rc = MapView.renderCones;
+  MapView.renderCones = function () { const p = this.plan; if (p) this._bsig = sig(p); return rc.apply(this, arguments); };
 }
 
 /* ---- 09c-grid.js ---- */
