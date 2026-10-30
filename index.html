@@ -3099,14 +3099,14 @@ html.qf-opening-on,html.qf-opening-on body{overflow:hidden}
 <input type="file" id="import-file" accept=".json,application/json" hidden>
 <script>
 /* Opening clip. Plays once each time the app is opened (not on tab switches or reloads in the same session).
-   Phones are skipped for now: set PORTRAIT to the phone version's file name (e.g. 'intro-portrait.mp4') to turn it on for them. */
+   Phones (smaller screen side under 600 px) get the portrait version; tablets and computers get the wide one. */
 (function () {
-  var WIDE = 'intro-wide.mp4', POSTER = 'intro-poster.jpg', PORTRAIT = null;
+  var WIDE = 'intro-wide.mp4', WIDE_POSTER = 'intro-poster.jpg', PORTRAIT = 'intro-portrait.mp4', PORTRAIT_POSTER = 'intro-portrait-poster.jpg';
   try {
     var off = false;
     try { off = !!JSON.parse(localStorage.getItem('bs-hub.acctprefs') || '{}').noIntro; } catch (e) {}
     var phone = Math.min(screen.width, screen.height) < 600;
-    var file = phone ? PORTRAIT : WIDE;
+    var file = phone ? PORTRAIT : WIDE, POSTER = phone ? PORTRAIT_POSTER : WIDE_POSTER;
     if (off || !file || !/^https?:$/.test(location.protocol)) return;
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     try { if (sessionStorage.getItem('qf.intro.seen')) return; sessionStorage.setItem('qf.intro.seen', '1'); } catch (e) {}
