@@ -3099,6 +3099,7 @@ html.qf-opening-on,html.qf-opening-on body{overflow:hidden}
 <input type="file" id="import-file" accept=".json,application/json" hidden>
 <script>
 /* Opening clip. Plays once each time the app is opened (not on tab switches or reloads in the same session).
+   Sound starts on; where the browser refuses autoplay with sound it plays muted with a "Sound on" button.
    Phones (smaller screen side under 600 px) get the portrait version; tablets and computers get the wide one. */
 (function () {
   var WIDE = 'intro-wide.mp4', WIDE_POSTER = 'intro-poster.jpg', PORTRAIT = 'intro-portrait.mp4', PORTRAIT_POSTER = 'intro-portrait-poster.jpg';
@@ -3113,8 +3114,8 @@ html.qf-opening-on,html.qf-opening-on body{overflow:hidden}
     var el = document.createElement('div');
     el.id = 'qf-opening';
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'QuaField Office Hub intro');
-    el.innerHTML = '<video muted playsinline preload="auto" poster="' + POSTER + '" src="' + file + '"></video>' +
-      '<button type="button" class="qi-skip">Skip</button><button type="button" class="qi-snd" aria-label="Turn sound on">Sound on</button>';
+    el.innerHTML = '<video playsinline preload="auto" poster="' + POSTER + '" src="' + file + '"></video>' +
+      '<button type="button" class="qi-skip">Skip</button><button type="button" class="qi-snd" aria-label="Sound">Sound off</button>';
     document.body.appendChild(el);
     document.documentElement.classList.add('qf-opening-on');
     var v = el.querySelector('video'), done = false, started = false;
@@ -3127,11 +3128,15 @@ html.qf-opening-on,html.qf-opening-on body{overflow:hidden}
     el.querySelector('.qi-skip').onclick = end;
     document.addEventListener('keydown', function k(e) { if (done) return document.removeEventListener('keydown', k); if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') end(); });
     var snd = el.querySelector('.qi-snd');
-    snd.onclick = function () { v.muted = !v.muted; snd.textContent = v.muted ? 'Sound on' : 'Sound off'; if (!v.muted) { try { v.play(); } catch (e) {} } };
+    function label() { snd.textContent = v.muted ? 'Sound on' : 'Sound off'; snd.setAttribute('aria-label', v.muted ? 'Turn sound on' : 'Turn sound off'); }
+    snd.onclick = function () { v.muted = !v.muted; label(); if (v.paused && !done) { try { v.play(); } catch (e) {} } };
+    v.addEventListener('volumechange', label);
     v.addEventListener('playing', function () { started = true; el.classList.add('go'); });
     v.addEventListener('ended', end);
     v.addEventListener('error', end);
-    var p = v.play(); if (p && p.catch) p.catch(end);
+    // sound on by default; if the browser blocks that (most do until the page has been tapped), play it muted instead
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { if (done) return; v.muted = true; label(); var q = v.play(); if (q && q.catch) q.catch(end); });
     // never hold the app up: if the clip hasn't started in 3.5 s (slow link, offline), carry on
     setTimeout(function () { if (!started) end(); }, 3500);
   } catch (e) { var x = document.getElementById('qf-opening'); if (x) x.remove(); document.documentElement.classList.remove('qf-opening-on'); }
