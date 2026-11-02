@@ -2995,6 +2995,26 @@ button.inv-row:hover{background:var(--hover)}
 
 .pb-box .pb-row .btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
+/* ---- Inventory on phones: boxes and tables slide sideways instead of squeezing ---- */
+@media (max-width:720px){
+  .inv-kpis{display:flex!important;gap:10px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding:0 0 6px;margin-left:-2px;scrollbar-width:none}
+  .inv-kpis::-webkit-scrollbar{display:none}
+  .inv-kpis .kpi{flex:0 0 140px;scroll-snap-align:start;min-height:78px}
+  .inv-kpis .kpi span{white-space:nowrap}
+  .itable.inv-table{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .inv-table .inv-row:not(.po):not(.mat){width:max-content;min-width:100%}
+  .inv-table .inv-row:not(.po):not(.mat) .inv-hide{display:block!important}
+  .inv-table .inv-row:not(.head):not(.po):not(.mat){grid-template-columns:200px 110px 76px 64px 84px 90px 70px}
+  .inv-table .inv-row.head:not(.po):not(.mat){grid-template-columns:200px 110px 76px 64px 84px 90px 70px}
+  .inv-table .inv-row.low{grid-template-columns:200px 90px 96px 90px 110px}
+  .inv-table .inv-row.cnt{grid-template-columns:200px 96px 120px 96px}
+  .inv-table .inv-row.mv{grid-template-columns:130px 200px 70px 160px 220px}
+  .inv-table .inv-row:not(.head):not(.po):not(.mat){background:var(--surface)}
+  .inv-table .inv-row:not(.po):not(.mat)>:first-child{position:sticky;left:0;z-index:1;background:inherit;margin-left:-14px;padding-left:14px;box-shadow:6px 0 8px -6px rgba(0,0,0,.35)}
+  .inv-table button.inv-row:hover{background:var(--hover,var(--surface))}
+  .inv-row small{white-space:nowrap}
+}
+
 /* ===================== QuaField brand: logo colors + blueprint background =====================
    Orange (logo gear) = the main action buttons. Teal (logo gauge) = what's selected, links, focus.
    Navy blueprint with a faint grid behind the content. */
