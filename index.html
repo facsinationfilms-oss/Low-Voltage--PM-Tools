@@ -3052,7 +3052,7 @@ button.inv-row:hover{background:var(--hover)}
   --ink:#E8EEF6; --ink-2:#BCC8DA; --muted:#8597B0; --faint:#56698A;
   --accent:#2AAFCF; --accent-ink:#04141B; --accent-soft:#0E3245; --accent-line:#1D5B72; --accent-strong:#1F9DBE;
   --signal:#F39A1E; --signal-soft:#3A2810; --signal-ink:#FFC77A; --p-med:#F39A1E; --p-low:#2AAFCF;
-  --qf-grid-1:rgba(120,170,230,.075); --qf-grid-2:rgba(120,170,230,.035);
+  --qf-grid-1:rgba(170,205,255,.11); --qf-grid-2:rgba(170,205,255,.05);
 }
 body{
   background-color:var(--bg);
@@ -3061,7 +3061,7 @@ body{
   background-size:120px 120px,120px 120px,24px 24px,24px 24px;
   background-attachment:fixed;
 }
-:root:not([data-bs-theme="light"]) body{background-color:#0A1527}
+:root:not([data-bs-theme="light"]) body{background-color:#0A1527!important;background-image:linear-gradient(var(--qf-grid-1) 1px,transparent 1px),linear-gradient(90deg,var(--qf-grid-1) 1px,transparent 1px),linear-gradient(var(--qf-grid-2) 1px,transparent 1px),linear-gradient(90deg,var(--qf-grid-2) 1px,transparent 1px)!important;background-size:120px 120px,120px 120px,24px 24px,24px 24px!important;background-attachment:fixed!important}
 .main,.content,#content{background:transparent!important}
 .view-head{background:linear-gradient(180deg,var(--bg) 70%,transparent)}
 :root:not([data-bs-theme="light"]) .appbar{background:rgba(10,21,39,.88)!important;backdrop-filter:blur(6px);border-bottom-color:var(--line)}
