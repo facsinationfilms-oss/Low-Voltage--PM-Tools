@@ -650,7 +650,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 }
 @media (max-width: 560px) {
   .logo.sm { display: none; }
-  #scale-chip span, #btn-layers span { display: none; }
+  #scale-chip span, #btn-layers span, #btn-editimg span { display: none; }
   .hero-actions { width: 100%; }
   .hero-actions .btn { flex: 1; }
 }
@@ -1313,6 +1313,7 @@ html.phone .shape-fly.in { transform: none; }
       <button class="fab" id="fab-add" title="Add devices and layout items"><i data-ic="Plus"></i><span>Add</span></button>
       <div class="viewbar">
         <button class="btn sm glass" id="btn-layers" title="Choose what shows on the map"><i data-ic="Stack2"></i><span>Layers</span></button>
+        <button class="btn sm glass" id="btn-editimg" title="Rotate, turn over or replace the floor plan image"><i data-ic="Photo"></i><span>Edit Image</span></button>
         <button class="btn sm glass" id="btn-disp" title="Icon size, labels and coverage"><i data-ic="AdjustmentsHorizontal"></i><span>Display</span></button>
         <button class="btn sm glass" id="scale-chip"></button>
         <button class="btn sm glass vis-chip" id="vis-chip" hidden title="Some devices are hidden. Tap to show everything again."><i data-ic="EyeOff"></i><span></span></button>
@@ -3714,6 +3715,7 @@ const Editor = {
     $('#zoom-fit').onclick = () => MapView.fit();
     $('#zoom-pct').onclick = () => MapView.zoomTo(1);
     $('#btn-layers').onclick = (e) => this.layersPopover(e.currentTarget);
+    $('#btn-editimg').onclick = (e) => this.editImageMenu(e.currentTarget);
     $('#btn-disp').onclick = (e) => this.displayMenu(e.currentTarget);
     $('#scale-chip').onclick = () => this.setTool('scale');
     $('#snap-chip').onclick = (e) => LayoutUI.snapPopover(e.currentTarget);
@@ -4126,33 +4128,68 @@ const Editor = {
     toast('Floor plan replaced', { kind: 'ok' });
   },
 
-  async rotatePlan(id) {
+  async rotatePlan(id) { return this.transformPlan(id, 'cw'); },
+
+  /* Edit Image: turn / mirror the floor plan image and carry everything drawn on it along */
+  editImageMenu(anchor) {
+    const p = this.plan; if (!p || Layout.is(p)) return;
+    const id = p.id;
+    showMenu(anchor, [
+      { label: 'Rotate right 90°', icon: 'RotateClockwise', onClick: () => this.transformPlan(id, 'cw') },
+      { label: 'Rotate left 90°', icon: 'RotateClockwise', onClick: () => this.transformPlan(id, 'ccw') },
+      { label: 'Turn upside down (180°)', icon: 'Refresh', onClick: () => this.transformPlan(id, '180') },
+      '-',
+      { label: 'Mirror left ↔ right', icon: 'ArrowsHorizontal', onClick: () => this.transformPlan(id, 'flipH') },
+      { label: 'Mirror top ↔ bottom', icon: 'ArrowsVertical', onClick: () => this.transformPlan(id, 'flipV') },
+      '-',
+      { label: 'Replace image…', icon: 'Photo', onClick: () => this.replaceBg(id) },
+    ], { align: 'left' });
+  },
+
+  async transformPlan(id, kind) {
     const p = this.project.plans.find(pp => pp.id === id);
+    if (!p || (Layout.is(p) && kind !== 'cw')) return;
     if (this.plan.id !== id) this.switchPlan(id);
-    Busy.show('Rotating…');
+    Busy.show(kind === 'cw' || kind === 'ccw' ? 'Rotating…' : 'Working…');
     try {
       const { w, h } = p.bg;
+      const swap = kind === 'cw' || kind === 'ccw';
+      const T = {
+        cw:    { pt: ([x, y]) => [h - y, x],     rot: r => r + 90 },
+        ccw:   { pt: ([x, y]) => [y, w - x],     rot: r => r - 90 },
+        '180': { pt: ([x, y]) => [w - x, h - y], rot: r => r + 180 },
+        flipH: { pt: ([x, y]) => [w - x, y],     rot: r => 180 - r },
+        flipV: { pt: ([x, y]) => [x, h - y],     rot: r => -r },
+      }[kind];
+      if (!T) return;
       if (Layout.is(p)) Layout.rotate(p, h);
+      const nw = swap ? h : w, nh = swap ? w : h;
       if (p.bg.src) {
         const im = await loadImage(p.bg.src);
-        const c = document.createElement('canvas'); c.width = h; c.height = w;
+        const c = document.createElement('canvas'); c.width = nw; c.height = nh;
         const g = c.getContext('2d');
-        g.translate(h, 0); g.rotate(Math.PI / 2); g.drawImage(im, 0, 0, w, h);
-        p.bg = { ...p.bg, src: c.toDataURL(webpSupported() ? 'image/webp' : 'image/png', 0.92), w: h, h: w };
+        if (kind === 'cw') { g.translate(h, 0); g.rotate(Math.PI / 2); }
+        else if (kind === 'ccw') { g.translate(0, w); g.rotate(-Math.PI / 2); }
+        else if (kind === '180') { g.translate(w, h); g.rotate(Math.PI); }
+        else if (kind === 'flipH') { g.translate(w, 0); g.scale(-1, 1); }
+        else if (kind === 'flipV') { g.translate(0, h); g.scale(1, -1); }
+        g.drawImage(im, 0, 0, w, h);
+        p.bg = { ...p.bg, src: c.toDataURL(webpSupported() ? 'image/webp' : 'image/png', 0.92), w: nw, h: nh };
       } else {
-        p.bg = { ...p.bg, w: h, h: w };
+        p.bg = { ...p.bg, w: nw, h: nh };
       }
-      const rot = ([x, y]) => [h - y, x];
-      for (const d of p.devices) { [d.x, d.y] = rot([d.x, d.y]); if (d.rot != null) d.rot += 90; }
-      for (const m of p.markups) m.points = m.points.map(rot);
+      for (const d of p.devices) { [d.x, d.y] = T.pt([d.x, d.y]); if (d.rot != null) d.rot = ((T.rot(d.rot) % 360) + 360) % 360; }
+      for (const m of p.markups) m.points = m.points.map(T.pt);
       App.changed();
       this.lastSnap = this.snap();
       MapView.setPlan(p); MapView.fit();
+      toast(kind === 'cw' ? 'Rotated right' : kind === 'ccw' ? 'Rotated left' : kind === '180' ? 'Turned upside down' : 'Mirrored', { kind: 'ok' });
     } finally { Busy.hide(); }
   },
 
   updateScaleChip() {
     const chip = $('#scale-chip');
+    { const b = $('#btn-editimg'); if (b) b.hidden = !this.plan || Layout.is(this.plan); }
     if (!this.plan || Layout.is(this.plan)) { chip.hidden = true; return; }
     chip.hidden = false;
     const s = this.plan.scale;
