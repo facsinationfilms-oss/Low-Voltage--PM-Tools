@@ -480,6 +480,29 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .lens-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
 .lens-tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lens-sub { font-weight: 700; margin: 8px 0 2px; padding-top: 8px; border-top: 1px solid var(--line, rgba(128,128,128,.25)); }
+.combo-link { position: sticky; bottom: -5px; display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; background: var(--panel); color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
+.combo-link:hover { background: var(--hover, rgba(128,128,128,.12)); }
+.combo-link svg { width: 18px; height: 18px; }
+.catlink-modal .modal { max-width: 640px; }
+.catlink .cl-note { margin: 0 0 10px; color: var(--muted); }
+.catlink .cl-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.catlink .cl-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); min-width: 0; }
+.catlink .cl-filters select { width: 100%; }
+.catlink .cl-bar { display: flex; gap: 8px; margin-bottom: 8px; }
+.catlink .cl-bar .inp { flex: 1; min-width: 0; }
+.catlink .cl-list { max-height: min(44vh, 340px); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-2); border-radius: 10px; }
+.catlink .cl-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line-2); cursor: pointer; }
+.catlink .cl-row:last-child { border-bottom: 0; }
+.catlink .cl-row:hover { background: var(--hover, rgba(128,128,128,.1)); }
+.catlink .cl-row.dis { opacity: .55; cursor: default; }
+.catlink .cl-row input { width: 20px; height: 20px; flex: none; }
+.catlink .cl-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.catlink .cl-t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catlink .cl-t small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catlink .cl-r { flex: none; font-weight: 600; }
+.catlink .cl-r em { font-style: normal; font-weight: 500; font-size: 12px; color: var(--muted); }
+.catlink .cl-empty { padding: 18px; text-align: center; color: var(--muted); }
+@media (max-width: 560px) { .catlink .cl-filters { grid-template-columns: 1fr; } }
 .multi-types { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
 .mt-row { display: flex; align-items: center; gap: 10px; padding: 5px 4px; font-size: 13px; }
 .mt-row span { flex: 1; }
@@ -7432,7 +7455,7 @@ const Combo = {
   cur: null,
   money: v => v ? '$' + (+v).toLocaleString(undefined, { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '',
   /* turn a text box into pick-or-type: items() → [{value, label, sub, right, data}] */
-  attach(inp, { title, items, onPick, hint }) {
+  attach(inp, { title, items, onPick, hint, link }) {
     if (!inp || inp.dataset.combo) return;
     inp.dataset.combo = '1';
     inp.setAttribute('autocomplete', 'off');
@@ -7448,7 +7471,7 @@ const Combo = {
     btn.setAttribute('aria-label', 'Show the list');
     btn.innerHTML = ic('ChevronDown');
     wrap.appendChild(btn);
-    const c = { inp, wrap, btn, title, items, onPick, hint, filter: false };
+    const c = { inp, wrap, btn, title, items, onPick, hint, link, filter: false };
     inp._combo = c;
     btn.addEventListener('pointerdown', e => e.preventDefault());   // keep the keyboard closed on phones
     btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (this.cur && this.cur.c === c) this.close(); else this.open(c, false); });
@@ -7478,7 +7501,7 @@ const Combo = {
       el.setAttribute('role', 'listbox');
       document.body.appendChild(el);
       el.addEventListener('pointerdown', e => e.preventDefault());
-      el.addEventListener('click', e => { const b = e.target.closest('.combo-o'); if (b) this.pick(L.opts[+b.dataset.i]); });
+      el.addEventListener('click', e => { if (e.target.closest('.combo-link')) { const c = L.c; this.close(); c.link && c.link(); return; } const b = e.target.closest('.combo-o'); if (b) this.pick(L.opts[+b.dataset.i]); });
       const reflow = () => this.place();
       L = this.cur = { c, el, i: -1, opts: [], reflow };
       window.addEventListener('resize', reflow);
@@ -7499,7 +7522,7 @@ const Combo = {
     L.i = L.opts.findIndex(o => CatSrc.key(o.value) === q && q);
     const head = typeof c.title === 'function' ? c.title() : c.title;
     const hint = typeof c.hint === 'function' ? c.hint(q, exact) : '';
-    L.el.innerHTML = `${head ? `<div class="combo-h">${esc(head)}</div>` : ''}${L.opts.map((o, i) => `<button type="button" class="combo-o ${i === L.i ? 'on' : ''}" role="option" data-i="${i}"><span class="combo-n"><b>${esc(o.label || o.value)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>${o.right ? `<span class="combo-r">${o.right}</span>` : ''}</button>`).join('')}${!L.opts.length ? `<div class="combo-empty">${all.length ? 'Nothing matches — keep typing to add a new one.' : 'Nothing saved yet — type it in.'}</div>` : ''}${hint ? `<div class="combo-hint">${hint}</div>` : ''}`;
+    L.el.innerHTML = `${head ? `<div class="combo-h">${esc(head)}</div>` : ''}${L.opts.map((o, i) => `<button type="button" class="combo-o ${i === L.i ? 'on' : ''}" role="option" data-i="${i}"><span class="combo-n"><b>${esc(o.label || o.value)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>${o.right ? `<span class="combo-r">${o.right}</span>` : ''}</button>`).join('')}${!L.opts.length ? `<div class="combo-empty">${all.length ? 'Nothing matches — keep typing to add a new one.' : 'Nothing saved yet — type it in.'}</div>` : ''}${hint ? `<div class="combo-hint">${hint}</div>` : ''}${c.link && CatSrc.hub() ? `<button type="button" class="combo-link" title="Use a device from another device type here">${ic('Plus')}<span>Add from another device type</span></button>` : ''}`;
     this.place();
   },
   mark() { const L = this.cur; $$('.combo-o', L.el).forEach((b, i) => b.classList.toggle('on', i === L.i)); const b = $('.combo-o.on', L.el); if (b) b.scrollIntoView({ block: 'nearest' }); },
@@ -7539,6 +7562,78 @@ const Combo = {
   },
 };
 
+/* ===== "Add from another device type": use a model that's filed under a different kind of device =====
+   e.g. a Honeywell contact filed under Door Contact can also be a choice for Window Contact. Each pick becomes a catalog entry
+   under the device type being edited (the Office Hub keeps it, so it shows up everywhere). */
+const CatLink = {
+  open(target, { mfr = '' } = {}) {
+    if (!CatSrc.hub()) { toast('The shared device catalog is part of the Office Hub', { kind: 'warn' }); return; }
+    const all = (Hub.notify('catalogAll') || []).filter(x => x && x.model);
+    const tName = (Reg.type(target) || {}).name || 'this device';
+    const key = CatSrc.key;
+    const have = new Set(all.filter(x => x.cat === target).map(x => key(x.mfr) + '|' + key(x.model)));
+    const pool = all.filter(x => x.cat !== target);
+    const cats = new Set(pool.map(x => x.cat));
+    const nameOf = id => (Reg.type(id) || {}).name || id;
+    const sel = new Set();
+    const body = document.createElement('div'); body.className = 'catlink';
+    const typeOpts = Reg.systemList().map(sy => {
+      const ts = Reg.typesFor(sy.id).filter(t => cats.has(t.id));
+      return ts.length ? `<optgroup label="${esc(sy.name)}">${ts.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</optgroup>` : '';
+    }).join('');
+    body.innerHTML = `
+      <p class="cl-note">Pick devices that are filed under another type. They become choices for <b>${esc(tName)}</b> too.</p>
+      <div class="cl-filters">
+        <label><span>Device type</span><select class="inp" id="cl-type" autofocus><option value="">All device types</option>${typeOpts}</select></label>
+        <label><span>Manufacturer</span><select class="inp" id="cl-mfr"></select></label>
+      </div>
+      <div class="cl-bar"><input class="inp" id="cl-q" placeholder="Search model or description…" autocomplete="off"><button type="button" class="btn sm" id="cl-all">Select all shown</button></div>
+      <div class="cl-list" id="cl-list" role="list"></div>`;
+    const $t = body.querySelector('#cl-type'), $m = body.querySelector('#cl-mfr'), $q = body.querySelector('#cl-q'), $l = body.querySelector('#cl-list');
+    let shown = [];
+    const inType = () => pool.filter(x => !$t.value || x.cat === $t.value);
+    const fillMfr = (want) => {
+      const names = new Map(); for (const x of inType()) if (!names.has(key(x.mfr))) names.set(key(x.mfr), x.mfr);
+      const list = [...names.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      $m.innerHTML = `<option value="">All manufacturers</option>` + list.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+      const hit = want && list.find(n => key(n) === key(want)); $m.value = hit || '';
+    };
+    let m;
+    const updateSave = () => {
+      const b = m && m.el.querySelector('.modal-foot .btn[data-id="save"] span'); if (!b) return;
+      b.textContent = sel.size ? `Save (${sel.size})` : 'Save';
+    };
+    const draw = () => {
+      const q = key($q.value);
+      shown = inType().filter(x => (!$m.value || key(x.mfr) === key($m.value)) && (!q || key(x.mfr + ' ' + x.model + ' ' + (x.desc || '') + ' ' + nameOf(x.cat)).includes(q)))
+        .sort((a, b) => a.mfr.localeCompare(b.mfr, undefined, { sensitivity: 'base' }) || a.model.localeCompare(b.model, undefined, { numeric: true, sensitivity: 'base' })).slice(0, 400);
+      $l.innerHTML = shown.length ? shown.map(x => {
+        const dup = have.has(key(x.mfr) + '|' + key(x.model));
+        return `<label class="cl-row ${dup ? 'dis' : ''}" role="listitem"><input type="checkbox" data-id="${esc(x.id)}" ${dup || sel.has(x.id) ? 'checked' : ''} ${dup ? 'disabled' : ''}>
+          <span class="cl-t"><b>${esc(x.mfr)} ${esc(x.model)}</b><small>${esc([nameOf(x.cat), x.desc].filter(Boolean).join(' · '))}</small></span>
+          <span class="cl-r">${dup ? '<em>Already a choice</em>' : x.msrp ? Combo.money(x.msrp) : ''}</span></label>`;
+      }).join('') : `<div class="cl-empty">Nothing matches. Try another type or manufacturer.</div>`;
+    };
+    $t.onchange = () => { fillMfr(''); draw(); };
+    $m.onchange = draw;
+    $q.oninput = draw;
+    body.querySelector('#cl-all').onclick = () => { for (const x of shown) if (!have.has(key(x.mfr) + '|' + key(x.model))) sel.add(x.id); draw(); updateSave(); };
+    $l.addEventListener('change', e => { const cb = e.target.closest('input[data-id]'); if (!cb) return; cb.checked ? sel.add(cb.dataset.id) : sel.delete(cb.dataset.id); updateSave(); });
+    fillMfr(mfr); draw();
+    m = Modal.open({
+      title: `Add devices to ${tName}`, icon: 'Plus', wide: true, cls: 'catlink-modal', body,
+      buttons: [
+        { label: 'Cancel' },
+        { label: 'Save', kind: 'primary', id: 'save', onClick: () => {
+          if (!sel.size) { toast('Tick at least one device first', { kind: 'warn' }); return false; }
+          const n = Number(Hub.notify('catalogLink', target, [...sel])) || 0;
+          toast(n ? `${n} device${n === 1 ? '' : 's'} added to ${tName}` : `Those are already choices for ${tName}`, { kind: n ? 'ok' : undefined });
+        } },
+      ],
+    });
+  },
+};
+
 /* the device panel: Manufacturer → Model # → Description + MSRP */
 const DevCatUI = {
   wire(root, d) {
@@ -7549,6 +7644,7 @@ const DevCatUI = {
     const hub = CatSrc.hub();
     const set = (inp, v) => { if (!inp) return; inp.value = v == null ? '' : v; inp.dispatchEvent(new Event('input', { bubbles: true })); };
     Combo.attach(mfr, {
+      link: () => CatLink.open(d.type, { mfr: mfr.value.trim() }),
       title: () => `Brands for ${tname()}`,
       items: () => CatSrc.mfrs(d.type).map(b => ({ value: b.name, sub: b.n ? `${b.n} model${b.n === 1 ? '' : 's'}` : '' })),
       hint: (q, exact) => hub && q && !exact ? `New brand? Keep typing — it’s saved for next time.` : '',
@@ -7560,6 +7656,7 @@ const DevCatUI = {
       },
     });
     Combo.attach(model, {
+      link: () => CatLink.open(d.type, { mfr: mfr.value.trim() }),
       title: () => mfr.value.trim() ? `${mfr.value.trim()} models` : `Models for ${tname()}`,
       items: () => CatSrc.models(d.type, mfr.value.trim()).map(x => ({ value: x.model, sub: mfr.value.trim() ? x.desc : [x.mfr, x.desc].filter(Boolean).join(' · '), right: x.msrp ? `${Combo.money(x.msrp)}${x.est ? '<small>est.</small>' : ''}` : '', data: x })),
       hint: (q, exact) => hub && q && !exact ? `New model? Keep typing — it’s saved to the catalog.` : '',
@@ -11594,12 +11691,14 @@ const Overview = {
       // pick-or-type lists, the same as on a single device
       const hub = CatSrc.hub();
       Combo.attach(mfr, {
+        link: () => CatLink.open(t.id, { mfr: mfr.value.trim() }),
         title: () => `Brands for ${t.name}`,
         items: () => CatSrc.mfrs(t.id).map(b => ({ value: b.name, sub: b.n ? `${b.n} model${b.n === 1 ? '' : 's'}` : '' })),
         hint: (q, exact) => hub && q && !exact ? 'New brand? Keep typing — it’s saved for next time.' : '',
         onPick: () => { setTimeout(() => { if (!model.value.trim() && model.isConnected) { if (Device.touch) Combo.open(model._combo, false); else model.focus(); } }, 60); },
       });
       Combo.attach(model, {
+        link: () => CatLink.open(t.id, { mfr: mfr.value.trim() }),
         title: () => mfr.value.trim() ? `${mfr.value.trim()} models` : `Models for ${t.name}`,
         items: () => CatSrc.models(t.id, mfr.value.trim()).map(x => ({ value: x.model, sub: mfr.value.trim() ? x.desc : [x.mfr, x.desc].filter(Boolean).join(' · '), right: x.msrp ? `${Combo.money(x.msrp)}${x.est ? '<small>est.</small>' : ''}` : '', data: x })),
         hint: (q, exact) => hub && q && !exact ? 'New model? Keep typing — it’s saved to the catalog.' : '',
