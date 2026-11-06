@@ -472,6 +472,14 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .swatch-custom { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; position: relative; box-shadow: 0 0 0 1px var(--line-2); background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); cursor: pointer; }
 .swatch-custom input { opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 .mk-actions { display: flex; gap: 8px; margin-top: 16px; }
+.lens-ctl { margin: 4px 0 8px; }
+.lens-count { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.lens-count > span { flex: 1; font-weight: 600; }
+.lens-count b { min-width: 22px; text-align: center; }
+.lens-count .btn { min-width: 34px; font-size: 18px; line-height: 1; padding: 4px 0; }
+.lens-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+.lens-tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lens-sub { font-weight: 700; margin: 8px 0 2px; padding-top: 8px; border-top: 1px solid var(--line, rgba(128,128,128,.25)); }
 .multi-types { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
 .mt-row { display: flex; align-items: center; gap: 10px; padding: 5px 4px; font-size: 13px; }
 .mt-row span { flex: 1; }
@@ -2423,6 +2431,33 @@ function makeCone(plan, type) {
   return { angle, len: pxPerFt ? range * pxPerFt : Math.max(range, 10) * 4.5 * u, show: true };
 }
 
+/* ---------- Multi-lens cameras ----------
+   Lens 1 is the camera's normal view area (d.cone, plus an optional turn d.cone.off).
+   Extra lenses live in d.cone.more = [{off, angle, len}], each turned `off` degrees from the camera's direction. */
+function lensTarget(d, i) { return i > 0 && d.cone && d.cone.more && d.cone.more[i - 1] ? d.cone.more[i - 1] : d.cone; }
+function setLensCount(d, n) {
+  if (!d.cone) return;
+  n = clamp(Math.round(+n || 1), 1, 8);
+  const c = d.cone, old = [c, ...(c.more || [])], len0 = c.len;
+  const step = 360 / n, ang = n === 1 ? (old[0].angle || 90) : n === 2 ? 180 : Math.min(120, Math.round(360 / n));
+  c.more = [];
+  for (let i = 0; i < n; i++) {
+    const keep = old[i];
+    const o = { off: Math.round(i * step) % 360, angle: ang, len: keep ? keep.len : len0 };
+    if (i === 0) { c.off = n === 1 ? 0 : 0; c.angle = ang; } else c.more.push(o);
+  }
+  if (d.fields) d.fields.fovAngle = c.angle;
+}
+function lensList(d) {
+  const c = d && d.cone; if (!c) return [];
+  if (d.type === 'cam-multi' && c.more === undefined) { if (c.angle === 180) setLensCount(d, 4); else c.more = []; }
+  const base = d.rot || 0;
+  const out = [{ i: 0, rot: base + (c.off || 0), angle: c.angle, len: c.len }];
+  (c.more || []).forEach((m, j) => out.push({ i: j + 1, rot: base + (m.off || 0), angle: m.angle, len: m.len }));
+  return out;
+}
+function lensDev(d, l) { return l.i === 0 && !(d.cone.off) ? d : { ...d, rot: l.rot, cone: { ...d.cone, angle: l.angle, len: l.len } }; }
+
 function projectStats(project) {
   let devices = 0, photos = 0;
   const bySys = {};
@@ -2490,6 +2525,7 @@ function newDevice(project, plan, type, x, y) {
       d.fields.fovAngle = d.cone.angle;
       if (pxPerFt) d.fields.fovRange = Math.round(d.cone.len / pxPerFt);
     }
+    if (type.id === 'cam-multi') setLensCount(d, 4);
   }
   if (Settings.data.installer) d.fields.installedBy = Settings.data.installer;
   return d;
@@ -5087,10 +5123,14 @@ const MapView = {
     const u = planUnit(plan);
     const c = Reg.color(Reg.type(d.type));
     const o = clamp(coverOpacity(plan, d), 0, 1);
-    const gid = prefix + d.id;
-    return `<radialGradient id="${gid}" gradientUnits="userSpaceOnUse" cx="${d.x}" cy="${d.y}" r="${d.cone.len}">
+    let out = '';
+    for (const l of lensList(d)) {
+      const gid = prefix + d.id + (l.i ? '-' + l.i : '');
+      out += `<radialGradient id="${gid}" gradientUnits="userSpaceOnUse" cx="${d.x}" cy="${d.y}" r="${l.len}">
         <stop offset="0" stop-color="${c}" stop-opacity="${o}"/><stop offset="1" stop-color="${c}" stop-opacity="${round1(o * 0.17 * 100) / 100}"/></radialGradient>
-        <path class="cone" data-cone="${d.id}" d="${this.conePath(d, undefined, undefined, plan)}" fill="url(#${gid})" stroke="${c}" stroke-opacity="${Math.min(1, o * 0.9 + 0.22)}" stroke-width="${1.4 * u}" stroke-dasharray="${6 * u} ${4 * u}"/>`;
+        <path class="cone" data-cone="${d.id}" data-lens="${l.i}" d="${this.conePath(lensDev(d, l), undefined, undefined, plan)}" fill="url(#${gid})" stroke="${c}" stroke-opacity="${Math.min(1, o * 0.9 + 0.22)}" stroke-width="${1.4 * u}" stroke-dasharray="${6 * u} ${4 * u}"/>`;
+    }
+    return out;
   },
 
   renderCones() {
@@ -5337,14 +5377,17 @@ const MapView = {
         html += `<circle cx="${it.x}" cy="${it.y}" r="${s * 0.62 + 4 / k}" class="sel-ring" stroke-width="${2 / k}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
         if (single && !it.locked && Settings.data.showLabels && it.label) html += this.labelHandles(this.devLabelGeo(it), hr, sw, k, it.lblOff || it.lblRot ? [it.x, it.y] : null);
         if (single && !it.locked && it.cone && it.cone.show !== false && Settings.data.showCones) {
-          const r = (it.rot || 0) * Math.PI / 180, h = it.cone.angle * Math.PI / 360, L2 = it.cone.len;
-          const tip = [it.x + L2 * Math.cos(r), it.y + L2 * Math.sin(r)];
-          html += `<line x1="${it.x}" y1="${it.y}" x2="${tip[0]}" y2="${tip[1]}" class="sel-guide" stroke-width="${sw}" stroke-dasharray="${4 / k} ${4 / k}"/>`;
-          html += `<circle data-h="cone-dir" cx="${tip[0]}" cy="${tip[1]}" r="${hr * 1.15}" class="handle round" stroke-width="${sw}"><title>Drag to aim the camera and set how far it sees</title></circle>`;
-          if (it.cone.angle < 359) {
-            for (const sgn of [-1, 1]) {
-              const e = [it.x + L2 * Math.cos(r + sgn * h), it.y + L2 * Math.sin(r + sgn * h)];
-              html += `<rect data-h="cone-ang" x="${e[0] - hr}" y="${e[1] - hr}" width="${hr * 2}" height="${hr * 2}" rx="${hr * 0.3}" class="handle" stroke-width="${sw}"><title>Drag to widen or narrow the view</title></rect>`;
+          const lens = lensList(it), multi = lens.length > 1, act = multi ? Math.min((typeof Side !== 'undefined' && Side.lens) || 0, lens.length - 1) : 0;
+          for (const l of lens) {
+            const r = l.rot * Math.PI / 180, h = l.angle * Math.PI / 360, L2 = l.len;
+            const tip = [it.x + L2 * Math.cos(r), it.y + L2 * Math.sin(r)];
+            html += `<line x1="${it.x}" y1="${it.y}" x2="${tip[0]}" y2="${tip[1]}" class="sel-guide" stroke-width="${sw}" stroke-dasharray="${4 / k} ${4 / k}"/>`;
+            html += `<circle data-h="cone-dir:${l.i}" cx="${tip[0]}" cy="${tip[1]}" r="${hr * (multi && l.i !== act ? 0.95 : 1.15)}" class="handle round" stroke-width="${sw}"><title>${multi ? 'Lens ' + (l.i + 1) + ': drag to aim it and set how far it sees' : 'Drag to aim the camera and set how far it sees'}</title></circle>`;
+            if (l.angle < 359 && (!multi || l.i === act)) {
+              for (const sgn of [-1, 1]) {
+                const e = [it.x + L2 * Math.cos(r + sgn * h), it.y + L2 * Math.sin(r + sgn * h)];
+                html += `<rect data-h="cone-ang:${l.i}" x="${e[0] - hr}" y="${e[1] - hr}" width="${hr * 2}" height="${hr * 2}" rx="${hr * 0.3}" class="handle" stroke-width="${sw}"><title>Drag to widen or narrow the view</title></rect>`;
+              }
             }
           }
         }
@@ -6020,19 +6063,22 @@ const MapView = {
     const it = Editor.findItem(d.id);
     if (!it) return;
     const h = d.h;
-    if (h === 'cone-dir') {
+    if (h.startsWith('cone-dir')) {
+      const li = +h.split(':')[1] || 0, multi = lensList(it).length > 1, tgt = lensTarget(it, li);
       let ang = Math.atan2(p[1] - it.y, p[0] - it.x) * 180 / Math.PI;
       if (shift) ang = Math.round(ang / 15) * 15;
-      it.rot = ang;
-      it.cone.len = Math.max(iconSize(this.plan), dist([it.x, it.y], p));
-      if (this.plan.scale) it.fields.fovRange = Math.round(it.cone.len / this.plan.scale.pxPerFt);
-    } else if (h === 'cone-ang') {
+      if (multi) { tgt.off = Math.round((((ang - (it.rot || 0)) % 360) + 360) % 360); Side.lens = li; }
+      else it.rot = ang;
+      tgt.len = Math.max(iconSize(this.plan), dist([it.x, it.y], p));
+      if (li === 0 && this.plan.scale) it.fields.fovRange = Math.round(tgt.len / this.plan.scale.pxPerFt);
+    } else if (h.startsWith('cone-ang')) {
+      const li = +h.split(':')[1] || 0, l = lensList(it)[li] || lensList(it)[0], tgt = lensTarget(it, li);
       const ang = Math.atan2(p[1] - it.y, p[0] - it.x) * 180 / Math.PI;
-      let diff = Math.abs(((ang - (it.rot || 0) + 540) % 360) - 180);
+      let diff = Math.abs(((ang - l.rot + 540) % 360) - 180);
       let a = clamp(diff * 2, 5, 358);
       if (shift) a = Math.round(a / 5) * 5;
-      it.cone.angle = Math.round(a);
-      it.fields.fovAngle = it.cone.angle;
+      tgt.angle = Math.round(a);
+      if (li === 0) it.fields.fovAngle = tgt.angle;
     } else if (h === 'lbl' || h === 'lbl-rot') {
       const isDev = Editor.isDevice(d.id), g = isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it);
       if (g) {
@@ -6592,16 +6638,26 @@ const Side = {
     let cam = '';
     const isCam = !!t.fov;
     if (d.cone) {
-      const aim = Math.round((((d.rot || 0) + 90) % 360 + 360) % 360);
-      const rangeFt = pxPerFt ? d.cone.len / pxPerFt : null;
+      const lensL = lensList(d), multi = d.type === 'cam-multi';
+      if (this._lensDev !== d.id) { this._lensDev = d.id; this.lens = 0; }
+      const li = Math.min(this.lens || 0, lensL.length - 1), cur = lensL[li];
+      const aim = Math.round((((multi ? cur.rot : (d.rot || 0)) + 90) % 360 + 360) % 360);
+      const bodyAim = Math.round((((d.rot || 0) + 90) % 360 + 360) % 360);
+      const rangeFt = pxPerFt ? cur.len / pxPerFt : null;
       const op = Math.round(coverOpacity(Editor.plan, d) * 100);
+      const lensUi = multi ? `
+        <div class="lens-ctl"><div class="lens-count"><span>Lenses</span><button class="btn sm" id="lens-minus" ${lensL.length <= 1 ? 'disabled' : ''} title="Remove a lens">−</button><b id="lens-n">${lensL.length}</b><button class="btn sm" id="lens-plus" ${lensL.length >= 8 ? 'disabled' : ''} title="Add a lens">+</button></div>
+        <div class="lens-tabs">${lensL.map(l => `<button class="btn sm lens-tab ${l.i === li ? 'on' : ''}" data-lens="${l.i}">Lens ${l.i + 1}</button>`).join('')}</div>
+        <p class="tiny muted" style="margin:2px 0 6px">Changing the number spaces the lenses evenly. Then adjust each one below, or by dragging its handles on the map.</p>
+        <div class="slider-row"><span>Camera direction</span><input type="range" min="0" max="359" step="1" id="cone-body" value="${bodyAim}"><input class="inp sm num" type="number" id="cone-body-n" value="${bodyAim}" min="0" max="359"><em>°</em></div></div>` : '';
       cam = `
-        <label class="chk-row"><input type="checkbox" class="chk" id="cone-show" ${d.cone.show !== false ? 'checked' : ''}><span>Show ${isCam ? 'view' : 'coverage'} area on the map</span></label>
+        <label class="chk-row"><input type="checkbox" class="chk" id="cone-show" ${d.cone.show !== false ? 'checked' : ''}><span>Show ${isCam ? 'view' : 'coverage'} area on the map</span></label>${lensUi}
         <div class="slider-row"><span>Opacity</span><input type="range" min="0" max="100" step="1" id="cone-op" value="${op}"><input class="inp sm num" type="number" id="cone-op-n" value="${op}" min="0" max="100"><em>%</em></div>
         <p class="tiny muted cone-op-note">${d.cone.opacity != null ? `Custom for this device · <a href="#" id="cone-op-reset">use the plan setting</a>` : 'Following the plan setting (Display menu on the left).'}</p>
-        <div class="slider-row"><span>View angle</span><input type="range" min="5" max="360" step="1" id="cone-angle" value="${d.cone.angle}"><input class="inp sm num" type="number" id="cone-angle-n" value="${d.cone.angle}" min="5" max="360"><em>°</em></div>
+        ${multi ? `<div class="lens-sub">Lens ${li + 1} settings</div>` : ''}
+        <div class="slider-row"><span>View angle</span><input type="range" min="5" max="360" step="1" id="cone-angle" value="${cur.angle}"><input class="inp sm num" type="number" id="cone-angle-n" value="${cur.angle}" min="5" max="360"><em>°</em></div>
         <div class="slider-row"><span>Aim</span><input type="range" min="0" max="359" step="1" id="cone-aim" value="${aim}"><input class="inp sm num" type="number" id="cone-aim-n" value="${aim}" min="0" max="359"><em>°</em></div>
-        <div class="slider-row"><span>Distance</span><input type="range" min="${iconSize(Editor.plan)}" max="${Math.max(Editor.plan.bg.w, Editor.plan.bg.h)}" step="1" id="cone-len" value="${d.cone.len}">
+        <div class="slider-row"><span>Distance</span><input type="range" min="${iconSize(Editor.plan)}" max="${Math.max(Editor.plan.bg.w, Editor.plan.bg.h)}" step="1" id="cone-len" value="${cur.len}">
           ${pxPerFt ? `<input class="inp sm num" type="number" id="cone-len-n" value="${units === 'm' ? (rangeFt * 0.3048).toFixed(1) : Math.round(rangeFt)}" min="1"><em>${units === 'm' ? 'm' : 'ft'}</em>` : `<em class="muted" title="Set the plan scale to use real distances">—</em>`}</div>
         <p class="tiny muted">Tip: drag the round handle on the map to aim it, and the square handles to widen or narrow it.${pxPerFt ? '' : ' Set the plan scale to show real distances.'}</p>
         ${isCam ? '' : `<button class="btn sm danger-ghost" id="cone-remove">${ic('Trash')}<span>Remove coverage area</span></button>`}`;
@@ -6772,13 +6828,23 @@ const Side = {
       const opr = $('#cone-op-reset'); if (opr) opr.onclick = (e) => { e.preventDefault(); delete d.cone.opacity; sync(); this.renderDevice(true); };
       const ang = $('#cone-angle'), angN = $('#cone-angle-n'), aim = $('#cone-aim'), aimN = $('#cone-aim-n'), len = $('#cone-len'), lenN = $('#cone-len-n');
       $('#cone-show').onchange = e => { d.cone.show = e.target.checked; sync(); };
-      const setAng = v => { v = clamp(Math.round(+v || 0), 5, 360); d.cone.angle = v; d.fields.fovAngle = v; ang.value = v; angN.value = v; sync(); };
+      const multi = d.type === 'cam-multi', li = Math.min(this.lens || 0, lensList(d).length - 1), tgt = lensTarget(d, li);
+      const setAng = v => { v = clamp(Math.round(+v || 0), 5, 360); tgt.angle = v; if (li === 0) d.fields.fovAngle = v; ang.value = v; angN.value = v; sync(); };
       ang.oninput = () => setAng(ang.value); angN.onchange = () => setAng(angN.value);
-      const setAim = v => { v = ((Math.round(+v || 0) % 360) + 360) % 360; d.rot = v - 90; aim.value = v; aimN.value = v; sync(); };
+      const setAim = v => { v = ((Math.round(+v || 0) % 360) + 360) % 360; if (multi) tgt.off = (((v - 90 - (d.rot || 0)) % 360) + 360) % 360; else d.rot = v - 90; aim.value = v; aimN.value = v; sync(); };
+      if (multi) {
+        const body = $('#cone-body'), bodyN = $('#cone-body-n');
+        const setBody = v => { v = ((Math.round(+v || 0) % 360) + 360) % 360; d.rot = v - 90; body.value = v; bodyN.value = v; sync(); this.liveCone(d); };
+        body.oninput = () => setBody(body.value); bodyN.onchange = () => setBody(bodyN.value);
+        const recount = n => { setLensCount(d, n); this.lens = Math.min(this.lens || 0, lensList(d).length - 1); MapView.renderCones(); MapView.renderSel(); touch({ commit: 'now' }); this.renderDevice(true); };
+        $('#lens-minus').onclick = () => recount(lensList(d).length - 1);
+        $('#lens-plus').onclick = () => recount(lensList(d).length + 1);
+        this.el.querySelectorAll('.lens-tab').forEach(b => b.onclick = () => { this.lens = +b.dataset.lens; MapView.renderSel(); this.renderDevice(true); });
+      }
       aim.oninput = () => setAim(aim.value); aimN.onchange = () => setAim(aimN.value);
       const setLen = px => {
-        d.cone.len = Math.max(1, px); len.value = d.cone.len;
-        if (pxPerFt) { const ft = d.cone.len / pxPerFt; d.fields.fovRange = Math.round(ft); if (lenN && document.activeElement !== lenN) lenN.value = units === 'm' ? (ft * 0.3048).toFixed(1) : Math.round(ft); }
+        tgt.len = Math.max(1, px); len.value = tgt.len;
+        if (pxPerFt) { const ft = tgt.len / pxPerFt; if (li === 0) d.fields.fovRange = Math.round(ft); if (lenN && document.activeElement !== lenN) lenN.value = units === 'm' ? (ft * 0.3048).toFixed(1) : Math.round(ft); }
         sync();
       };
       len.oninput = () => setLen(+len.value);
@@ -6834,13 +6900,17 @@ const Side = {
 
   liveCone(d) {
     if (this.mode !== 'device' || this.id !== d.id || !d.cone) return;
-    const aim = Math.round((((d.rot || 0) + 90) % 360 + 360) % 360);
+    const lensL = lensList(d), multi = d.type === 'cam-multi', li = Math.min(this.lens || 0, lensL.length - 1), cur = lensL[li];
+    if (multi && this._lensShown !== undefined && this._lensShown !== li) { this._lensShown = li; this.renderDevice(true); return; }
+    this._lensShown = li;
+    const aim = Math.round((((multi ? cur.rot : (d.rot || 0)) + 90) % 360 + 360) % 360);
     const set = (id, v) => { const el = $('#' + id); if (el) el.value = v; };
-    set('cone-angle', d.cone.angle); set('cone-angle-n', d.cone.angle);
+    set('cone-angle', cur.angle); set('cone-angle-n', cur.angle);
     set('cone-aim', aim); set('cone-aim-n', aim);
-    set('cone-len', d.cone.len);
+    set('cone-len', cur.len);
+    if (multi) { const b = Math.round((((d.rot || 0) + 90) % 360 + 360) % 360); set('cone-body', b); set('cone-body-n', b); }
     const pxPerFt = Editor.plan.scale && Editor.plan.scale.pxPerFt;
-    if (pxPerFt) { const ft = d.cone.len / pxPerFt; set('cone-len-n', Settings.data.units === 'm' ? (ft * 0.3048).toFixed(1) : Math.round(ft)); }
+    if (pxPerFt) { const ft = cur.len / pxPerFt; set('cone-len-n', Settings.data.units === 'm' ? (ft * 0.3048).toFixed(1) : Math.round(ft)); }
   },
 
   step(dir) {
@@ -8747,7 +8817,7 @@ const Viewer = {
         }
         const k = typeKeys.get(t.id);
         const cone = d.cone && d.cone.show !== false ? { len: round1(d.cone.len), angle: round1(d.cone.angle), o: round1(clamp(coverOpacity(pl, d), 0, 1) * 100) / 100 } : null;
-        devs.push({ id: 'd' + i, x: round1(d.x), y: round1(d.y), s: round1(devSize(pl, d)), l: String(d.label || '').slice(0, 40), t: k, r: round1(d.rot || 0), c: cone, lo: d.lblOff ? [round1(d.lblOff[0]), round1(d.lblOff[1])] : null, lr: round1(d.lblRot || 0), ph: photoRefs(d.photos) });
+        devs.push({ id: 'd' + i, x: round1(d.x), y: round1(d.y), s: round1(devSize(pl, d)), l: String(d.label || '').slice(0, 40), t: k, r: round1((d.rot || 0) + ((d.cone && d.cone.off) || 0)), c: cone, cs: cone ? lensList(d).slice(1).map(l => ({ len: round1(l.len), angle: round1(l.angle), r: round1(l.rot) })) : [], lo: d.lblOff ? [round1(d.lblOff[0]), round1(d.lblOff[1])] : null, lr: round1(d.lblRot || 0), ph: photoRefs(d.photos) });
       });
       const runs = !opts.runs ? [] : pl.markups.filter(m => m.kind === 'cable' && m.points.length >= 2).slice(0, 300).map((m, i) => ({ id: 'r' + i, pts: m.points.slice(0, 200).map(q => [round1(q[0]), round1(q[1])]), c: /^#[0-9a-fA-F]{3,8}$/.test(m.color || '') ? m.color : '#0891b2', w: round1((m.width || 3.5 * u)), dash: m.dash === 'dash' || m.dash === 'dot' ? m.dash : '', l: String(m.label || '').slice(0, 80), ph: photoRefs(m.photos) }));
       plans.push({ id: pl.id.replace(/[^A-Za-z0-9]/g, '').slice(0, 24) || 'p' + plans.length, name: String(pl.name || 'Plan').slice(0, 80), w: pl.bg.w, h: pl.bg.h, ls: round1(12.5 * u * (pl.iconScale || 1) * (pl.labelScale || 1)), base: '', devices: devs, runs, _src: pl });
