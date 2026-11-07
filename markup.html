@@ -1190,6 +1190,13 @@ html.phone .shape-fly.in { transform: none; }
   html.touch .modal-body { padding: 6px 14px 4px; }
   html.touch .modal-foot { padding: 8px 14px 10px; }
   html.touch .modal-foot .btn { min-height: 38px; }
+  /* short screen: the whole details panel scrolls as one page (title and buttons scroll away) so the fields get the full height */
+  html.touch .side { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  html.touch .side > * { flex: none; }
+  html.touch .side > .side-body, html.touch .side > .le-body { overflow: visible; flex: none; min-height: 0; }
+  html.touch .side-foot { position: sticky; bottom: 0; z-index: 2; background: var(--panel); }
+  html.touch .side-head { padding: 8px 12px; }
+  html.touch .side .lock-row { padding: 6px 12px; }
   html.touch .home-top { padding: 6px 14px; gap: 10px; }
   html.touch .home-main { padding: 12px 14px 40px; }
   html.touch .home-hero { margin-bottom: 10px; }
