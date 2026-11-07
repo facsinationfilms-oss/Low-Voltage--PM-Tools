@@ -483,7 +483,12 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .combo-link { position: sticky; bottom: -5px; display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; background: var(--panel); color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
 .combo-link:hover { background: var(--hover, rgba(128,128,128,.12)); }
 .combo-link svg { width: 18px; height: 18px; }
-.catlink-modal .modal { max-width: 640px; }
+.modal.catlink-modal { max-width: 640px; }
+.modal-back { grid-template-columns: minmax(0, 1fr); }
+.modal { min-width: 0; }
+.catlink { min-width: 0; max-width: 100%; }
+.catlink .cl-bar .btn { flex: none; white-space: nowrap; }
+.catlink .cl-list { overflow-x: hidden; }
 .catlink .cl-note { margin: 0 0 10px; color: var(--muted); }
 .catlink .cl-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
 .catlink .cl-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); min-width: 0; }
