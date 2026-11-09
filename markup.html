@@ -480,6 +480,22 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .lens-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
 .lens-tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lens-sub { font-weight: 700; margin: 8px 0 2px; padding-top: 8px; border-top: 1px solid var(--line, rgba(128,128,128,.25)); }
+.cab-links .lk-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.lk-chip { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel-2, rgba(128,128,128,.1)); overflow: hidden; }
+.lk-chip button { border: 0; background: transparent; color: inherit; padding: 6px 8px 6px 12px; font: inherit; font-weight: 600; cursor: pointer; }
+.lk-chip .lk-x { padding: 6px 10px 6px 4px; display: inline-flex; opacity: .7; }
+.lk-chip .lk-x svg { width: 14px; height: 14px; }
+.lk-add { display: flex; gap: 8px; } .lk-add select { flex: 1; min-width: 0; }
+.dot-ico { display: block; width: 40px; height: 40px; border-radius: 50%; border: 5px solid var(--c); background: #fff3; box-sizing: border-box; position: relative; }
+.dot-ico::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: var(--c); }
+.dot-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.dot-opt { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: transparent; color: inherit; cursor: pointer; }
+.dot-opt.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.dot-circ { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--c); box-sizing: border-box; position: relative; }
+.dot-opt.on .dot-circ::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--c); }
+.dot-t { display: flex; flex-direction: column; min-width: 0; } .dot-t small { color: var(--muted); }
+.dot-fields { border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.dot-fh { font-weight: 700; margin-bottom: 8px; color: var(--c); }
 .combo-link { position: sticky; bottom: -5px; display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; background: var(--panel); color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
 .combo-link:hover { background: var(--hover, rgba(128,128,128,.12)); }
 .combo-link svg { width: 18px; height: 18px; }
@@ -2017,6 +2033,42 @@ function isTypingTarget(el) {
 }
 
 function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+/* ===== wire-run dots: what happens at each point of a cable run (up/down, wall penetration, pull box…) ===== */
+const Dots = {
+  KINDS: [
+    { id: '', name: 'Nothing special', color: '#64748b', hint: 'Just a bend or waypoint in the run.', fields: [] },
+    { id: 'updown', name: 'Run Up / Down', color: '#dc2626', hint: 'The cable leaves this level of the wall or ceiling and runs up or down.', fields: [
+      ['dir', 'Going', 'select', ['Up', 'Down', 'Up and down']],
+      ['wall', 'Wall type', 'select', ['Drywall', 'Plaster', 'Block / CMU', 'Brick', 'Poured concrete', 'Wood studs', 'Metal studs', 'Open / exposed', 'Other']],
+      ['path', 'How it gets there', 'select', ['Fish inside the wall', 'Wiremold / surface raceway', 'EMT conduit', 'PVC conduit', 'Flex conduit', 'Cable tray / J-hooks', 'Open / free air', 'Other']],
+      ['len', 'Length up or down (ft)', 'number'],
+      ['cover', 'Cover or finish', 'text', 'e.g. paintable raceway, white'] ] },
+    { id: 'pen', name: 'Wall / floor penetration', color: '#f97316', hint: 'The cable goes through a wall, floor or ceiling.', fields: [
+      ['thru', 'Going through', 'select', ['Wall', 'Floor', 'Ceiling', 'Fire-rated wall', 'Fire-rated floor']],
+      ['wall', 'Wall type', 'select', ['Drywall', 'Plaster', 'Block / CMU', 'Brick', 'Poured concrete', 'Wood studs', 'Metal studs', 'Other']],
+      ['hole', 'Hole / core size', 'text', 'e.g. 1" core'],
+      ['fire', 'Firestop needed', 'select', ['No', 'Yes', 'Not sure']] ] },
+    { id: 'box', name: 'Pull box / junction', color: '#7c3aed', hint: 'A box, enclosure or termination point on the run.', fields: [
+      ['box', 'What is it', 'select', ['Pull box', 'Junction box', 'Splice enclosure', 'Patch panel / rack', 'Wall plate / jack', 'Other']],
+      ['size', 'Size', 'text', 'e.g. 12x12x4'],
+      ['where', 'Where', 'select', ['Above ceiling', 'In the wall', 'Surface mounted', 'In a rack', 'Other']] ] },
+    { id: 'slack', name: 'Service loop / slack', color: '#16a34a', hint: 'Extra cable left coiled here.', fields: [
+      ['len', 'Slack left (ft)', 'number'],
+      ['where', 'Coiled', 'select', ['Above ceiling', 'In the wall', 'At the device', 'At the rack', 'Other']] ] },
+    { id: 'hazard', name: 'Obstacle / needs attention', color: '#eab308', hint: 'Something that makes this spot harder.', fields: [
+      ['issue', 'What is the issue', 'select', ['No ceiling access', 'Insulation', 'Needs a lift / ladder', 'Tight space', 'Asbestos concern', 'Needs permission', 'Other']] ] },
+  ],
+  kind(id) { return this.KINDS.find(k => k.id === id) || this.KINDS[0]; },
+  get(m, i) { return (m.dots && m.dots[i]) || null; },
+  ensure(m, i) { m.dots = m.dots || []; while (m.dots.length < m.points.length) m.dots.push(null); return m.dots[i] || (m.dots[i] = {}); },
+  insert(m, i) { m.dots = m.dots || []; while (m.dots.length < m.points.length) m.dots.push(null); m.dots.splice(i, 0, null); },
+  remove(m, i) { if (m.dots) m.dots.splice(i, 1); if (m.dots && !m.dots.some(Boolean)) delete m.dots; },
+  clean(m) { if (m.dots && !m.dots.some(d => d && (d.kind || d.note))) delete m.dots; },
+  /* extra feet the dots add to every cable of the run (vertical drops and slack) */
+  feet(m) { let t = 0; for (const d of m.dots || []) if (d && (d.kind === 'updown' || d.kind === 'slack')) t += Math.max(0, +(d.f && d.f.len) || 0); return t; },
+  /* distance (plan px) from a point to a segment */
+  segDist(p, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); const x = a[0] + t * dx, y = a[1] + t * dy; return { d: Math.hypot(p[0] - x, p[1] - y), pt: [x, y] }; },
+};
 function polyLength(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += dist(pts[i - 1], pts[i]); return L; }
 
 /* Ramer–Douglas–Peucker simplification for freehand */
@@ -5300,6 +5352,7 @@ const MapView = {
             body += `<g transform="translate(${g.cx} ${g.cy}) rotate(${g.rot})">${textTag(0, 0, g.txt, g.fs, c)}</g>`;
           }
           body += `<circle cx="${P[0][0]}" cy="${P[0][1]}" r="${w * 1.1}" fill="${c}"/><circle cx="${P[P.length - 1][0]}" cy="${P[P.length - 1][1]}" r="${w * 1.1}" fill="${c}"/>`;
+          if (m.dots && !preview) P.forEach((q, i) => { const dd = m.dots[i]; if (!dd || !dd.kind) return; const kd = Dots.kind(dd.kind); body += `<g pointer-events="none"><circle cx="${q[0]}" cy="${q[1]}" r="${w * 2.6}" fill="#fff" fill-opacity="0.55" stroke="${kd.color}" stroke-width="${w * 0.9}"/><circle cx="${q[0]}" cy="${q[1]}" r="${w * 0.9}" fill="${kd.color}"/></g>`; });
         }
         body += hit(d);
         break;
@@ -5438,8 +5491,10 @@ const MapView = {
             const corners = [[a[0], a[1]], [b[0], a[1]], [b[0], b[1]], [a[0], b[1]]];
             corners.forEach((p, i) => { html += `<rect data-h="corner:${i}" x="${p[0] - hr}" y="${p[1] - hr}" width="${hr * 2}" height="${hr * 2}" class="handle" stroke-width="${sw}"/>`; });
           } else if (it.kind !== 'pen') {
-            it.points.forEach((p, i) => { html += `<circle data-h="vertex:${i}" cx="${p[0]}" cy="${p[1]}" r="${hr}" class="handle round" stroke-width="${sw}"/>`; });
+            it.points.forEach((p, i) => { html += `<circle data-h="vertex:${i}" cx="${p[0]}" cy="${p[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move. Double-click for this dot's details</title></circle>`; });
+            if (it.kind === 'cable' && Side.mode === 'markup' && Side.id === it.id && Side.dot != null && it.points[Side.dot]) { const q = it.points[Side.dot]; html += `<circle cx="${q[0]}" cy="${q[1]}" r="${hr * 1.9}" class="sel-ring" stroke-width="${2.5 / k}" pointer-events="none"/>`; }
           }
+          if (it.kind === 'cable' && it.links) for (const lid of it.links) { const ld = Editor.findItem(lid); if (!ld || !Editor.isDevice(lid) || Editor.devHidden(ld)) continue; html += `<circle cx="${ld.x}" cy="${ld.y}" r="${devSize(this.plan, ld) * 0.72 + 5 / k}" class="sel-ring" stroke-width="${2.5 / k}" stroke="${it.color}" pointer-events="none"/>`; }
         }
       }
     }
@@ -5907,6 +5962,24 @@ const MapView = {
     if (this.tool === 'cable' && this.poly) { this.finishPoly(true); return; }
     if (this.tool === 'wall') { LayoutUI.finishChain(); return; }
     const hit = this.hitInfo(e);
+    if (this.tool === 'select') {
+      let run = hit.id && Editor.findItem(hit.id); if (!run || run.kind !== 'cable') { const one = this.sel.size === 1 ? Editor.findItem([...this.sel][0]) : null; run = one && one.kind === 'cable' ? one : null; }
+      if (run && run.points && run.points.length >= 2) {
+        const pp = this.toPlan(e.clientX, e.clientY), near = (Device.touch ? 30 : 18) / this.k;
+        let bi = -1, bd = near; run.points.forEach((q, i) => { const dd = Math.hypot(q[0] - pp[0], q[1] - pp[1]); if (dd < bd) { bd = dd; bi = i; } });
+        if (bi >= 0) { clearTimeout(this._tapOpen); if (!this.sel.has(run.id) || this.sel.size !== 1) { this.sel = new Set([run.id]); this.renderSelState(); } Side.showMarkup(run.id, { dot: bi }); return; }
+        if (!run.locked) {
+          let bs = -1, best = near * 0.8, at = null;
+          for (let i = 1; i < run.points.length; i++) { const r = Dots.segDist(pp, run.points[i - 1], run.points[i]); if (r.d < best) { best = r.d; bs = i; at = r.pt; } }
+          if (bs > 0) {
+            clearTimeout(this._tapOpen);
+            run.points.splice(bs, 0, [Math.round(at[0] * 10) / 10, Math.round(at[1] * 10) / 10]); Dots.insert(run, bs);
+            this.sel = new Set([run.id]); this.renderAll(); Editor.changed(); Side.showMarkup(run.id, { dot: bs });
+            toast('Dot added to the run. Drag it to place it, and pick what happens here'); return;
+          }
+        }
+      }
+    }
     if (this.tool === 'select' && hit.id && Layout.kindOf(hit.id) === 'wall') {
       const w = Layout.find(this.plan, hit.id);
       if (Layout.splitWall(this.plan, w, this.toPlan(e.clientX, e.clientY))) {
@@ -7031,10 +7104,11 @@ const Side = {
   },
 
   /* ---------- markup ---------- */
-  showMarkup(id, { focusText = false } = {}) {
+  showMarkup(id, { focusText = false, dot = null } = {}) {
     const m = Editor.findItem(id);
     if (!m) return;
     this.mode = 'markup';
+    if (this.id !== id || dot != null) this.dot = dot;
     this.id = id;
     this.fromList = false;
     if (!MapView.sel.has(id) || MapView.sel.size !== 1) { MapView.sel = new Set([id]); MapView.renderSelState(); }
@@ -7044,15 +7118,90 @@ const Side = {
     if (focusText) setTimeout(() => { const t = $('#mk-text'); if (t) { t.focus({ preventScroll: true }); t.select(); } }, 60);
   },
 
+  /* ---- devices linked to a cable run ---- */
+  linkHtml(m) {
+    const plan = Editor.plan;
+    const linked = (m.links || []).map(id => Editor.findItem(id)).filter(d => d && Editor.isDevice(d.id));
+    const have = new Set(linked.map(d => d.id));
+    const opts = plan.devices.filter(d => !have.has(d.id)).slice().sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true, sensitivity: 'base' }));
+    const nm = d => (d.label || Reg.type(d.type).name) + ' · ' + Reg.type(d.type).name;
+    return `<div class="fld cab-links"><span>Devices on this run</span>
+      <div class="lk-chips" id="lk-chips">${linked.length ? linked.map(d => `<span class="lk-chip" data-id="${esc(d.id)}"><button type="button" class="lk-go" title="Show this device on the map">${esc(d.label || Reg.type(d.type).name)}</button><button type="button" class="lk-x" title="Unlink">${ic('X')}</button></span>`).join('') : '<em class="muted tiny">Nothing linked yet</em>'}</div>
+      <div class="lk-add"><select class="inp" id="lk-sel" ${opts.length ? '' : 'disabled'}><option value="">${opts.length ? 'Pick a device on this map…' : 'No other devices on this plan'}</option>${opts.map(d => `<option value="${esc(d.id)}">${esc(nm(d))}</option>`).join('')}</select>
+        <button type="button" class="btn sm primary" id="lk-btn" ${opts.length ? '' : 'disabled'}>${ic('Link')}<span>Link</span></button></div>
+      <p class="tiny muted">Link every device this run feeds. With several cables in the run, link one device per cable.</p></div>`;
+  },
+  wireLinks(m) {
+    const sel = $('#lk-sel', this.el); if (!sel) return;
+    const refresh = () => { Editor.changed({ commit: 'now' }); MapView.renderSel(); this.renderMarkup(); };
+    $('#lk-btn', this.el).onclick = () => { if (!sel.value) { toast('Pick a device from the list first', { kind: 'warn' }); return; } m.links = [...(m.links || []), sel.value]; refresh(); };
+    sel.onchange = () => { if (sel.value) $('#lk-btn', this.el).click(); };
+    $$('#lk-chips .lk-chip', this.el).forEach(ch => {
+      const id = ch.dataset.id;
+      $('.lk-x', ch).onclick = () => { m.links = (m.links || []).filter(x => x !== id); if (!m.links.length) delete m.links; refresh(); };
+      $('.lk-go', ch).onclick = () => { const d = Editor.findItem(id); if (d && MapView.centerOn) MapView.centerOn(d.x, d.y); else if (d && MapView.setView) { const sr = MapView.svg.getBoundingClientRect(); MapView.setView(MapView.k, sr.width / 2 - d.x * MapView.k, sr.height / 2 - d.y * MapView.k); } };
+    });
+  },
+
+  /* ---- one dot of a cable run ---- */
+  renderDot(m) {
+    const i = this.dot, dd = Dots.get(m, i) || {}, kd = Dots.kind(dd.kind || '');
+    const u = planUnit(Editor.plan);
+    const act = document.activeElement && this.el.contains(document.activeElement) ? document.activeElement.id : null;
+    const last = m.points.length - 1;
+    const where = i === 0 ? 'Start of the run' : i === last ? 'End of the run' : `Point ${i + 1} of ${m.points.length}`;
+    const fld = ([k, label, type, extra]) => {
+      const v = (dd.f && dd.f[k]) ?? '';
+      if (type === 'select') return `<label class="fld"><span>${esc(label)}</span><select class="inp" data-k="${k}"><option value="">Not set</option>${extra.map(o => `<option ${v === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+      if (type === 'number') return `<label class="fld"><span>${esc(label)}</span><input class="inp" data-k="${k}" type="number" min="0" step="0.5" value="${esc(String(v))}" placeholder="0"></label>`;
+      return `<label class="fld"><span>${esc(label)}</span><input class="inp" data-k="${k}" value="${esc(String(v))}" placeholder="${esc(extra || '')}"></label>`;
+    };
+    this.el.innerHTML = `
+      <div class="side-head">
+        <div class="sd-ico"><span class="dot-ico" style="--c:${kd.color}"></span></div>
+        <div class="sd-title"><div class="sd-label static">${esc(kd.id ? kd.name : 'Dot on the run')}</div><div class="sd-type">${esc(where)}${m.label ? ' · ' + esc(m.label) : ''}</div></div>
+        <button class="icon-btn" id="sd-close" title="Close (Esc)">${ic('X')}</button>
+      </div>
+      <div class="side-body">
+        <button class="btn sm" id="dt-back">${ic('ArrowLeft')}<span>Back to the whole run</span></button>
+        <div class="fld"><span>What is happening at this dot?</span>
+          <div class="dot-opts" id="dt-kinds" role="radiogroup">${Dots.KINDS.map(k => `<button type="button" role="radio" aria-checked="${k.id === (dd.kind || '')}" class="dot-opt ${k.id === (dd.kind || '') ? 'on' : ''}" data-k="${k.id}" style="--c:${k.color}"><span class="dot-circ"></span><span class="dot-t"><b>${esc(k.name)}</b><small>${esc(k.hint)}</small></span></button>`).join('')}</div></div>
+        ${kd.fields.length ? `<div class="dot-fields" id="dt-fields"><div class="dot-fh" style="--c:${kd.color}">${esc(kd.name)} details</div>${kd.fields.map(fld).join('')}</div>` : ''}
+        <label class="fld"><span>Notes for this dot</span><textarea class="inp" id="dt-note" rows="3" placeholder="Anything the installer should know here">${esc(dd.note || '')}</textarea></label>
+        <div class="mk-actions">
+          <button class="btn sm" id="dt-prev" ${i === 0 ? 'disabled' : ''}>${ic('ArrowLeft')}<span>Previous dot</span></button>
+          <button class="btn sm" id="dt-next" ${i === last ? 'disabled' : ''}><span>Next dot</span>${ic('ArrowRight')}</button>
+          <button class="btn sm danger-ghost" id="dt-del" ${m.points.length <= 2 || m.locked ? 'disabled' : ''} title="${m.points.length <= 2 ? 'A run needs at least two dots' : 'Remove this dot from the run'}">${ic('Trash')}<span>Remove dot</span></button>
+        </div>
+      </div>`;
+    if (act) { const el = $('#' + act, this.el); if (el) el.focus({ preventScroll: true }); }
+    const save = (commit = 'soon') => { Dots.clean(m); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit }); };
+    $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
+    $('#dt-back').onclick = () => { this.dot = null; MapView.renderSel(); this.renderMarkup(); };
+    $$('#dt-kinds .dot-opt', this.el).forEach(b => b.onclick = () => {
+      const d = Dots.ensure(m, i); const v = b.dataset.k;
+      if (v) { d.kind = v; d.f = d.kind === dd.kind ? d.f : {}; } else { delete d.kind; delete d.f; }
+      if (!d.kind && !d.note) m.dots[i] = null;
+      save('now'); this.renderDot(m);
+    });
+    $$('#dt-fields [data-k]', this.el).forEach(el => { const h = () => { const d = Dots.ensure(m, i); d.f = d.f || {}; if (el.value === '' ) delete d.f[el.dataset.k]; else d.f[el.dataset.k] = el.tagName === 'INPUT' && el.type === 'number' ? +el.value : el.value; $('#mk-ctotal') && 0; save(el.tagName === 'SELECT' ? 'now' : 'soon'); }; el.oninput = h; el.onchange = h; });
+    $('#dt-note').oninput = e => { const d = Dots.ensure(m, i); const v = e.target.value; if (v.trim()) d.note = v; else delete d.note; if (!d.kind && !d.note) m.dots[i] = null; save(); };
+    $('#dt-prev').onclick = () => { this.dot = Math.max(0, i - 1); MapView.renderSel(); this.renderDot(m); };
+    $('#dt-next').onclick = () => { this.dot = Math.min(last, i + 1); MapView.renderSel(); this.renderDot(m); };
+    $('#dt-del').onclick = () => { if (m.points.length <= 2) return; m.points.splice(i, 1); Dots.remove(m, i); this.dot = null; MapView.renderAll(); Editor.changed({ commit: 'now' }); this.renderMarkup(); toast('Dot removed'); };
+  },
+
   cableTotalText(m) {
     const s = Editor.plan.scale; const n = m.count || 1;
     if (!s) return `${m.cableType ? esc(m.cableType) + ' · ' : ''}Set the plan scale to measure this run.`;
-    const ft = Math.round((polyLength(m.points) / s.pxPerFt + (m.extraFt || 0)) * n);
-    return `<b>${ft.toLocaleString()} ft</b> of ${esc(m.cableType || 'cable')}${n > 1 ? ` (${n} cables)` : ''}`;
+    const dv = Dots.feet(m), ft = Math.round((polyLength(m.points) / s.pxPerFt + (m.extraFt || 0) + dv) * n);
+    return `<b>${ft.toLocaleString()} ft</b> of ${esc(m.cableType || 'cable')}${n > 1 ? ` (${n} cables)` : ''}${dv ? `<br><span class="muted">includes ${Math.round(dv * 10) / 10} ft going up/down or slack from the dots</span>` : ''}`;
   },
   renderMarkup() {
     const m = Editor.findItem(this.id);
     if (!m) { this.close(); return; }
+    if (m.kind === 'cable' && this.dot != null && m.points[this.dot]) { this.renderDot(m); return; }
+    this.dot = null;
     const u = planUnit(Editor.plan);
     const names = { text: 'Text note', arrow: 'Arrow', line: 'Line', cable: 'Cable run', rect: 'Box / area', ellipse: 'Circle / oval', shape: 'Shape', pen: 'Freehand', measure: 'Measurement' };
     const icons = { text: 'Typography', arrow: 'ArrowUpRight', line: 'Line', cable: 'Route', rect: 'Square', ellipse: 'Circle', shape: 'Triangle', pen: 'Scribble', measure: 'Ruler' };
@@ -7083,7 +7232,8 @@ const Side = {
           <label class="fld"><span>Cables in this run</span><input class="inp" id="mk-count" type="number" min="1" step="1" value="${m.count || 1}"></label>
           <label class="fld"><span>Extra per cable (ft)</span><input class="inp" id="mk-extra" type="number" min="0" step="1" value="${m.extraFt || ''}" placeholder="slack, drops"></label></div>
           <p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
-          <p class="tiny muted">Drag the dots on the map to reshape the run. ${plural(m.points.length, 'point')}. The cable type and total feet go into estimates and quotes in the Office Hub.</p>` : ''}
+          <p class="tiny muted">Drag the dots on the map to reshape the run. <b>Double-click a dot</b> for its details (up/down, penetration, pull box…), or double-click the line to add a dot. ${plural(m.points.length, 'point')}. The cable type and total feet go into estimates and quotes in the Office Hub.</p>` : ''}
+        ${m.kind === 'cable' ? this.linkHtml(m) : ''}
         ${m.kind === 'cable' && MapView.cableLabelGeo(m) ? this.lblControls(m, false) : ''}
         ${m.kind === 'cable' ? this.section('photos', `Photos${(m.photos || []).length ? ' (' + m.photos.length + ')' : ''}`, `
           <div class="photo-grid" id="sd-photos">
@@ -7120,6 +7270,7 @@ const Side = {
     const fl = $('#mk-fill'); if (fl) fl.oninput = () => { m.fill = +fl.value || 0; $('#mk-fill-v').textContent = Math.round(m.fill * 100) + '%'; touch(); };
     const both = $('#mk-both'); if (both) both.onchange = () => { m.both = both.checked; touch('now'); };
     if (m.kind === 'cable') this.wireLbl(m, false, () => touch());
+    if (m.kind === 'cable') this.wireLinks(m);
     if (m.kind === 'cable') {
       $('#sd-addph').onclick = async () => { const files = await pickFiles({ accept: 'image/*', multiple: true }); if (files.length) this.addPhotos(files); };
       $$('#sd-photos .ph[data-i]', this.el).forEach(b => b.onclick = () => Lightbox.open(m, +b.dataset.i));
@@ -12375,7 +12526,7 @@ if (HUB) {
             return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0 }; }),
           cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
             const n = Math.max(1, m.count || 1);
-            const ft = ppf ? Math.round((polyLength(m.points) / ppf + (m.extraFt || 0)) * n) : null;
+            const ft = ppf ? Math.round((polyLength(m.points) / ppf + (m.extraFt || 0) + Dots.feet(m)) * n) : null;
             return { id: m.id, label: m.label || '', cableType: m.cableType || (CABLE_TYPES.find(c => new RegExp('\\b' + c.replace(/[^a-z0-9]/gi, '.?'), 'i').test(m.label || '')) || ''), count: n, ft };
           }),
         };
