@@ -499,6 +499,10 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .oo-box { border: 1px solid var(--accent); border-radius: 10px; padding: 10px; margin: -2px 0 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .oo-box .oo-row { display: flex; gap: 8px; margin: 8px 0 4px; }
 .oo-del { margin: -4px 0 8px; }
+.lbl-style { border-top: 1px solid var(--line-2); margin-top: 10px; padding-top: 10px; }
+.lbl-style .ls-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lbl-style input[type=color] { width: 100%; height: 38px; padding: 2px; border-radius: 8px; border: 1px solid var(--line-2); background: transparent; }
+.lbl-style .slider-row em { min-width: 64px; text-align: right; }
 .combo-link { position: sticky; bottom: -5px; display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; background: var(--panel); color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
 .combo-link:hover { background: var(--hover, rgba(128,128,128,.12)); }
 .combo-link svg { width: 18px; height: 18px; }
@@ -2124,6 +2128,32 @@ const OtherOpt = {
       inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); } };
       setTimeout(() => inp.focus(), 30);
     });
+  },
+};
+/* ===== how names look on the map: text colour, thickness and outline (devices, cable runs, rooms) ===== */
+const LblStyle = {
+  DEF: { dev: { c: '#0f172a', w: 700, oc: '#ffffff', ow: 2.8 }, run: { c: null, w: 700, oc: '#ffffff', ow: 3 }, room: { c: '#1e293b', w: 800, oc: '#ffffff', ow: 0 } },
+  WORDS: { 4: 'Thin', 5: 'Light', 6: 'Normal', 7: 'Bold', 8: 'Extra bold', 9: 'Black' },
+  of(it, kind, runColor) { const d = this.DEF[kind], o = (it && it.lbl) || {}; return { c: o.c || d.c || runColor || '#0891b2', w: o.w || d.w, oc: o.oc || d.oc, ow: o.ow != null ? o.ow : d.ow }; },
+  /* SVG attributes for a name's <text> */
+  attrs(it, kind, fs, runColor) { const v = this.of(it, kind, runColor); return ` style="fill:${v.c};font-weight:${v.w};stroke:${v.ow > 0 ? v.oc : 'none'}" stroke-width="${Math.round(fs * v.ow * 10) / 100}"`; },
+  html(it, kind, runColor) {
+    const v = this.of(it, kind, runColor), custom = !!(it.lbl && Object.keys(it.lbl).length);
+    return `<div class="lbl-style" id="lbl-style">
+      <div class="lbl-head"><b>Name text style</b><a href="#" id="ls-reset" ${custom ? '' : 'hidden'}>Reset</a></div>
+      <div class="ls-colors"><label class="fld"><span>Text color</span><input type="color" id="ls-c" value="${v.c}"></label><label class="fld"><span>Outline color</span><input type="color" id="ls-oc" value="${v.oc}"></label></div>
+      <div class="slider-row"><span>Text thickness</span><input type="range" id="ls-w" min="4" max="9" step="1" value="${Math.round(v.w / 100)}"><em id="ls-w-v">${this.WORDS[Math.round(v.w / 100)]}</em></div>
+      <div class="slider-row"><span>Outline thickness</span><input type="range" id="ls-ow" min="0" max="10" step="0.5" value="${v.ow}"><em id="ls-ow-v">${v.ow ? v.ow : 'None'}</em></div></div>`;
+  },
+  wire(root, it, kind, changed, runColor) {
+    const g = id => root.querySelector('#' + id); if (!g('lbl-style')) return;
+    const d = this.DEF[kind];
+    const put = (k, v, def) => { it.lbl = it.lbl || {}; if (v === def || v == null) delete it.lbl[k]; else it.lbl[k] = v; if (!Object.keys(it.lbl).length) delete it.lbl; g('ls-reset').hidden = !it.lbl; changed(); };
+    g('ls-c').oninput = e => put('c', e.target.value.toLowerCase(), (d.c || runColor || '').toLowerCase());
+    g('ls-oc').oninput = e => put('oc', e.target.value.toLowerCase(), d.oc);
+    g('ls-w').oninput = e => { const w = +e.target.value * 100; g('ls-w-v').textContent = this.WORDS[+e.target.value]; put('w', w, d.w); };
+    g('ls-ow').oninput = e => { const v = +e.target.value; g('ls-ow-v').textContent = v ? v : 'None'; put('ow', v, d.ow); };
+    g('ls-reset').onclick = e => { e.preventDefault(); delete it.lbl; const v = this.of(it, kind, runColor); g('ls-c').value = v.c; g('ls-oc').value = v.oc; g('ls-w').value = v.w / 100; g('ls-w-v').textContent = this.WORDS[v.w / 100]; g('ls-ow').value = v.ow; g('ls-ow-v').textContent = v.ow ? v.ow : 'None'; g('ls-reset').hidden = true; changed(); };
   },
 };
 function polyLength(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += dist(pts[i - 1], pts[i]); return L; }
@@ -5331,8 +5361,8 @@ const MapView = {
           const vx = g.cx - d.x, vy = g.cy - d.y, vl = Math.hypot(vx, vy) || 1, sx = vx / vl * s * 0.5, sy = vy / vl * s * 0.5;
           lead = `<line class="dlead" x1="${sx}" y1="${sy}" x2="${ln[2] - d.x}" y2="${ln[3] - d.y}" stroke="#475569" stroke-width="${Math.max(1, 1.2 * u)}" stroke-linecap="round" opacity="0.9" pointer-events="none"/>`;
         }
-        label = lead + `<g transform="translate(${g.cx - d.x} ${g.cy - d.y}) rotate(${g.rot})"><text class="dlabel" y="${fs * 0.35}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(d.label)}</text></g>`;
-      } else label = `<text class="dlabel" y="${s * 0.5 + fs * 1.05}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(d.label)}</text>`;
+        label = lead + `<g transform="translate(${g.cx - d.x} ${g.cy - d.y}) rotate(${g.rot})"><text class="dlabel" y="${fs * 0.35}" font-size="${fs}"${LblStyle.attrs(d, 'dev', fs)}>${esc(d.label)}</text></g>`;
+      } else label = `<text class="dlabel" y="${s * 0.5 + fs * 1.05}" font-size="${fs}"${LblStyle.attrs(d, 'dev', fs)}>${esc(d.label)}</text>`;
     }
     return `<g class="dev ${extraCls}" data-dev="${d.id}" transform="translate(${d.x} ${d.y})">
       <title>${esc(d.label || '')} · ${esc(t.name)}${d.fields.location ? ' · ' + esc(d.fields.location) : ''}</title>
@@ -5406,7 +5436,7 @@ const MapView = {
               const ln = this.leaderLine(g.mid, g, g.fs * 1.4);
               if (ln) body += `<line x1="${ln[0]}" y1="${ln[1]}" x2="${ln[2]}" y2="${ln[3]}" stroke="${c}" stroke-width="${Math.max(1, 1.2 * u)}" stroke-linecap="round" opacity="0.85" pointer-events="none"/><circle cx="${ln[0]}" cy="${ln[1]}" r="${Math.max(1.6, 1.8 * u)}" fill="${c}"/>`;
             }
-            body += `<g transform="translate(${g.cx} ${g.cy}) rotate(${g.rot})">${textTag(0, 0, g.txt, g.fs, c)}</g>`;
+            body += `<g transform="translate(${g.cx} ${g.cy}) rotate(${g.rot})"><text x="0" y="0" font-size="${g.fs}" fill="${c}" text-anchor="middle" dominant-baseline="central" class="mk-lbl"${LblStyle.attrs(m, 'run', g.fs, c)}>${esc(g.txt)}</text></g>`;
           }
           body += `<circle cx="${P[0][0]}" cy="${P[0][1]}" r="${w * 1.1}" fill="${c}"/><circle cx="${P[P.length - 1][0]}" cy="${P[P.length - 1][1]}" r="${w * 1.1}" fill="${c}"/>`;
           if (m.dots && !preview) P.forEach((q, i) => { const dd = m.dots[i]; if (!dd || !dd.kind) return; const kd = Dots.kind(dd.kind); body += `<g pointer-events="none"><circle cx="${q[0]}" cy="${q[1]}" r="${w * 2.6}" fill="#fff" fill-opacity="0.55" stroke="${kd.color}" stroke-width="${w * 0.9}"/><circle cx="${q[0]}" cy="${q[1]}" r="${w * 0.9}" fill="${kd.color}"/></g>`; });
@@ -7029,7 +7059,7 @@ const Side = {
       ${row('lbl-x', 'Left / right', Math.round(off[0] / u), -lim, lim, '')}
       ${row('lbl-y', 'Up / down', Math.round(off[1] / u), -lim, lim, '')}
       ${row('lbl-r', 'Angle', Math.round(rot), -180, 180, '°')}
-      <p class="tiny muted">Or drag the blue dots next to the name on the map: the left one moves it, the right one turns it. A thin line connects it to the ${isDev ? 'device' : 'cable'}.</p></div>`;
+      <p class="tiny muted">Or drag the blue dots next to the name on the map: the left one moves it, the right one turns it. A thin line connects it to the ${isDev ? 'device' : 'cable'}.</p></div>${LblStyle.html(it, isDev ? 'dev' : 'run', it.color)}`;
   },
   wireLbl(it, isDev, changed) {
     const u = planUnit(Editor.plan), $$1 = id => $('#' + id, this.el);
@@ -7047,6 +7077,7 @@ const Side = {
       rg.oninput = () => { nm.value = rg.value; apply(); };
       nm.oninput = () => { const v = clamp(Math.round(+nm.value || 0), +rg.min, +rg.max); rg.value = v; apply(); };
     }
+    LblStyle.wire(this.el, it, isDev ? 'dev' : 'run', changed, it.color);
     $$1('lbl-reset').onclick = e => {
       e.preventDefault(); delete it.lblOff; if (isDev) delete it.lblRot; else delete it.lblRot;
       sync('lbl-x', 0); sync('lbl-y', 0); sync('lbl-r', isDev ? 0 : Math.round((MapView.cableLabelGeo(it) || { rot: 0 }).rot));
@@ -9871,7 +9902,7 @@ const Layout = {
       const th = fs * 1.3 + info.length * fs * 0.85;
       labels += `<g class="lr-lbl" transform="translate(${x} ${y})"${hit('data-lr', r.id)}>
         ${interactive ? `<rect class="lr-hit" x="${-tw / 2}" y="${-th / 2 - 1}" width="${tw}" height="${th + 2}" rx="2"/>` : ''}
-        <text y="${-th / 2 + fs * 0.65}" font-size="${fs}" font-family="Arial" font-weight="800" fill="#1e293b" text-anchor="middle" dominant-baseline="central" letter-spacing="0.4">${esc(name.toUpperCase())}</text>
+        <text y="${-th / 2 + fs * 0.65}" font-size="${fs}" font-family="Arial" text-anchor="middle" dominant-baseline="central" letter-spacing="0.4" paint-order="stroke" stroke-linejoin="round"${LblStyle.attrs(r, 'room', fs)}>${esc(name.toUpperCase())}</text>
         ${interactive && (r.photos || []).length ? (() => {
           // photo badge: tap the room to see them
           const n = r.photos.length, bx = Math.min(tw / 2, name.length * fs * 0.33 + fs * 0.4) + fs * 0.75, by = -th / 2 + fs * 0.65, br = fs * 0.62;
@@ -11041,7 +11072,8 @@ const LayoutUI = {
           ${this.roomMaterialsHtml(e)}
           ${Side.section('rlook', 'Look on the drawing', `
             <div class="fld"><span>Floor color</span><div class="swatches" id="ly-colors">${ROOM_COLORS.map(c => `<button style="--c:${c}" data-c="${c}" class="${(e.color || '#eef2f7') === c ? 'on' : ''}"></button>`).join('')}</div></div>
-            <label class="chk-row"><input type="checkbox" class="chk" id="ly-area" ${e.showArea !== false ? 'checked' : ''}><span>Show area on the drawing</span></label>`, 'Palette', false)}
+            <label class="chk-row"><input type="checkbox" class="chk" id="ly-area" ${e.showArea !== false ? 'checked' : ''}><span>Show area on the drawing</span></label>
+            ${LblStyle.html(e, 'room')}`, 'Palette', false)}
           ${Side.section('rnotes', 'Notes', `<textarea class="inp" id="ly-notes" rows="3" placeholder="Access, ceiling clearance, anything the crew should know…">${esc(e.notes || '')}</textarea>`, 'FileText')}
           <div class="mk-actions"><button class="btn sm danger-ghost" id="ly-del">${ic('Trash')}<span>Delete room</span></button><button class="btn sm danger-ghost" id="ly-delall">${ic('Trash')}<span>Room & its walls</span></button></div>
           <p class="tiny muted">Drag the room name on the drawing to move the label. Sizes are measured to wall centers.</p>
@@ -11112,6 +11144,7 @@ const LayoutUI = {
       });
       $$('#ly-colors [data-c]', el).forEach(b => b.onclick = () => { e.color = b.dataset.c; touch('now', true); });
       on('#ly-area', 'change', ev => { e.showArea = ev.target.checked; touch('now'); });
+      LblStyle.wire(el, e, 'room', () => touch('soon'));
       on('#ly-ceil', 'input', ev => { e.ceiling = ev.target.value; Editor.changed({ commit: 'soon' }); });
       this.bindRoomExtras(el, e);
       const resize = (axis) => (v) => {
