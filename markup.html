@@ -496,6 +496,9 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .dot-t { display: flex; flex-direction: column; min-width: 0; } .dot-t small { color: var(--muted); }
 .dot-fields { border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
 .dot-fh { font-weight: 700; margin-bottom: 8px; color: var(--c); }
+.oo-box { border: 1px solid var(--accent); border-radius: 10px; padding: 10px; margin: -2px 0 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.oo-box .oo-row { display: flex; gap: 8px; margin: 8px 0 4px; }
+.oo-del { margin: -4px 0 8px; }
 .combo-link { position: sticky; bottom: -5px; display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; background: var(--panel); color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
 .combo-link:hover { background: var(--hover, rgba(128,128,128,.12)); }
 .combo-link svg { width: 18px; height: 18px; }
@@ -2051,10 +2054,10 @@ const Dots = {
     { id: 'box', name: 'Pull box / junction', color: '#7c3aed', hint: 'A box, enclosure or termination point on the run.', fields: [
       ['box', 'What is it', 'select', ['Pull box', 'Junction box', 'Splice enclosure', 'Patch panel / rack', 'Wall plate / jack', 'Other']],
       ['size', 'Size', 'text', 'e.g. 12x12x4'],
-      ['where', 'Where', 'select', ['Above ceiling', 'In the wall', 'Surface mounted', 'In a rack', 'Other']] ] },
+      ['where', 'Where', 'select', ['Above ceiling', 'In the wall', 'Surface mounted', 'In a rack', 'Other'], 'bwhere'] ] },
     { id: 'slack', name: 'Service loop / slack', color: '#16a34a', hint: 'Extra cable left coiled here.', fields: [
       ['len', 'Slack left (ft)', 'number'],
-      ['where', 'Coiled', 'select', ['Above ceiling', 'In the wall', 'At the device', 'At the rack', 'Other']] ] },
+      ['where', 'Coiled', 'select', ['Above ceiling', 'In the wall', 'At the device', 'At the rack', 'Other'], 'swhere'] ] },
     { id: 'hazard', name: 'Obstacle / needs attention', color: '#eab308', hint: 'Something that makes this spot harder.', fields: [
       ['issue', 'What is the issue', 'select', ['No ceiling access', 'Insulation', 'Needs a lift / ladder', 'Tight space', 'Asbestos concern', 'Needs permission', 'Other']] ] },
   ],
@@ -2068,6 +2071,60 @@ const Dots = {
   feet(m) { let t = 0; for (const d of m.dots || []) if (d && (d.kind === 'updown' || d.kind === 'slack')) t += Math.max(0, +(d.f && d.f.len) || 0); return t; },
   /* distance (plan px) from a point to a segment */
   segDist(p, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); const x = a[0] + t * dx, y = a[1] + t * dy; return { d: Math.hypot(p[0] - x, p[1] - y), pt: [x, y] }; },
+};
+/* ===== "Other…" choices: type it in once, and it becomes a choice for everybody in the same company (never other companies) ===== */
+const OtherOpt = {
+  SENT: '__other',
+  hub() { return typeof Hub !== 'undefined' && Hub.bridge && typeof Hub.bridge.dotOpts === 'function'; },
+  custom(ck) { if (!this.hub()) return []; try { return (Hub.notify('dotOpts') || []).filter(x => x && x.field === ck).map(x => x.value); } catch (e) { return []; } },
+  isCustom(ck, v) { return !!v && this.custom(ck).some(x => x.toLowerCase() === String(v).toLowerCase()); },
+  /* <option>s: the normal choices, then the company's own, the current value if it's something else, then "Other" */
+  options(base, ck, cur, { blank = 'Not set' } = {}) {
+    const plain = base.filter(o => o !== 'Other'), seen = new Set(plain.map(o => o.toLowerCase())), mine = [];
+    for (const v of this.custom(ck)) if (!seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); mine.push(v); }
+    if (cur && !seen.has(String(cur).toLowerCase())) mine.push(cur);
+    const o = v => `<option value="${esc(v)}" ${cur === v ? 'selected' : ''}>${esc(v)}</option>`;
+    return `<option value="">${esc(blank)}</option>${plain.map(o).join('')}${mine.length ? `<optgroup label="${esc(this.hub() ? 'Your company’s choices' : 'Typed in')}">${mine.map(o).join('')}</optgroup>` : ''}<option value="${this.SENT}">Other — type it in…</option>`;
+  },
+  /* make a <select> built with options() show a fill-in box when "Other" is picked */
+  attach(sel, ck) {
+    let prev = sel.value;
+    const field = sel.closest('.fld') || sel.parentElement;
+    const unlink = () => { const x = field.nextElementSibling; if (x && x.classList.contains('oo-del')) x.remove(); };
+    const delBtn = () => {
+      unlink();
+      if (!sel.value || !this.isCustom(ck, sel.value) || !(Hub.notify('dotOptCanDel'))) return;
+      const d = document.createElement('div'); d.className = 'oo-del';
+      d.innerHTML = `<button type="button" class="btn sm danger-ghost">${ic('Trash')}<span>Remove “${esc(sel.value)}” from the company list</span></button>`;
+      d.querySelector('button').onclick = () => { Hub.notify('dotOptDel', ck, sel.value); const o = [...sel.options].find(x => x.value === sel.value); const v = sel.value; if (o) o.remove(); sel.value = ''; prev = ''; d.remove(); sel.dispatchEvent(new Event('change', { bubbles: true })); toast(`Removed “${v}” from your company’s choices`); };
+      field.after(d);
+    };
+    delBtn();
+    sel.addEventListener('change', () => {
+      const old = field.parentElement.querySelector('.oo-box[data-for="' + (sel.id || ck) + '"]');
+      if (sel.value !== this.SENT) { if (old) old.remove(); prev = sel.value; delBtn(); return; }
+      unlink(); if (old) { old.querySelector('input').focus(); return; }
+      const box = document.createElement('div'); box.className = 'oo-box'; box.dataset.for = sel.id || ck;
+      box.innerHTML = `<input class="inp" maxlength="60" placeholder="Type what it is…" autocomplete="off" enterkeyhint="done"><div class="oo-row"><button type="button" class="btn sm primary" data-a="save">Save</button><button type="button" class="btn sm" data-a="cancel">Cancel</button></div><p class="tiny muted">${this.hub() ? 'Saved for everyone in your company. Other companies never see it.' : 'Saved on this dot.'}</p>`;
+      field.after(box);
+      const inp = box.querySelector('input');
+      const cancel = () => { box.remove(); sel.value = prev; delBtn(); };
+      const save = () => {
+        const v = inp.value.trim().replace(/\s+/g, ' ').slice(0, 60);
+        if (!v) { inp.focus(); return; }
+        const hit = [...sel.options].find(o => o.value.toLowerCase() === v.toLowerCase());
+        let use = v;
+        if (hit) use = hit.value;
+        else { if (this.hub()) Hub.notify('dotOptAdd', ck, v); const o = document.createElement('option'); o.value = o.textContent = v; sel.insertBefore(o, [...sel.options].find(x => x.value === this.SENT)); }
+        box.remove(); sel.value = use; prev = use;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        if (!hit) toast(this.hub() ? `“${v}” saved for your company` : `“${v}” set`);
+      };
+      box.querySelector('[data-a=save]').onclick = save; box.querySelector('[data-a=cancel]').onclick = cancel;
+      inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); } };
+      setTimeout(() => inp.focus(), 30);
+    });
+  },
 };
 function polyLength(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += dist(pts[i - 1], pts[i]); return L; }
 
@@ -7150,9 +7207,9 @@ const Side = {
     const act = document.activeElement && this.el.contains(document.activeElement) ? document.activeElement.id : null;
     const last = m.points.length - 1;
     const where = i === 0 ? 'Start of the run' : i === last ? 'End of the run' : `Point ${i + 1} of ${m.points.length}`;
-    const fld = ([k, label, type, extra]) => {
+    const fld = ([k, label, type, extra, ck]) => {
       const v = (dd.f && dd.f[k]) ?? '';
-      if (type === 'select') return `<label class="fld"><span>${esc(label)}</span><select class="inp" data-k="${k}"><option value="">Not set</option>${extra.map(o => `<option ${v === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+      if (type === 'select') return `<label class="fld"><span>${esc(label)}</span><select class="inp" data-k="${k}" data-ck="${ck || k}">${OtherOpt.options(extra, ck || k, v)}</select></label>`;
       if (type === 'number') return `<label class="fld"><span>${esc(label)}</span><input class="inp" data-k="${k}" type="number" min="0" step="0.5" value="${esc(String(v))}" placeholder="0"></label>`;
       return `<label class="fld"><span>${esc(label)}</span><input class="inp" data-k="${k}" value="${esc(String(v))}" placeholder="${esc(extra || '')}"></label>`;
     };
@@ -7184,7 +7241,8 @@ const Side = {
       if (!d.kind && !d.note) m.dots[i] = null;
       save('now'); this.renderDot(m);
     });
-    $$('#dt-fields [data-k]', this.el).forEach(el => { const h = () => { const d = Dots.ensure(m, i); d.f = d.f || {}; if (el.value === '' ) delete d.f[el.dataset.k]; else d.f[el.dataset.k] = el.tagName === 'INPUT' && el.type === 'number' ? +el.value : el.value; $('#mk-ctotal') && 0; save(el.tagName === 'SELECT' ? 'now' : 'soon'); }; el.oninput = h; el.onchange = h; });
+    $$('#dt-fields select[data-ck]', this.el).forEach(el => OtherOpt.attach(el, el.dataset.ck));
+    $$('#dt-fields [data-k]', this.el).forEach(el => { const h = () => { if (el.value === OtherOpt.SENT) return; const d = Dots.ensure(m, i); d.f = d.f || {}; if (el.value === '' ) delete d.f[el.dataset.k]; else d.f[el.dataset.k] = el.tagName === 'INPUT' && el.type === 'number' ? +el.value : el.value; $('#mk-ctotal') && 0; save(el.tagName === 'SELECT' ? 'now' : 'soon'); }; el.oninput = h; el.onchange = h; });
     $('#dt-note').oninput = e => { const d = Dots.ensure(m, i); const v = e.target.value; if (v.trim()) d.note = v; else delete d.note; if (!d.kind && !d.note) m.dots[i] = null; save(); };
     $('#dt-prev').onclick = () => { this.dot = Math.max(0, i - 1); MapView.renderSel(); this.renderDot(m); };
     $('#dt-next').onclick = () => { this.dot = Math.min(last, i + 1); MapView.renderSel(); this.renderDot(m); };
@@ -7228,7 +7286,7 @@ const Side = {
           <div class="slider-row"><span>Fill</span><input type="range" id="mk-fill" min="0" max="1" step="0.02" value="${m.fill || 0}"><em id="mk-fill-v">${Math.round((m.fill || 0) * 100)}%</em></div>` : ''}
         ${m.kind === 'line' || m.kind === 'rect' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-barrier" ${m.barrier ? 'checked' : ''}><span>Blocks camera views &amp; sensor coverage (a wall)</span></label>` : ''}
         ${m.kind === 'arrow' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-both" ${m.both ? 'checked' : ''}><span>Arrowheads on both ends</span></label>` : ''}
-        ${m.kind === 'cable' ? `<div class="cab-grid"><label class="fld"><span>Cable type</span><select class="inp" id="mk-ctype"><option value="">Not set</option>${CABLE_TYPES.map(c => `<option ${m.cableType === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
+        ${m.kind === 'cable' ? `<div class="cab-grid"><label class="fld"><span>Cable type</span><select class="inp" id="mk-ctype">${OtherOpt.options(CABLE_TYPES, 'cable', m.cableType || '')}</select></label>
           <label class="fld"><span>Cables in this run</span><input class="inp" id="mk-count" type="number" min="1" step="1" value="${m.count || 1}"></label>
           <label class="fld"><span>Extra per cable (ft)</span><input class="inp" id="mk-extra" type="number" min="0" step="1" value="${m.extraFt || ''}" placeholder="slack, drops"></label></div>
           <p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
@@ -7255,7 +7313,8 @@ const Side = {
     $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
     const t = $('#mk-text'); if (t) t.oninput = () => { m.text = t.value; touch(); };
     const lb = $('#mk-label'); if (lb) lb.oninput = () => { m.label = lb.value; touch(); };
-    const ct = $('#mk-ctype'); if (ct) ct.onchange = () => { m.cableType = ct.value || undefined; if (m.cableType && !m.label) { m.label = m.cableType; if (lb) lb.value = m.label; } $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch('now'); };
+    const ct = $('#mk-ctype'); if (ct) OtherOpt.attach(ct, 'cable');
+    if (ct) ct.onchange = () => { if (ct.value === OtherOpt.SENT) return; m.cableType = ct.value || undefined; if (m.cableType && !m.label) { m.label = m.cableType; if (lb) lb.value = m.label; } $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch('now'); };
     const cn = $('#mk-count'); if (cn) cn.oninput = () => { const v = Math.max(1, Math.round(+cn.value || 1)); m.count = v > 1 ? v : undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
     const cx = $('#mk-extra'); if (cx) cx.oninput = () => { const v = Math.max(0, +cx.value || 0); m.extraFt = v || undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
     $$('#mk-colors [data-c]', this.el).forEach(b => b.onclick = () => { m.color = b.dataset.c; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.toggle('on', x === b)); touch('now'); $('.mk-ico', this.el).style.setProperty('--c', m.color); });
