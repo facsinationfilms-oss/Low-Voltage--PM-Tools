@@ -1095,6 +1095,26 @@ html.phone .ov-sec-h { gap: 8px; }
 .pm-zoom .icon-btn { background: rgba(17,26,44,.85); color: #fff; border: 1px solid rgba(255,255,255,.25); width: 38px; height: 38px; border-radius: 10px; }
 .pm-hint { position: absolute; left: 10px; top: 10px; z-index: 3; font-size: 12px; font-weight: 700; background: rgba(17,26,44,.85); padding: 3px 8px; border-radius: 8px; pointer-events: none; }
 .pm-hint:empty { display: none; }
+.pm-opts { background: #0e1626; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 8px 10px; max-height: 38vh; overflow: auto; animation: pm-rise .16s ease-out; }
+@keyframes pm-rise { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.pm-opts[hidden] { display: none; }
+.po-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; }
+.po-x { background: transparent; border: 0; color: #fff; font-size: 16px; cursor: pointer; padding: 2px 8px; }
+.po-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.07); }
+.po-row > b { font-size: 11px; font-weight: 600; opacity: .75; min-width: 86px; }
+.po-sw { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.po-col { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+.po-col.on { border-color: #fff; box-shadow: 0 0 0 2px #3b82f6; }
+.po-none { background: linear-gradient(135deg, transparent 45%, #ef4444 45%, #ef4444 55%, transparent 55%), #1f2a44; }
+.po-pick { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 2px dashed rgba(255,255,255,.5); display: block; position: relative; }
+.po-pick input { position: absolute; inset: -8px; width: 44px; height: 44px; padding: 0; border: 0; cursor: pointer; }
+.po-seg { display: flex; flex-wrap: wrap; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; overflow: hidden; }
+.po-seg button { background: transparent; color: #fff; border: 0; padding: 7px 11px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.po-seg button.on { background: #fff; color: #0f172a; }
+.po-rng { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 160px; }
+.po-rng input { flex: 1; width: 100%; }
+.po-hint { font-size: 12px; opacity: .8; margin: 4px 0; }
+.pm-style.on { background: #fff; color: #0f172a; }
 .pm-del { background: #b91c1c; border-color: #b91c1c; color: #fff; }
 .pm-del[hidden] { display: none; }
 .pm-wrap img, .pm-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
@@ -7953,29 +7973,57 @@ const PhotoMark = {
   COLORS: ['#ef4444', '#facc15', '#22c55e', '#3b82f6', '#ffffff', '#111827'],
   TOOLS: [['arrow', 'ArrowUpRight', 'Arrow'], ['ellipse', 'Circle', 'Circle'], ['rect', 'Square', 'Box'], ['pen', 'Scribble', 'Pen'], ['text', 'Typography', 'Text']],
 
+  /* line styles for outlines and arrows */
+  DASH: [['', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted'], ['dashdot', 'Dash-dot']],
+  dashAttr(d, w) {
+    const o = { dash: [w * 3.5, w * 2.5], dot: [0.01, w * 2.4], dashdot: [w * 3, w * 2.6, 0.01, w * 2.6] }[d];
+    return o ? ` stroke-dasharray="${o.map(n => Math.round(n * 100) / 100).join(' ')}" stroke-linecap="${d === 'dash' ? 'butt' : 'round'}"` : '';
+  },
+  _tc: null,
+  tw(txt, s) {                       // width of a text mark, measured the same way everywhere
+    try { this._tc = this._tc || document.createElement('canvas').getContext('2d'); this._tc.font = `700 ${s}px Arial, Helvetica, sans-serif`; return this._tc.measureText(txt).width; }
+    catch (_) { return txt.length * s * 0.6; }
+  },
+
   /* the SVG for one mark, in the photo's own pixel space */
   markSvg(m, base) {
-    const c = m.c, w = m.w;
+    const c = m.c, w = m.w, so = m.so == null ? 1 : m.so, dash = this.dashAttr(m.dash, w);
+    const sa = `stroke="${c}" stroke-width="${w}"${so < 1 ? ` stroke-opacity="${so}"` : ''}${dash}`;
+    const fa = m.fill ? ` fill="${m.fill}" fill-opacity="${m.fo == null ? 0.4 : m.fo}"` : ' fill="none"';
     if (m.t === 'arrow') {
-      const [x1, y1] = m.a, [x2, y2] = m.b;
+      const [x1, y1] = m.a, [x2, y2] = m.b, head = m.head || 'arrow';
       const ang = Math.atan2(y2 - y1, x2 - x1), L = Math.max(w * 4.5, 14), W = Math.max(w * 2.6, 8);
-      const bx = x2 - L * Math.cos(ang), by = y2 - L * Math.sin(ang), px = -Math.sin(ang) * W, py = Math.cos(ang) * W;
-      return `<g><line x1="${x1}" y1="${y1}" x2="${bx + (x2 - bx) * 0.2}" y2="${by + (y2 - by) * 0.2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><polygon points="${x2},${y2} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${c}" stroke="${c}" stroke-width="${w * 0.3}" stroke-linejoin="round"/></g>`;
+      const hp = (x, y, an) => { const bx = x - L * Math.cos(an), by = y - L * Math.sin(an), px = -Math.sin(an) * W, py = Math.cos(an) * W;
+        return { bx, by, poly: `<polygon points="${x},${y} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${c}" stroke="${c}" stroke-width="${w * 0.3}" stroke-linejoin="round"/>` }; };
+      let lx1 = x1, ly1 = y1, lx2 = x2, ly2 = y2, extra = '';
+      if (head === 'arrow' || head === 'both') { const h = hp(x2, y2, ang); lx2 = h.bx + (x2 - h.bx) * 0.2; ly2 = h.by + (y2 - h.by) * 0.2; extra += h.poly; }
+      if (head === 'both') { const h = hp(x1, y1, ang + Math.PI); lx1 = h.bx + (x1 - h.bx) * 0.2; ly1 = h.by + (y1 - h.by) * 0.2; extra += h.poly; }
+      if (head === 'dot') extra += `<circle cx="${x2}" cy="${y2}" r="${w * 1.8}" fill="${c}"/>`;
+      return `<g${so < 1 ? ` opacity="${so}"` : ''}><line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${c}" stroke-width="${w}"${dash || ' stroke-linecap="round"'}/>${extra}</g>`;
     }
     if (m.t === 'ellipse') {
       const x = Math.min(m.a[0], m.b[0]), y = Math.min(m.a[1], m.b[1]), rx = Math.abs(m.b[0] - m.a[0]) / 2, ry = Math.abs(m.b[1] - m.a[1]) / 2;
-      return `<ellipse cx="${x + rx}" cy="${y + ry}" rx="${rx}" ry="${ry}" fill="none" stroke="${c}" stroke-width="${w}"/>`;
+      return `<ellipse cx="${x + rx}" cy="${y + ry}" rx="${rx}" ry="${ry}"${fa} ${sa}/>`;
     }
     if (m.t === 'rect') {
       const x = Math.min(m.a[0], m.b[0]), y = Math.min(m.a[1], m.b[1]);
-      return `<rect x="${x}" y="${y}" width="${Math.abs(m.b[0] - m.a[0])}" height="${Math.abs(m.b[1] - m.a[1])}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round"/>`;
+      return `<rect x="${x}" y="${y}" width="${Math.abs(m.b[0] - m.a[0])}" height="${Math.abs(m.b[1] - m.a[1])}"${fa} ${sa} stroke-linejoin="round"/>`;
     }
     if (m.t === 'pen') {
-      return `<polyline points="${m.pts.map(p => p[0] + ',' + p[1]).join(' ')}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      return `<polyline points="${m.pts.map(p => p[0] + ',' + p[1]).join(' ')}" fill="none" ${sa}${dash ? '' : ' stroke-linecap="round"'} stroke-linejoin="round"/>`;
     }
     if (m.t === 'text') {
-      const dark = c === '#111827';
-      return `<text x="${m.a[0]}" y="${m.a[1]}" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${m.s}" fill="${c}" stroke="${dark ? '#fff' : '#000'}" stroke-width="${m.s * 0.16}" paint-order="stroke" stroke-linejoin="round" dominant-baseline="hanging">${esc(m.txt)}</text>`;
+      const s = m.s, dark = c === '#111827', x = m.a[0], y = m.a[1], tw = this.tw(m.txt, s), pad = s * 0.3;
+      const bx = x - pad, by = y - pad * 0.5, bw = tw + pad * 2, bh = s * 1.1 + pad, bd = m.bd || 'none', bc = m.bc || c, bwid = Math.max(1.5, s * 0.08);
+      let box = '';
+      const tfa = m.fill ? `fill="${m.fill}" fill-opacity="${m.fo == null ? 0.6 : m.fo}"` : 'fill="none"';
+      if (bd === 'box' || bd === 'round' || bd === 'pill' || m.fill) {
+        const rx = bd === 'round' ? s * 0.3 : bd === 'pill' ? bh / 2 : (bd === 'none' ? s * 0.15 : 0);
+        box += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${rx}" ${tfa}${bd === 'none' || bd === 'underline' ? '' : ` stroke="${bc}" stroke-width="${bwid}"`}/>`;
+      }
+      if (bd === 'underline') box += `<line x1="${bx}" y1="${by + bh}" x2="${bx + bw}" y2="${by + bh}" stroke="${bc}" stroke-width="${bwid}" stroke-linecap="round"/>`;
+      const halo = m.halo !== false ? ` stroke="${dark ? '#fff' : '#000'}" stroke-width="${s * 0.16}" paint-order="stroke" stroke-linejoin="round"` : '';
+      return `<g>${box}<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${s}" fill="${c}"${halo} dominant-baseline="hanging">${esc(m.txt)}</text></g>`;
     }
     return '';
   },
@@ -7995,7 +8043,7 @@ const PhotoMark = {
       const src = ph.orig || ph.data, W = ph.w, H = ph.h, base = Math.max(W, H) / 1000;
       const clone = o => JSON.parse(JSON.stringify(o));
       let marks = clone(ph.marks || []), undoS = [], redoS = [], tool = marks.length ? 'select' : 'arrow', color = this.COLORS[0], size = 1, cur = null, input = null;
-      let sel = -1, drag = null, z = 1, tx = 0, ty = 0, spaceDown = false;
+      let sel = -1, drag = null, z = 1, tx = 0, ty = 0, spaceDown = false, defs = {}, optsOpen = false, optsKey = '', gest = false;
       const SZ = [0.6, 1, 1.8];
       const el = document.createElement('div');
       el.id = 'photomark';
@@ -8006,10 +8054,12 @@ const PhotoMark = {
           <div class="pm-zoom"><button class="icon-btn" id="pm-zin" title="Zoom in">${ic('Plus')}</button><button class="icon-btn" id="pm-zfit" title="Fit to screen">${ic('ArrowsMaximize')}</button><button class="icon-btn" id="pm-zout" title="Zoom out">${ic('Minus')}</button></div>
           <div class="pm-hint" id="pm-hint"></div></div>
         <div class="pm-bar">
+          <div class="pm-opts" id="pm-opts" hidden></div>
           <div class="pm-row" id="pm-tools">${TOOLS.map(([k, i, n]) => `<button class="pm-tool" data-t="${k}" title="${n}">${ic(i)}<span>${n}</span></button>`).join('')}</div>
           <div class="pm-row"><div id="pm-colors">${this.COLORS.map(c => `<button class="pm-col" data-c="${c}" style="background:${c}" aria-label="Colour ${c}"></button>`).join('')}</div>
             <div class="pm-sizes" id="pm-sizes"><button data-s="0">S</button><button data-s="1">M</button><button data-s="2">L</button></div>
             <span class="spacer"></span>
+            <button class="btn pm-style" id="pm-style" title="Fill, line style and borders (or tap the tool again)">${ic('Adjustments')}<span>Style</span></button>
             <button class="btn pm-del" id="pm-del" title="Delete the selected mark" hidden>${ic('Trash')}<span>Delete</span></button>
             <button class="icon-btn pm-ic" id="pm-undo" title="Undo">${ic('ArrowBackUp')}</button><button class="icon-btn pm-ic" id="pm-redo" title="Redo">${ic('ArrowForwardUp')}</button><button class="icon-btn pm-ic" id="pm-clear" title="Clear all marks">${ic('Trash')}</button></div>
         </div>`;
@@ -8052,9 +8102,11 @@ const PhotoMark = {
           if (m.t === 'arrow') d = segD(p, m.a, m.b) - m.w / 2;
           else if (m.t === 'pen') { for (let k = 1; k < m.pts.length; k++) d = Math.min(d, segD(p, m.pts[k - 1], m.pts[k])); d -= m.w / 2; }
           else if (m.t === 'rect') { const x1 = Math.min(m.a[0], m.b[0]), x2 = Math.max(m.a[0], m.b[0]), y1 = Math.min(m.a[1], m.b[1]), y2 = Math.max(m.a[1], m.b[1]);
-            d = Math.min(segD(p, [x1, y1], [x2, y1]), segD(p, [x2, y1], [x2, y2]), segD(p, [x2, y2], [x1, y2]), segD(p, [x1, y2], [x1, y1])) - m.w / 2; }
+            d = Math.min(segD(p, [x1, y1], [x2, y1]), segD(p, [x2, y1], [x2, y2]), segD(p, [x2, y2], [x1, y2]), segD(p, [x1, y2], [x1, y1])) - m.w / 2;
+            if (m.fill && p[0] >= x1 && p[0] <= x2 && p[1] >= y1 && p[1] <= y2) d = 0; }
           else if (m.t === 'ellipse') { const rx = Math.abs(m.b[0] - m.a[0]) / 2 || 0.5, ry = Math.abs(m.b[1] - m.a[1]) / 2 || 0.5, cx = (m.a[0] + m.b[0]) / 2, cy = (m.a[1] + m.b[1]) / 2;
-            d = Math.abs(Math.hypot((p[0] - cx) / rx, (p[1] - cy) / ry) - 1) * Math.min(rx, ry) - m.w / 2; }
+            const rr = Math.hypot((p[0] - cx) / rx, (p[1] - cy) / ry);
+            d = Math.abs(rr - 1) * Math.min(rx, ry) - m.w / 2; if (m.fill && rr <= 1) d = 0; }
           else if (m.t === 'text') { const b = bbox(i); if (b && p[0] >= b.x - tol / 2 && p[0] <= b.x + b.w + tol / 2 && p[1] >= b.y - tol / 2 && p[1] <= b.y + b.h + tol / 2) d = 0; }
           if (d <= tol) return i;
         }
@@ -8073,6 +8125,58 @@ const PhotoMark = {
         for (const [k, x, y] of handles(sel)) h += `<circle data-h="${k}" cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="#3b82f6" stroke-width="${2 / sc}" style="cursor:pointer"/>`;
         g.innerHTML = h; syncUI();
       };
+      /* ---- style bar: fill, line style, borders (opens from the Style button, or by tapping the active tool again) ---- */
+      const defOf = t => (defs[t] = defs[t] || {});
+      const optTarget = () => marks[sel] || null;
+      const optType = () => { const m = optTarget(); return m ? m.t : tool; };
+      const getv = k => { const m = optTarget(); return m ? m[k] : defOf(tool)[k]; };
+      const setv = (k, v) => { const m = optTarget(); if (m) m[k] = v; else defOf(tool)[k] = v; if (v === undefined) { if (m) delete m[k]; else delete defOf(tool)[k]; } };
+      const swatches = (k, none, def) => {
+        const cur = getv(k), cols = this.COLORS.concat(['#f97316', '#a855f7']);
+        return `<div class="po-sw">${none ? `<button class="po-col po-none${!cur ? ' on' : ''}" data-os="${k}" data-v="" title="None"></button>` : ''}${cols.map(c => `<button class="po-col${cur === c ? ' on' : ''}" data-os="${k}" data-v="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<label class="po-pick" title="Any colour"><input type="color" data-oc="${k}" value="${/^#[0-9a-f]{6}$/i.test(cur || '') ? cur : (def || '#3b82f6')}"></label></div>`;
+      };
+      const seg = (k, opts, def) => { const cur = getv(k) || def || ''; return `<div class="po-seg">${opts.map(([v, l]) => `<button class="${cur === v ? 'on' : ''}" data-os="${k}" data-v="${v}">${l}</button>`).join('')}</div>`; };
+      const rng = (k, label, def) => { const v = getv(k); return `<label class="po-rng"><span>${label}</span><input type="range" min="0" max="100" data-or="${k}" value="${Math.round((v == null ? def : v) * 100)}"></label>`; };
+      const renderOpts = force => {
+        const box = $e('#pm-opts'), st = $e('#pm-style');
+        if (st) st.classList.toggle('on', optsOpen);
+        if (!optsOpen) { box.hidden = true; optsKey = ''; return; }
+        const t = optType(), key = tool + '|' + sel + '|' + t;
+        if (!force && key === optsKey && !box.hidden) return;
+        optsKey = key; box.hidden = false;
+        const row = (l, h) => `<div class="po-row"><b>${l}</b>${h}</div>`;
+        let h = '';
+        if (t === 'rect' || t === 'ellipse') {
+          h = row('Fill', swatches('fill', true)) + row('Fill opacity', rng('fo', '', 0.4)) + row('Line', seg('dash', this.DASH)) ;
+        } else if (t === 'arrow') {
+          h = row('Line', seg('dash', this.DASH)) + row('Ends', seg('head', [['arrow', 'Arrow'], ['none', 'Plain line'], ['both', 'Both ends'], ['dot', 'Dot']], 'arrow')) + row('Opacity', rng('so', '', 1));
+        } else if (t === 'pen') {
+          h = row('Line', seg('dash', this.DASH)) + row('Opacity', rng('so', '', 1));
+        } else if (t === 'text') {
+          h = row('Border', seg('bd', [['none', 'None'], ['box', 'Box'], ['round', 'Rounded'], ['pill', 'Pill'], ['underline', 'Underline']], 'none')) + row('Border colour', swatches('bc', false, getv('c') || color))
+            + row('Fill', swatches('fill', true)) + row('Fill opacity', rng('fo', '', 0.6))
+            + row('Outline', seg('halo', [['1', 'On'], ['0', 'Off']], getv('halo') === false ? '0' : '1'));
+        } else h = '<p class="po-hint">Tap a mark you drew (or pick a drawing tool) to style it — fill, dashes, borders and more.</p>';
+        const lab = { rect: 'Box', ellipse: 'Circle', arrow: 'Arrow', pen: 'Pen', text: 'Text' }[t];
+        box.innerHTML = `<div class="po-head"><b>${lab ? lab + ' style' + (optTarget() ? ' (selected)' : ' (new marks)') : 'Style'}</b><button class="po-x" data-ox title="Close">✕</button></div>${h}`;
+      };
+      const optEdit = fn => { const m = optTarget(); if (m && !gest) { snap(); gest = true; } fn(); draw(); };
+      $e('#pm-opts').addEventListener('click', e => {
+        if (e.target.closest('[data-ox]')) { optsOpen = false; renderOpts(); return; }
+        const b = e.target.closest('[data-os]'); if (!b) return;
+        gest = false; const k = b.dataset.os; let v = b.dataset.v;
+        if (k === 'halo') { v = v === '1' ? undefined : false; }
+        else if (v === '') v = undefined;
+        optEdit(() => { setv(k, v); if (k === 'fill' && v && getv('fo') == null) setv('fo', optType() === 'text' ? 0.6 : 0.4); });
+        gest = false; renderOpts(true);
+      });
+      $e('#pm-opts').addEventListener('input', e => {
+        const r = e.target.closest('[data-or]'), c = e.target.closest('[data-oc]');
+        if (r) optEdit(() => setv(r.dataset.or, +r.value / 100));
+        else if (c) optEdit(() => { setv(c.dataset.oc, c.value); if (c.dataset.oc === 'fill' && getv('fo') == null) setv('fo', optType() === 'text' ? 0.6 : 0.4); });
+      });
+      $e('#pm-opts').addEventListener('change', () => { gest = false; renderOpts(true); });
+      $e('#pm-style').onclick = () => { optsOpen = !optsOpen; renderOpts(true); };
       const syncUI = () => {
         const m = marks[sel];
         $e('#pm-del').hidden = !m;
@@ -8080,6 +8184,7 @@ const PhotoMark = {
         const cs = m ? (m.t === 'text' ? m.s / (base * 24) : m.w / (base * 5)) : SZ[size];
         let bs = size; if (m) { bs = 0; SZ.forEach((v, k) => { if (Math.abs(v - cs) < Math.abs(SZ[bs] - cs)) bs = k; }); }
         el.querySelectorAll('#pm-sizes button').forEach(b => b.classList.toggle('on', +b.dataset.s === bs));
+        renderOpts();
       };
       const draw = () => {
         $e('#pm-marks').innerHTML = marks.map(m => this.markSvg(m)).join('');
@@ -8103,7 +8208,7 @@ const PhotoMark = {
         const done = ok => { if (input !== inp) return; input = null; const v = inp.value.trim(); inp.remove();
           if (!ok || !v) return;
           if (edit) { if (v !== edit.txt) { snap(); edit.txt = v; draw(); } }
-          else commit({ t: 'text', a: p, s: Math.round(base * 24 * SZ[size]), c: color, txt: v }); };
+          else commit(Object.assign({ t: 'text', a: p, s: Math.round(base * 24 * SZ[size]), c: color, txt: v }, clone(defOf('text')))); };
         inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); };
         inp.onblur = () => done(true);
       };
@@ -8135,7 +8240,7 @@ const PhotoMark = {
         sel = -1;
         if (tool === 'text') { e.preventDefault(); askText(p); return; }
         const w = Math.max(2, base * 5 * SZ[size]);
-        cur = tool === 'pen' ? { t: 'pen', pts: [p], c: color, w } : { t: tool, a: p, b: p, c: color, w };
+        cur = Object.assign(tool === 'pen' ? { t: 'pen', pts: [p], c: color, w } : { t: tool, a: p, b: p, c: color, w }, clone(defOf(tool)));
         draw();
       });
       stage.addEventListener('pointermove', e => {
@@ -8197,7 +8302,7 @@ const PhotoMark = {
       };
       stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = null; drag = null; cur = null; draw(); });
       /* ---- toolbar ---- */
-      el.querySelectorAll('.pm-tool').forEach(b => b.onclick = () => { tool = b.dataset.t; if (tool !== 'select') sel = -1; draw(); });
+      el.querySelectorAll('.pm-tool').forEach(b => b.onclick = () => { const t = b.dataset.t; if (t === tool && t !== 'select') { optsOpen = !optsOpen; draw(); renderOpts(true); return; } tool = t; if (tool !== 'select') sel = -1; draw(); renderOpts(true); });
       el.querySelectorAll('.pm-col').forEach(b => b.onclick = () => { if (sel >= 0 && marks[sel]) { snap(); marks[sel].c = b.dataset.c; } else color = b.dataset.c; draw(); });
       el.querySelectorAll('#pm-sizes button').forEach(b => b.onclick = () => {
         const k = +b.dataset.s;
@@ -8209,7 +8314,7 @@ const PhotoMark = {
       $e('#pm-undo').onclick = () => { if (undoS.length) { redoS.push(clone(marks)); marks = undoS.pop(); sel = -1; draw(); } };
       $e('#pm-redo').onclick = () => { if (redoS.length) { undoS.push(clone(marks)); marks = redoS.pop(); sel = -1; draw(); } };
       $e('#pm-clear').onclick = () => { if (marks.length) { snap(); marks = []; sel = -1; draw(); } };
-      const close = v => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('keyup', onKeyUp, true); window.removeEventListener('resize', fit); el.remove(); resolve(v); };
+      const close = v => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('keyup', onKeyUp, true); window.removeEventListener('resize', fit); if (ro) ro.disconnect(); el.remove(); resolve(v); };
       const onKey = e => {
         if (input) return;
         if (e.key === ' ') { spaceDown = true; e.preventDefault(); return; }
@@ -8220,6 +8325,7 @@ const PhotoMark = {
       const onKeyUp = e => { if (e.key === ' ') spaceDown = false; };
       document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKeyUp, true);
       window.addEventListener('resize', fit);
+      let ro = null; try { ro = new ResizeObserver(() => fit()); ro.observe(stage); } catch (_) {}
       $e('#pm-cancel').onclick = () => close(false);
       $e('#pm-done').onclick = async () => {
         if (input) input.blur();
