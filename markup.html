@@ -451,6 +451,10 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .psec-b { display: none; padding: 2px 12px 12px; }
 .psec.open .psec-b { display: block; }
 .psec-b .fld:last-child { margin-bottom: 0; }
+.psec-x .psec-b > .lay-row { margin: 0; padding: 0; border: 0; background: none; }
+.psec-x .lay-h b, .psec-x .lbl-head b { display: none; }
+.psec-x .lbl-head { justify-content: flex-end; min-height: 0; }
+.psec-x .psec-b > .lbl-ctl, .psec-x .psec-b > .lbl-style { margin: 0; padding: 0; border: 0; background: none; }
 .fchk { padding: 4px 0 8px; }
 .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .ph { position: relative; aspect-ratio: 1; border-radius: 9px; overflow: hidden; border: 1px solid var(--line-2); background: var(--bg-2); padding: 0; }
@@ -1142,6 +1146,7 @@ html.phone .ov-sec-h { gap: 8px; }
 .lbl-head a[hidden] { display: none; }
 .handle.rot { fill: #f59e0b; }
 .handle.size { fill: #22c55e; cursor: nesw-resize; }
+.handle.vsel { fill: #ef4444 !important; stroke: #fff; }
 
 /* ---- 360° photos ---- */
 .pano-grid { grid-template-columns: repeat(2, 1fr); }
@@ -5610,7 +5615,7 @@ const MapView = {
             const corners = [[a[0], a[1]], [b[0], a[1]], [b[0], b[1]], [a[0], b[1]]];
             corners.forEach((p, i) => { html += `<rect data-h="corner:${i}" x="${p[0] - hr}" y="${p[1] - hr}" width="${hr * 2}" height="${hr * 2}" class="handle" stroke-width="${sw}"/>`; });
           } else if (it.kind !== 'pen') {
-            it.points.forEach((p, i) => { html += `<circle data-h="vertex:${i}" cx="${p[0]}" cy="${p[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move. Double-click for this dot's details</title></circle>`; });
+            it.points.forEach((p, i) => { html += `<circle data-h="vertex:${i}" cx="${p[0]}" cy="${p[1]}" r="${hr}" class="handle round${this.selVertex && this.selVertex.id === it.id && this.selVertex.i === i ? ' vsel' : ''}" stroke-width="${sw}"><title>Drag to move. Double-click for details. Right-click or press Delete to remove this dot</title></circle>`; });
             if (it.kind === 'cable' && Side.mode === 'markup' && Side.id === it.id && Side.dot != null && it.points[Side.dot]) { const q = it.points[Side.dot]; html += `<circle cx="${q[0]}" cy="${q[1]}" r="${hr * 1.9}" class="sel-ring" stroke-width="${2.5 / k}" pointer-events="none"/>`; }
           }
           if (it.kind === 'cable' && it.links) for (const lid of it.links) { const ld = Editor.findItem(lid); if (!ld || !Editor.isDevice(lid) || Editor.devHidden(ld)) continue; html += `<circle cx="${ld.x}" cy="${ld.y}" r="${devSize(this.plan, ld) * 0.72 + 5 / k}" class="sel-ring" stroke-width="${2.5 / k}" stroke="${it.color}" pointer-events="none"/>`; }
@@ -5745,10 +5750,16 @@ const MapView = {
     if (tool === 'lplace' && this.placeLayout) { this.drag = { mode: 'lplace', s: loc }; return; }
     const hit = this.hitInfo(e);
     if (tool === 'select') {
+      if (!hit.handle) this.selVertex = null;
       if (hit.handle) {
         const id = [...this.sel][0];
         const it = Editor.findItem(id);
         const lay = id && id[0] === 'l';
+        if (hit.handle.startsWith('vertex:')) {            // remember which dot was grabbed so Delete / right-click can remove just that one
+          this.selVertex = { id, i: +hit.handle.split(':')[1] };
+          $$('.handle.vsel', this.svg || document).forEach(n => n.classList.remove('vsel'));
+          const hn = e.target.closest && e.target.closest('[data-h]'); if (hn) hn.classList.add('vsel');
+        } else this.selVertex = null;
         this.drag = { mode: lay ? 'lhandle' : 'handle', h: hit.handle, id, s: loc, orig: clone(it), moved: false };
         return;
       }
@@ -6173,6 +6184,23 @@ const MapView = {
     this.zoomAt(f, loc[0], loc[1]);
   },
 
+  /* remove one dot of a run / line; returns false when it can't (a run needs at least 2 dots) */
+  removeVertex(id, i) {
+    const m = Editor.findItem(id);
+    if (!m || !m.points || !m.points[i]) return false;
+    const min = /poly|area/i.test(m.kind || '') ? 3 : 2;
+    if (m.points.length <= min) { toast(`A ${m.kind === 'cable' ? 'run' : 'line'} needs at least ${min} dots. Press Delete again to remove the whole thing.`); this.selVertex = null; return true; }
+    m.points.splice(i, 1);
+    if (m.dots) Dots.remove(m, i);
+    this.selVertex = null;
+    const inSide = Side.mode === 'markup' && Side.id === id;
+    if (inSide) Side.dot = null;
+    this.renderAll(); Editor.changed({ commit: 'now' });
+    if (inSide) Side.renderMarkup();
+    toast('Dot removed');
+    return true;
+  },
+
   onContext(e) {
     e.preventDefault();
     if (!this.plan) return;
@@ -6183,6 +6211,20 @@ const MapView = {
     if (this.placeType || this.placeLayout || LayoutUI.ghostRoom) { Editor.setTool('select'); return; }
     const hit = this.hitInfo(e);
     const p = this.toPlan(e.clientX, e.clientY);
+    if (hit.handle && hit.handle.startsWith('vertex:') && this.sel.size === 1) {
+      const id = [...this.sel][0], i = +hit.handle.split(':')[1], m = Editor.findItem(id);
+      if (m && m.points) {
+        this.selVertex = { id, i }; this.renderSel();
+        const min = /poly|area/i.test(m.kind || '') ? 3 : 2;
+        showMenu(null, [
+          ...(m.kind === 'cable' ? [{ label: 'Dot details…', icon: 'Edit', onClick: () => Side.showMarkup(id, { dot: i }) }] : []),
+          { label: m.points.length <= min ? `Delete this dot (needs ${min} dots)` : 'Delete this dot', icon: 'Trash', kbd: 'Del', danger: true, disabled: m.points.length <= min, onClick: () => this.removeVertex(id, i) },
+          '-',
+          { label: m.kind === 'cable' ? 'Delete the whole run' : 'Delete the whole line', icon: 'Trash', danger: true, onClick: () => Editor.deleteSelection() },
+        ], { x: e.clientX, y: e.clientY });
+        return;
+      }
+    }
     if (hit.id && hit.id[0] === 'l' && !(this.sel.size > 1 && this.sel.has(hit.id))) {
       this.sel = new Set([hit.id]); this.renderSelState();
       const kind = Layout.kindOf(hit.id), el = Layout.find(this.plan, hit.id);
@@ -7316,7 +7358,7 @@ const Side = {
     $('#dt-note').oninput = e => { const d = Dots.ensure(m, i); const v = e.target.value; if (v.trim()) d.note = v; else delete d.note; if (!d.kind && !d.note) m.dots[i] = null; save(); };
     $('#dt-prev').onclick = () => { this.dot = Math.max(0, i - 1); MapView.renderSel(); this.renderDot(m); };
     $('#dt-next').onclick = () => { this.dot = Math.min(last, i + 1); MapView.renderSel(); this.renderDot(m); };
-    $('#dt-del').onclick = () => { if (m.points.length <= 2) return; m.points.splice(i, 1); Dots.remove(m, i); this.dot = null; MapView.renderAll(); Editor.changed({ commit: 'now' }); this.renderMarkup(); toast('Dot removed'); };
+    $('#dt-del').onclick = () => { MapView.removeVertex(m.id, i); };
   },
 
   cableTotalText(m) {
@@ -12625,6 +12667,59 @@ const Lsym = {
   };
 }
 
+/* ---- details panel: every section collapses (the device panel's own accordions already do) ---- */
+const SideSections = {
+  busy: false,
+  mount() {
+    const el = document.getElementById('side'); if (!el || this.obs) return;
+    this.obs = new MutationObserver(() => this.run(el));
+    this.obs.observe(el, { childList: true });
+    this.run(el);
+  },
+  wrap(el, nodes, title) {
+    nodes = nodes.filter(Boolean); if (!nodes.length) return;
+    const key = 'x:' + title, st = Settings.data.panelSections || {}, open = st[key] === undefined ? true : st[key];
+    const sec = document.createElement('section');
+    sec.className = 'psec psec-x' + (open ? ' open' : ''); sec.dataset.sec = key;
+    sec.innerHTML = `<button type="button" class="psec-h"><span>${esc(title)}</span>${ic('ChevronDown', 'chev')}</button><div class="psec-b"></div>`;
+    nodes[0].parentNode.insertBefore(sec, nodes[0]);
+    const b = sec.querySelector('.psec-b'); nodes.forEach(n => b.appendChild(n));
+    sec.querySelector('.psec-h').onclick = () => {
+      sec.classList.toggle('open');
+      Settings.set('panelSections', { ...(Settings.data.panelSections || {}), [key]: sec.classList.contains('open') });
+    };
+  },
+  run(el) {
+    if (this.busy) return; this.busy = true; this.obs.disconnect();
+    try {
+      const lay = [...el.children].find(c => c.classList && c.classList.contains('lay-row'));
+      if (lay) this.wrap(el, [lay], 'Layer');
+      const body = [...el.children].find(c => c.classList && c.classList.contains('side-body'));
+      if (body) {
+        const SKIP = c => c.classList.contains('psec') || c.classList.contains('mk-actions') || c.classList.contains('sd-meta') || c.classList.contains('multi-types') || c.tagName === 'SCRIPT';
+        const kids = [...body.children]; let run = [];
+        const flush = () => {
+          if (!run.length) return;
+          const has = s => run.some(n => n.matches && (n.matches(s) || n.querySelector(s)));
+          const title = has('.cab-grid') ? 'Cable' : has('.cab-links') ? 'Devices on this run' : has('.swatches') ? 'Appearance'
+            : (body.querySelector('.multi-types') ? 'Edit all selected' : 'Details');
+          this.wrap(el, run, title); run = [];
+        };
+        for (const c of kids) {
+          if (c.classList.contains('status-seg')) { flush(); this.wrap(el, [c], 'Status'); }
+          else if (c.classList.contains('size-row')) { flush(); this.wrap(el, [c], 'Icon size'); }
+          else if (c.classList.contains('lbl-ctl')) { flush(); this.wrap(el, [c], 'Name on the map'); }
+          else if (c.classList.contains('lbl-style')) { flush(); this.wrap(el, [c], 'Name text style'); }
+          else if (SKIP(c)) flush();
+          else { if (c.classList.contains('cab-grid') || c.classList.contains('cab-links')) flush(); run.push(c); }
+        }
+        flush();
+      }
+    } catch (e) { console.error('SideSections', e); }
+    this.busy = false; this.obs.observe(el, { childList: true });
+  },
+};
+
 /* ---- 17e-layers.js ---- */
 /* ===== Layers: choose what a shape draws above or below =====
    Markups (shapes, lines, text, layout symbols) are drawn in plan.markups order, later = on top.
@@ -13104,6 +13199,9 @@ document.addEventListener('keydown', (e) => {
   }
   if (key === 'Enter' && MapView.poly) { MapView.finishPoly(true); return; }
   if (key === 'Backspace' && MapView.poly) { e.preventDefault(); MapView.poly.pts.pop(); if (!MapView.poly.pts.length) MapView.poly = null; MapView.renderTemp(); return; }
+  if ((key === 'Delete' || key === 'Backspace') && MapView.selVertex && MapView.sel.size === 1 && MapView.sel.has(MapView.selVertex.id)) {
+    e.preventDefault(); const sv = MapView.selVertex; if (MapView.removeVertex(sv.id, sv.i)) return;
+  }
   if (key === 'Delete' || key === 'Backspace') { e.preventDefault(); Editor.deleteSelection(); return; }
   if (key.startsWith('Arrow') && MapView.sel.size) {
     e.preventDefault();
@@ -13162,6 +13260,7 @@ document.addEventListener('visibilitychange', () => {
   App.setView('home');
   await Home.render();
   Install.init();
+  SideSections.mount();
   document.body.classList.add('ready');
   window.__ready = true;
   if (HUB) Hub.notify('ready');
