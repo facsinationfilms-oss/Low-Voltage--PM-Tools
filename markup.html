@@ -1141,6 +1141,7 @@ html.phone .ov-sec-h { gap: 8px; }
 .lbl-head a { font-size: 12px; }
 .lbl-head a[hidden] { display: none; }
 .handle.rot { fill: #f59e0b; }
+.handle.size { fill: #22c55e; cursor: nesw-resize; }
 
 /* ---- 360° photos ---- */
 .pano-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2170,6 +2171,7 @@ const LblStyle = {
       <div class="lbl-head"><b>Name text style</b><a href="#" id="ls-reset" ${custom ? '' : 'hidden'}>Reset</a></div>
       <div class="ls-colors"><label class="fld"><span>Text color</span><input type="color" id="ls-c" value="${v.c}"></label><label class="fld"><span>Outline color</span><input type="color" id="ls-oc" value="${v.oc}"></label></div>
       <div class="slider-row"><span>Text thickness</span><input type="range" id="ls-w" min="4" max="9" step="1" value="${Math.round(v.w / 100)}"><em id="ls-w-v">${this.WORDS[Math.round(v.w / 100)]}</em></div>
+      ${kind !== 'room' ? `<div class="slider-row"><span>Text size</span><input type="range" id="ls-sz" min="30" max="400" step="5" value="${Math.round((it.lblScale || 1) * 100)}"><em id="ls-sz-v">${Math.round((it.lblScale || 1) * 100)}%</em></div>` : ''}
       <div class="slider-row"><span>Outline thickness</span><input type="range" id="ls-ow" min="0" max="10" step="0.5" value="${v.ow}"><em id="ls-ow-v">${v.ow ? v.ow : 'None'}</em></div></div>`;
   },
   wire(root, it, kind, changed, runColor) {
@@ -2180,6 +2182,7 @@ const LblStyle = {
     g('ls-oc').oninput = e => put('oc', e.target.value.toLowerCase(), d.oc);
     g('ls-w').oninput = e => { const w = +e.target.value * 100; g('ls-w-v').textContent = this.WORDS[+e.target.value]; put('w', w, d.w); };
     g('ls-ow').oninput = e => { const v = +e.target.value; g('ls-ow-v').textContent = v ? v : 'None'; put('ow', v, d.ow); };
+    if (g('ls-sz')) g('ls-sz').oninput = e => { const v = +e.target.value; g('ls-sz-v').textContent = v + '%'; if (Math.abs(v - 100) < 3) delete it.lblScale; else it.lblScale = v / 100; changed(); };
     g('ls-reset').onclick = e => { e.preventDefault(); delete it.lbl; const v = this.of(it, kind, runColor); g('ls-c').value = v.c; g('ls-oc').value = v.oc; g('ls-w').value = v.w / 100; g('ls-w-v').textContent = this.WORDS[v.w / 100]; g('ls-ow').value = v.ow; g('ls-ow-v').textContent = v.ow ? v.ow : 'None'; g('ls-reset').hidden = true; changed(); };
   },
 };
@@ -5288,7 +5291,7 @@ const MapView = {
   /* ---- names of devices and cable runs can be moved and turned; a thin line then ties the name to its device ---- */
   devLabelGeo(d, plan = this.plan) {
     const s = devSize(plan, d), u = planUnit(plan);
-    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(d.size || 1) * (plan.labelScale || 1);
+    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(d.size || 1) * (plan.labelScale || 1) * (d.lblScale || 1);
     const off = d.lblOff || [0, 0], by = s * 0.5 + fs * 0.7;
     return { s, u, fs, off, rot: d.lblRot || 0, hw: String(d.label || '').length * fs * 0.31 + fs * 0.2, hh: fs * 0.6, base: [d.x, d.y + by], cx: d.x + off[0], cy: d.y + by + off[1] };
   },
@@ -5299,7 +5302,7 @@ const MapView = {
   cableLabelGeo(m) {
     const P = m.points, txt = this.cableLabelText(m);
     if (!txt || P.length < 2) return null;
-    const u = planUnit(this.plan), fs = 12 * u;
+    const u = planUnit(this.plan), fs = 12 * u * (m.lblScale || 1);
     let bi = 0, bl = 0;
     for (let i = 1; i < P.length; i++) { const l = dist(P[i - 1], P[i]); if (l > bl) { bl = l; bi = i; } }
     const a = P[bi - 1], b = P[bi], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
@@ -5374,7 +5377,7 @@ const MapView = {
     const t = Reg.type(d.type);
     const s = devSize(plan, d);
     const u = planUnit(plan);
-    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(d.size || 1) * (plan.labelScale || 1);
+    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(d.size || 1) * (plan.labelScale || 1) * (d.lblScale || 1);
     const st = STATUSES.find(x => x.id === d.status);
     const badge = Settings.data.showStatus && d.status && d.status !== 'planned' ? this.statusBadge(d.status, s) : '';
     const nph = (d.photos || []).length;
@@ -5556,9 +5559,11 @@ const MapView = {
   labelHandles(g, hr, sw, k, tie) {
     const r = g.rot * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r), gap = hr * 1.5;
     const L = [g.cx - c * (g.hw + gap), g.cy - sn * (g.hw + gap)], R = [g.cx + c * (g.hw + gap), g.cy + sn * (g.hw + gap)];
+    const zx = g.hw + hr * 0.9, zy = -(g.hh + hr * 0.9), Z = [g.cx + c * zx - sn * zy, g.cy + sn * zx + c * zy];   // top-right corner of the name, turned with it
     return `<rect class="sel-box" x="${g.cx - g.hw}" y="${g.cy - g.hh}" width="${g.hw * 2}" height="${g.hh * 2}" transform="rotate(${g.rot} ${g.cx} ${g.cy})" stroke-width="${sw}" stroke-dasharray="${3 / k} ${3 / k}" fill="none"/>`
       + `<circle data-h="lbl" cx="${L[0]}" cy="${L[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the name</title></circle>`
-      + `<circle data-h="lbl-rot" cx="${R[0]}" cy="${R[1]}" r="${hr * 0.85}" class="handle round rot" stroke-width="${sw}"><title>Drag to turn the name (hold Shift to snap)</title></circle>`;
+      + `<circle data-h="lbl-rot" cx="${R[0]}" cy="${R[1]}" r="${hr * 0.85}" class="handle round rot" stroke-width="${sw}"><title>Drag to turn the name (hold Shift to snap)</title></circle>`
+      + `<circle data-h="lbl-size" cx="${Z[0]}" cy="${Z[1]}" r="${hr * 0.85}" class="handle round size" stroke-width="${sw}"><title>Drag to make the name bigger or smaller</title></circle>`;
   },
 
   renderSel() {
@@ -6301,10 +6306,16 @@ const MapView = {
       if (shift) a = Math.round(a / 5) * 5;
       tgt.angle = Math.round(a);
       if (li === 0) it.fields.fovAngle = tgt.angle;
-    } else if (h === 'lbl' || h === 'lbl-rot') {
+    } else if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') {
       const isDev = Editor.isDevice(d.id), g = isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it);
       if (g) {
-        if (h === 'lbl') {
+        if (h === 'lbl-size') {
+          if (!d.gs) d.gs = { p: p.slice(), s: it.lblScale || 1, c: [g.cx, g.cy] };
+          const d0 = Math.hypot(d.gs.p[0] - d.gs.c[0], d.gs.p[1] - d.gs.c[1]) || 1, d1 = Math.hypot(p[0] - d.gs.c[0], p[1] - d.gs.c[1]);
+          let sc = clamp(d.gs.s * d1 / d0, 0.3, 8);
+          sc = Math.round(sc * 100) / 100;
+          if (Math.abs(sc - 1) < 0.04) delete it.lblScale; else it.lblScale = sc;
+        } else if (h === 'lbl') {
           if (!d.grab) d.grab = [g.cx - p[0], g.cy - p[1]];
           const nx = p[0] + d.grab[0], ny = p[1] + d.grab[1];
           const o = [Math.round((nx - g.base[0]) * 10) / 10, Math.round((ny - g.base[1]) * 10) / 10];
@@ -6331,8 +6342,8 @@ const MapView = {
       if (i === 2) { b[0] = p[0]; b[1] = p[1]; }
       if (i === 3) { a[0] = p[0]; b[1] = p[1]; }
     }
-    if (Editor.isDevice(d.id)) { this.renderCones(); if (h === 'lbl' || h === 'lbl-rot') { this.renderDevs(); Side.liveLabel(it); } this.renderSel(); Side.liveCone(it); }
-    else { this.renderMarks(); this.renderSel(); if (h === 'lbl' || h === 'lbl-rot') Side.liveLabel(it); }
+    if (Editor.isDevice(d.id)) { this.renderCones(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') { this.renderDevs(); Side.liveLabel(it); } this.renderSel(); Side.liveCone(it); }
+    else { this.renderMarks(); this.renderSel(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') Side.liveLabel(it); }
   },
 
   renderSelState() {
@@ -7118,6 +7129,7 @@ const Side = {
     let rot = it.lblRot || 0; if (!isDev) { const g = MapView.cableLabelGeo(it); rot = g ? g.rot : 0; }
     const set = (id, v) => { const a = $('#' + id, this.el), b = $('#' + id + '-n', this.el); if (a) a.value = v; if (b) b.value = v; };
     set('lbl-x', Math.round(off[0] / u)); set('lbl-y', Math.round(off[1] / u)); set('lbl-r', Math.round(rot));
+    const sz = $('#ls-sz', this.el); if (sz) { sz.value = Math.round((it.lblScale || 1) * 100); const sv = $('#ls-sz-v', this.el); if (sv) sv.textContent = sz.value + '%'; }
     const r = $('#lbl-reset', this.el); if (r) r.hidden = !(it.lblOff || (isDev ? it.lblRot : it.lblRot != null));
   },
 
