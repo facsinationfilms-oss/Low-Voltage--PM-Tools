@@ -5803,7 +5803,7 @@ const MapView = {
           $$('.handle.vsel', this.svg || document).forEach(n => n.classList.remove('vsel'));
           const hn = e.target.closest && e.target.closest('[data-h]'); if (hn) hn.classList.add('vsel');
         } else this.selVertex = null;
-        this.drag = { mode: lay ? 'lhandle' : 'handle', h: hit.handle, id, s: loc, orig: clone(it), moved: false };
+        this.drag = { mode: lay ? 'lhandle' : 'handle', h: hit.handle, id, s: loc, orig: clone(it), moved: false, stkdid: hit.stkdid };
         return;
       }
       if (hit.id) {
@@ -6392,26 +6392,51 @@ const MapView = {
       tgt.angle = Math.round(a);
       if (li === 0) it.fields.fovAngle = tgt.angle;
     } else if (h === 'stkbox') {
-      d.mode = 'stkbox'; d.el = it;
-      const _sm = (this.plan.stacks || {})[it.stk] || {};
-      d.gs = { p: p.slice(), off: [...(_sm.boxOff || [devSize(this.plan, it) * 1.5, -devSize(this.plan, it) * 1.5])] };
+      if (!d.gs) {
+        d.el = it;
+        const _sm = (this.plan.stacks || {})[it.stk] || {};
+        d.gs = { p: p.slice(), off: [...(_sm.boxOff || [devSize(this.plan, it) * 1.5, -devSize(this.plan, it) * 1.5])] };
+      } else {
+        const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1];
+        Stack.setMeta(this.plan, it.stk, { boxOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] });
+        this.renderDevs(); this.renderSel(); Editor.changed();
+      }
     } else if (h === 'stkind') {
-      d.mode = 'stkind'; d.el = it;
-      const _sm = (this.plan.stacks || {})[it.stk] || {};
-      const _did = hit.stkdid || it.id;
-      const _s = Math.max(...Stack.members(this.plan, it.stk).map(x => devSize(this.plan, x)));
-      const _key = 'indOff_' + _did;
-      const _n = Stack.members(this.plan, it.stk).length;
-      const _idx = Stack.members(this.plan, it.stk).findIndex(x => x.id === _did);
-      const _spread = _s * 1.8;
-      const _defOff = [_spread * Math.cos((-60 + _idx * 360 / _n) * Math.PI / 180), _spread * Math.sin((-60 + _idx * 360 / _n) * Math.PI / 180)];
-      d.gs = { p: p.slice(), off: [...(_sm[_key] || _defOff)], did: _did };
+      if (!d.gs) {
+        d.el = it;
+        const _sm = (this.plan.stacks || {})[it.stk] || {};
+        const _did = d.stkdid || it.id;
+        const _s = Math.max(...Stack.members(this.plan, it.stk).map(x => devSize(this.plan, x)));
+        const _key = 'indOff_' + _did;
+        const _n = Stack.members(this.plan, it.stk).length;
+        const _idx = Stack.members(this.plan, it.stk).findIndex(x => x.id === _did);
+        const _spread = _s * 1.8;
+        const _defOff = [_spread * Math.cos((-60 + _idx * 360 / _n) * Math.PI / 180), _spread * Math.sin((-60 + _idx * 360 / _n) * Math.PI / 180)];
+        d.gs = { p: p.slice(), off: [...(_sm[_key] || _defOff)], did: _did };
+      } else {
+        const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1];
+        const obj = {}; obj['indOff_' + d.gs.did] = [d.gs.off[0] + dx, d.gs.off[1] + dy];
+        Stack.setMeta(this.plan, it.stk, obj);
+        this.renderDevs(); this.renderSel(); Editor.changed();
+      }
     } else if (h === 'stklbl' || h === 'stklbl-rot') {
-      d.mode = h; d.el = it;
-      const _sm = (this.plan.stacks || {})[it.stk] || {};
-      const _stm = Stack.members(this.plan, it.stk);
-      const _g = Stack.stkLabelGeo(this.plan, _stm);
-      d.gs = { p: p.slice(), off: [...(_sm.lblOff || [0, 0])], rot: _sm.lblRot || 0, base: _g ? _g.base : [it.x, it.y] };
+      if (!d.gs) {
+        d.el = it;
+        const _sm = (this.plan.stacks || {})[it.stk] || {};
+        const _stm = Stack.members(this.plan, it.stk);
+        const _g = Stack.stkLabelGeo(this.plan, _stm);
+        d.gs = { p: p.slice(), off: [...(_sm.lblOff || [0, 0])], rot: _sm.lblRot || 0, base: _g ? _g.base : [it.x, it.y] };
+      } else if (h === 'stklbl') {
+        const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1];
+        Stack.setMeta(this.plan, it.stk, { lblOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] });
+        this.renderDevs(); this.renderSel(); Editor.changed();
+      } else {
+        const bx = d.gs.base[0] + d.gs.off[0], by = d.gs.base[1] + d.gs.off[1];
+        const a = Math.atan2(p[1] - by, p[0] - bx) * 180 / Math.PI;
+        let deg = Math.round(a); if (this.shiftDown) deg = Math.round(deg / 15) * 15;
+        Stack.setMeta(this.plan, it.stk, { lblRot: deg });
+        this.renderDevs(); this.renderSel(); Editor.changed();
+      }
     } else if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') {
       const isDev = Editor.isDevice(d.id), g = isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it);
       if (g) {
@@ -6448,10 +6473,7 @@ const MapView = {
       if (i === 2) { b[0] = p[0]; b[1] = p[1]; }
       if (i === 3) { a[0] = p[0]; b[1] = p[1]; }
     }
-    if (d.mode === 'stkbox') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { boxOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
-    if (d.mode === 'stkind') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; const obj = {}; obj['indOff_' + d.gs.did] = [d.gs.off[0] + dx, d.gs.off[1] + dy]; Stack.setMeta(this.plan, it.stk, obj); this.renderDevs(); this.renderSel(); Editor.changed(); }
-    if (d.mode === 'stklbl') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { lblOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
-    if (d.mode === 'stklbl-rot') { const bx = d.gs.base[0] + d.gs.off[0], by = d.gs.base[1] + d.gs.off[1]; const a = Math.atan2(p[1] - by, p[0] - bx) * 180 / Math.PI; let deg = Math.round(a); if (this.shiftDown) deg = Math.round(deg / 15) * 15; Stack.setMeta(this.plan, it.stk, { lblRot: deg }); this.renderDevs(); this.renderSel(); Editor.changed(); }
+    /* stkbox / stkind / stklbl / stklbl-rot move logic is inline in their branches above */
     if (Editor.isDevice(d.id)) { this.renderCones(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') { this.renderDevs(); Side.liveLabel(it); } this.renderSel(); Side.liveCone(it); }
     else { this.renderMarks(); this.renderSel(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') Side.liveLabel(it); }
   },
