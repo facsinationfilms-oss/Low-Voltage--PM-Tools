@@ -6692,7 +6692,7 @@ const Stack = {
       const sOff = smd.lblOff || [0, 0], sRot = smd.lblRot || 0;
       if (sOff[0] || sOff[1] || sRot) {
         const by = s * 0.5 + fs * 0.7;
-        lbl = `<line x1="0" y1="0" x2="${sOff[0]}" y2="${by + sOff[1]}" class="stk-ind-line" stroke="#94a3b8" stroke-dasharray="3 3"/>` +
+        lbl = `<line x1="0" y1="0" x2="${sOff[0]}" y2="${by + sOff[1]}" class="stk-ind-line" stroke="#94a3b8" stroke-dasharray="3 3" stroke-width="${2.5 * u}"/>` +
               `<g transform="translate(${sOff[0]} ${by + sOff[1]}) rotate(${sRot})"><text class="dlabel" y="${fs * 0.35}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(stkLblText)}</text></g>`;
       } else {
         lbl = `<text class="dlabel" y="${s * 0.5 + fs * 1.05}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(stkLblText)}</text>`;
@@ -6742,7 +6742,7 @@ const Stack = {
         `<text x="${pad}" y="${pad + bfs * 0.85 + i * lineH}" font-size="${bfs}" font-weight="600" fill="#0f172a" font-family="system-ui, Arial, sans-serif">${esc(l)}</text>`
       ).join('');
       return `<g class="stk-lbl-box" data-stkbox="${lead.stk}">
-        <line x1="${lx1}" y1="${ly1}" x2="${bcx}" y2="${bcy}" stroke="${stroke}" stroke-opacity="0.5" class="stk-ind-line" stroke-width="${1.2 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
+        <line x1="${lx1}" y1="${ly1}" x2="${bcx}" y2="${bcy}" stroke="${stroke}" stroke-opacity="0.5" class="stk-ind-line" stroke-width="${2.5 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
         <g class="stk-box-body" data-h="stkbox" transform="translate(${cx} ${cy}) rotate(${rot} ${bw / 2} ${bh / 2})" style="cursor:grab">
           <rect width="${bw}" height="${bh}" rx="${rx}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${1.5 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
           ${textLines}
@@ -6764,11 +6764,11 @@ const Stack = {
         const dx = tx - lead.x, dy = ty - lead.y;
         const dd = Math.sqrt(dx * dx + dy * dy) || 1;
         const lx1 = lead.x + (dx / dd) * iconR, ly1 = lead.y + (dy / dd) * iconR;
-        html += `<line x1="${lx1}" y1="${ly1}" x2="${tx}" y2="${ty}" stroke="#94a3b8" stroke-opacity="0.6" stroke-width="${1.2 * u}" class="stk-ind-line"/>`;
+        html += `<line x1="${lx1}" y1="${ly1}" x2="${tx}" y2="${ty}" stroke="${sm.indStroke || '#94a3b8'}" stroke-opacity="0.6" stroke-width="${2.5 * u}" class="stk-ind-line"/>`;
         const pw = fs * lbl.length * 0.6 + fs * 0.6, ph = fs * 1.2;
         html += `<g class="stk-ind-grab" data-h="stkind" data-stkdid="${d.id}" style="cursor:grab">
-          <rect x="${tx - pw / 2}" y="${ty - ph / 2}" width="${pw}" height="${ph}" rx="${fs * 0.3}" fill="#fff" fill-opacity="0.88" stroke="#cbd5e1" stroke-width="${0.8 * u}"/>
-          <text class="stk-ind-lbl dlabel" x="${tx}" y="${ty + fs * 0.32}" font-size="${fs}" text-anchor="middle" fill="#1e293b" font-family="var(--font)" font-weight="600" pointer-events="none">${esc(lbl)}</text>
+          <rect x="${tx - pw / 2}" y="${ty - ph / 2}" width="${pw}" height="${ph}" rx="${fs * 0.3}" fill="${sm.indFill || '#ffffff'}" fill-opacity="${sm.indOpacity != null ? sm.indOpacity : 0.88}" stroke="${sm.indStroke || '#cbd5e1'}" stroke-width="${0.8 * u}"/>
+          <text class="stk-ind-lbl dlabel" x="${tx}" y="${ty + fs * 0.32}" font-size="${fs}" text-anchor="middle" fill="${sm.indTextColor || '#1e293b'}" font-family="var(--font)" font-weight="600" pointer-events="none">${esc(lbl)}</text>
         </g>`;
       });
       return `<g class="stk-lbl-box" data-stkindiv="${lead.stk}">${html}</g>`;
@@ -7717,6 +7717,12 @@ const Side = {
         <label class="fld sd-stk-name"><span>Stack name</span><input class="inp" id="stk-name-inp" value="${esc(Stack.autoName(plan, stk))}" placeholder="Stack name"></label>
         <div class="stk-display-opts">
           <label><input type="checkbox" id="stk-show-indiv" ${sm.showIndiv ? 'checked' : ''}><span>Show individual device names</span></label>
+          ${sm.showIndiv ? `<div class="stk-box-opts" id="stk-ind-opts">
+            <div class="sbo-row"><span>Fill color</span><input type="color" id="sio-fill" value="${sm.indFill || '#ffffff'}"></div>
+            <div class="sbo-row"><span>Opacity</span><input type="range" id="sio-opacity" min="0" max="100" step="5" value="${Math.round((sm.indOpacity != null ? sm.indOpacity : 0.88) * 100)}"><em id="sio-opacity-v">${Math.round((sm.indOpacity != null ? sm.indOpacity : 0.88) * 100)}%</em></div>
+            <div class="sbo-row"><span>Text color</span><input type="color" id="sio-text" value="${sm.indTextColor || '#1e293b'}"></div>
+            <div class="sbo-row"><span>Outline</span><input type="color" id="sio-stroke" value="${sm.indStroke || '#cbd5e1'}"></div>
+          </div>` : ''}
           <label><input type="checkbox" id="stk-show-box" ${sm.showBox ? 'checked' : ''}><span>Show names in a box</span></label>
           ${sm.showBox ? `<div class="stk-box-opts" id="stk-box-opts">
             <div class="sbo-row"><span>Fill color</span><input type="color" id="sbo-fill" value="${sm.boxFill || '#ffffff'}"></div>
@@ -7779,6 +7785,15 @@ const Side = {
     if (_bDash) _bDash.onchange = () => { Stack.setMeta(plan, stk, { boxDash: _bDash.value }); MapView.renderDevs(); Editor.changed(); };
     const _bRound = $('#sbo-round', this.el);
     if (_bRound) _bRound.onchange = () => { Stack.setMeta(plan, stk, { boxRound: _bRound.value === 'round' }); MapView.renderDevs(); Editor.changed(); };
+    /* individual name option wiring */
+    const _iFill = $('#sio-fill', this.el);
+    if (_iFill) _iFill.oninput = () => { Stack.setMeta(plan, stk, { indFill: _iFill.value }); MapView.renderDevs(); Editor.changed(); };
+    const _iOp = $('#sio-opacity', this.el);
+    if (_iOp) _iOp.oninput = () => { const v = +_iOp.value / 100; Stack.setMeta(plan, stk, { indOpacity: v }); const e = $('#sio-opacity-v', this.el); if (e) e.textContent = _iOp.value + '%'; MapView.renderDevs(); Editor.changed(); };
+    const _iText = $('#sio-text', this.el);
+    if (_iText) _iText.oninput = () => { Stack.setMeta(plan, stk, { indTextColor: _iText.value }); MapView.renderDevs(); Editor.changed(); };
+    const _iStr = $('#sio-stroke', this.el);
+    if (_iStr) _iStr.oninput = () => { Stack.setMeta(plan, stk, { indStroke: _iStr.value }); MapView.renderDevs(); Editor.changed(); };
     /* stack label position sliders */
     const _sGet = id => $('#' + id, this.el);
     const _sApply = () => {
