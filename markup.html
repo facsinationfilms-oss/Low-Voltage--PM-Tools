@@ -1086,6 +1086,8 @@ html.phone .ov-sec-h { gap: 8px; }
 .stk-st { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
 .stk-ind-line { stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 .stk-ind-lbl { pointer-events: none; }
+.stk-box-body:hover > rect:first-child { stroke-width: 2.5; transition: stroke-width 0.15s; }
+.stk-ind-grab:hover > rect { stroke: #3b82f6; stroke-width: 1.5; transition: stroke 0.15s; }
 .sd-stk-name { margin-bottom: 12px; }
 .sd-stk-name input { font-weight: 700; }
 .stk-display-opts { border-top: 1px solid var(--line-2); margin-top: 10px; padding-top: 10px; }
@@ -5644,8 +5646,9 @@ const MapView = {
       const _lead = _stm[0];
       const _s = Math.max(..._stm.map(d => devSize(this.plan, d)));
       if (_sm.showBox) {
-        const bx = _sm.boxOff || [_s * 1.5, -_s * 1.5];
-        html += `<circle data-h="stkbox" cx="${_lead.x + bx[0]}" cy="${_lead.y + bx[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the box</title></circle>`;
+        /* box itself is now the drag target via data-h="stkbox" on its body group — no extra handle needed */
+      } else if (_sm.showIndiv) {
+        /* individual names are now drag targets via data-h="stkind" on each pill — no extra handles needed */
       } else if (!_sm.showIndiv) {
         const _g = Stack.stkLabelGeo(this.plan, _stm);
         if (_g) {
@@ -5718,7 +5721,11 @@ const MapView = {
   hitInfo(e) {
     const t = e.target;
     const h = t.closest && t.closest('[data-h]');
-    if (h) return { handle: h.dataset.h };
+    if (h) {
+      const r = { handle: h.dataset.h };
+      if (h.dataset.stkdid) r.stkdid = h.dataset.stkdid;
+      return r;
+    }
     const dv = t.closest && t.closest('[data-dev]');
     if (dv) return { id: dv.dataset.dev };
     const mk = t.closest && t.closest('[data-mk]');
@@ -6388,6 +6395,17 @@ const MapView = {
       d.mode = 'stkbox'; d.el = it;
       const _sm = (this.plan.stacks || {})[it.stk] || {};
       d.gs = { p: p.slice(), off: [...(_sm.boxOff || [devSize(this.plan, it) * 1.5, -devSize(this.plan, it) * 1.5])] };
+    } else if (h === 'stkind') {
+      d.mode = 'stkind'; d.el = it;
+      const _sm = (this.plan.stacks || {})[it.stk] || {};
+      const _did = hit.stkdid || it.id;
+      const _s = Math.max(...Stack.members(this.plan, it.stk).map(x => devSize(this.plan, x)));
+      const _key = 'indOff_' + _did;
+      const _n = Stack.members(this.plan, it.stk).length;
+      const _idx = Stack.members(this.plan, it.stk).findIndex(x => x.id === _did);
+      const _spread = _s * 1.8;
+      const _defOff = [_spread * Math.cos((-60 + _idx * 360 / _n) * Math.PI / 180), _spread * Math.sin((-60 + _idx * 360 / _n) * Math.PI / 180)];
+      d.gs = { p: p.slice(), off: [...(_sm[_key] || _defOff)], did: _did };
     } else if (h === 'stklbl' || h === 'stklbl-rot') {
       d.mode = h; d.el = it;
       const _sm = (this.plan.stacks || {})[it.stk] || {};
@@ -6431,6 +6449,7 @@ const MapView = {
       if (i === 3) { a[0] = p[0]; b[1] = p[1]; }
     }
     if (d.mode === 'stkbox') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { boxOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
+    if (d.mode === 'stkind') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; const obj = {}; obj['indOff_' + d.gs.did] = [d.gs.off[0] + dx, d.gs.off[1] + dy]; Stack.setMeta(this.plan, it.stk, obj); this.renderDevs(); this.renderSel(); Editor.changed(); }
     if (d.mode === 'stklbl') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { lblOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
     if (d.mode === 'stklbl-rot') { const bx = d.gs.base[0] + d.gs.off[0], by = d.gs.base[1] + d.gs.off[1]; const a = Math.atan2(p[1] - by, p[0] - bx) * 180 / Math.PI; let deg = Math.round(a); if (this.shiftDown) deg = Math.round(deg / 15) * 15; Stack.setMeta(this.plan, it.stk, { lblRot: deg }); this.renderDevs(); this.renderSel(); Editor.changed(); }
     if (Editor.isDevice(d.id)) { this.renderCones(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') { this.renderDevs(); Side.liveLabel(it); } this.renderSel(); Side.liveCone(it); }
@@ -6682,8 +6701,8 @@ const Stack = {
       const sc = sm.boxScale || 1;
       const bfs = fs * sc;
       const lines = members.map(d => d.label || Reg.type(d.type).name);
-      const pad = bfs * 0.55, lineH = bfs * 1.35;
-      const tw = Math.max(bfs * 2, ...lines.map(l => l.length * bfs * 0.55 + bfs * 0.3));
+      const pad = bfs * 0.6, lineH = bfs * 1.4;
+      const tw = Math.max(bfs * 3, ...lines.map(l => l.length * bfs * 0.56 + bfs * 0.5));
       const bw = tw + pad * 2, bh = lines.length * lineH + pad * 2;
       const fill = sm.boxFill || '#ffffff';
       const opacity = sm.boxOpacity != null ? sm.boxOpacity : 0.92;
@@ -6691,14 +6710,21 @@ const Stack = {
       const dash = sm.boxDash === 'dotted' ? `${3 * u} ${3 * u}` : sm.boxDash === 'dashed' ? `${8 * u} ${4 * u}` : 'none';
       const rx = sm.boxRound ? bfs * 0.5 : 0;
       const cx = lead.x + bx[0], cy = lead.y + bx[1];
+      const bcx = cx + bw / 2, bcy = cy + bh / 2;
+      /* clip line at icon edge */
+      const ldx = bcx - lead.x, ldy = bcy - lead.y;
+      const ldist = Math.sqrt(ldx * ldx + ldy * ldy) || 1;
+      const iconR = s * 0.62;
+      const lx1 = lead.x + (ldx / ldist) * iconR, ly1 = lead.y + (ldy / ldist) * iconR;
       const textLines = lines.map((l, i) =>
         `<text x="${pad}" y="${pad + bfs * 0.85 + i * lineH}" font-size="${bfs}" font-weight="600" fill="#0f172a" font-family="system-ui, Arial, sans-serif">${esc(l)}</text>`
       ).join('');
       return `<g class="stk-lbl-box" data-stkbox="${lead.stk}">
-        <line x1="${lead.x}" y1="${lead.y}" x2="${cx + bw / 2}" y2="${cy + bh / 2}" stroke="${stroke}" class="stk-ind-line" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
-        <g transform="translate(${cx} ${cy}) rotate(${rot} ${bw / 2} ${bh / 2})">
+        <line x1="${lx1}" y1="${ly1}" x2="${bcx}" y2="${bcy}" stroke="${stroke}" stroke-opacity="0.5" class="stk-ind-line" stroke-width="${1.2 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
+        <g class="stk-box-body" data-h="stkbox" transform="translate(${cx} ${cy}) rotate(${rot} ${bw / 2} ${bh / 2})" style="cursor:grab">
           <rect width="${bw}" height="${bh}" rx="${rx}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${1.5 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
           ${textLines}
+          <rect width="${bw}" height="${bh}" rx="${rx}" fill="transparent" stroke="none" pointer-events="all"/>
         </g>
       </g>`;
     }
@@ -6706,13 +6732,22 @@ const Stack = {
     if (sm.showIndiv) {
       let html = '';
       const spread = s * 1.8;
+      const iconR = s * 0.62;
       members.forEach((d, i) => {
         const lbl = d.label || Reg.type(d.type).name;
         const key = 'indOff_' + d.id;
         const off = sm[key] || [spread * Math.cos((-60 + i * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + i * 360 / members.length) * Math.PI / 180)];
         const tx = lead.x + off[0], ty = lead.y + off[1];
-        html += `<line x1="${lead.x}" y1="${lead.y}" x2="${tx}" y2="${ty}" stroke="#64748b" class="stk-ind-line"/>`;
-        html += `<text class="stk-ind-lbl dlabel" x="${tx}" y="${ty + fs * 0.35}" font-size="${fs}" text-anchor="middle" fill="#0f172a" stroke="#fff" paint-order="stroke" stroke-linejoin="round" stroke-width="${fs * 0.28}" font-family="var(--font)">${esc(lbl)}</text>`;
+        /* clip line at icon edge */
+        const dx = tx - lead.x, dy = ty - lead.y;
+        const dd = Math.sqrt(dx * dx + dy * dy) || 1;
+        const lx1 = lead.x + (dx / dd) * iconR, ly1 = lead.y + (dy / dd) * iconR;
+        html += `<line x1="${lx1}" y1="${ly1}" x2="${tx}" y2="${ty}" stroke="#94a3b8" stroke-opacity="0.6" stroke-width="${1.2 * u}" class="stk-ind-line"/>`;
+        const pw = fs * lbl.length * 0.6 + fs * 0.6, ph = fs * 1.2;
+        html += `<g class="stk-ind-grab" data-h="stkind" data-stkdid="${d.id}" style="cursor:grab">
+          <rect x="${tx - pw / 2}" y="${ty - ph / 2}" width="${pw}" height="${ph}" rx="${fs * 0.3}" fill="#fff" fill-opacity="0.88" stroke="#cbd5e1" stroke-width="${0.8 * u}"/>
+          <text class="stk-ind-lbl dlabel" x="${tx}" y="${ty + fs * 0.32}" font-size="${fs}" text-anchor="middle" fill="#1e293b" font-family="var(--font)" font-weight="600" pointer-events="none">${esc(lbl)}</text>
+        </g>`;
       });
       return `<g class="stk-lbl-box" data-stkindiv="${lead.stk}">${html}</g>`;
     }
