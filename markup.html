@@ -1084,6 +1084,19 @@ html.phone .ov-sec-h { gap: 8px; }
 .stk-name b { font-weight: 700; }
 .stk-name em { font-style: normal; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stk-st { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.stk-ind-line { stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+.stk-ind-lbl { pointer-events: none; }
+.sd-stk-name { margin-bottom: 12px; }
+.sd-stk-name input { font-weight: 700; }
+.stk-display-opts { border-top: 1px solid var(--line-2); margin-top: 10px; padding-top: 10px; }
+.stk-display-opts label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; cursor: pointer; }
+.stk-display-opts input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+.stk-box-opts { margin: 8px 0 0 26px; display: flex; flex-direction: column; gap: 8px; }
+.stk-box-opts .sbo-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.stk-box-opts .sbo-row span { min-width: 80px; }
+.stk-box-opts input[type=color] { width: 36px; height: 28px; padding: 1px; border-radius: 6px; border: 1px solid var(--line-2); background: transparent; cursor: pointer; }
+.stk-box-opts input[type=range] { flex: 1; min-width: 60px; }
+.stk-box-opts select { padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--text); font-size: 12px; }
 
 /* Photo markup */
 .lb-mark, .lb-orig { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.2); color: #fff; }
@@ -2788,6 +2801,7 @@ function normalizeProject(p) {
     pl.markups = Array.isArray(pl.markups) ? pl.markups : [];
     pl.iconScale = pl.iconScale || 1;
     pl.labelScale = pl.labelScale || 1;
+    pl.stacks = pl.stacks || {};
     for (const d of pl.devices) { d.fields = d.fields || {}; d.photos = d.photos || []; d.status = d.status || 'planned'; }
     if (pl.kind === 'layout') Layout.ensure(pl);
   }
@@ -4446,7 +4460,7 @@ const Editor = {
   /* ---------- history ---------- */
   snap() {
     const p = this.plan;
-    const o = { devices: p.devices, markups: p.markups, scale: p.scale, iconScale: p.iconScale, labelScale: p.labelScale, coverOpacity: p.coverOpacity ?? null };
+    const o = { devices: p.devices, markups: p.markups, scale: p.scale, iconScale: p.iconScale, labelScale: p.labelScale, coverOpacity: p.coverOpacity ?? null, stacks: p.stacks || {} };
     if (Layout.is(p)) { o.layout = p.layout; o.bgw = p.bg.w; o.bgh = p.bg.h; }
     return JSON.stringify(o);
   },
@@ -5371,7 +5385,7 @@ const MapView = {
         if (done.has(d.stk)) continue;
         done.add(d.stk);
         const m = gr.get(d.stk);
-        html += Stack.svg(this.plan, m, { sel: !!sel && m.some(x => sel.has(x.id)) });
+        html += Stack.svg(this.plan, m, { sel: !!sel && m.some(x => sel.has(x.id)) }); html += Stack.extraSvg(this.plan, m);
       } else html += this.deviceSvg(d, sel && sel.has(d.id) ? 'sel' : '');
     }
     return html;
@@ -5619,6 +5633,28 @@ const MapView = {
             if (it.kind === 'cable' && Side.mode === 'markup' && Side.id === it.id && Side.dot != null && it.points[Side.dot]) { const q = it.points[Side.dot]; html += `<circle cx="${q[0]}" cy="${q[1]}" r="${hr * 1.9}" class="sel-ring" stroke-width="${2.5 / k}" pointer-events="none"/>`; }
           }
           if (it.kind === 'cable' && it.links) for (const lid of it.links) { const ld = Editor.findItem(lid); if (!ld || !Editor.isDevice(lid) || Editor.devHidden(ld)) continue; html += `<circle cx="${ld.x}" cy="${ld.y}" r="${devSize(this.plan, ld) * 0.72 + 5 / k}" class="sel-ring" stroke-width="${2.5 / k}" stroke="${it.color}" pointer-events="none"/>`; }
+        }
+      }
+    }
+    /* stack label handles when the whole stack is selected */
+    const _selStk = Stack.selected(this.plan, this.sel);
+    if (_selStk) {
+      const _sm = (this.plan.stacks || {})[_selStk] || {};
+      const _stm = Stack.members(this.plan, _selStk);
+      const _lead = _stm[0];
+      const _s = Math.max(..._stm.map(d => devSize(this.plan, d)));
+      if (_sm.showBox) {
+        const bx = _sm.boxOff || [_s * 1.5, -_s * 1.5];
+        html += `<circle data-h="stkbox" cx="${_lead.x + bx[0]}" cy="${_lead.y + bx[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the box</title></circle>`;
+      } else if (!_sm.showIndiv) {
+        const _g = Stack.stkLabelGeo(this.plan, _stm);
+        if (_g) {
+          const rr = _g.rot * Math.PI / 180, cc = Math.cos(rr), sn = Math.sin(rr), gap = hr * 1.5;
+          const Lp = [_g.cx - cc * (_g.hw + gap), _g.cy - sn * (_g.hw + gap)];
+          const Rp = [_g.cx + cc * (_g.hw + gap), _g.cy + sn * (_g.hw + gap)];
+          html += `<rect class="sel-box" x="${_g.cx - _g.hw}" y="${_g.cy - _g.hh}" width="${_g.hw * 2}" height="${_g.hh * 2}" transform="rotate(${_g.rot} ${_g.cx} ${_g.cy})" stroke-width="${sw}" stroke-dasharray="${3 / k} ${3 / k}" fill="none"/>`;
+          html += `<circle data-h="stklbl" cx="${Lp[0]}" cy="${Lp[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the stack name</title></circle>`;
+          html += `<circle data-h="stklbl-rot" cx="${Rp[0]}" cy="${Rp[1]}" r="${hr * 0.85}" class="handle round rot" stroke-width="${sw}"><title>Drag to rotate the stack name</title></circle>`;
         }
       }
     }
@@ -6348,6 +6384,16 @@ const MapView = {
       if (shift) a = Math.round(a / 5) * 5;
       tgt.angle = Math.round(a);
       if (li === 0) it.fields.fovAngle = tgt.angle;
+    } else if (h === 'stkbox') {
+      d.mode = 'stkbox'; d.el = it;
+      const _sm = (this.plan.stacks || {})[it.stk] || {};
+      d.gs = { p: p.slice(), off: [...(_sm.boxOff || [devSize(this.plan, it) * 1.5, -devSize(this.plan, it) * 1.5])] };
+    } else if (h === 'stklbl' || h === 'stklbl-rot') {
+      d.mode = h; d.el = it;
+      const _sm = (this.plan.stacks || {})[it.stk] || {};
+      const _stm = Stack.members(this.plan, it.stk);
+      const _g = Stack.stkLabelGeo(this.plan, _stm);
+      d.gs = { p: p.slice(), off: [...(_sm.lblOff || [0, 0])], rot: _sm.lblRot || 0, base: _g ? _g.base : [it.x, it.y] };
     } else if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') {
       const isDev = Editor.isDevice(d.id), g = isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it);
       if (g) {
@@ -6384,6 +6430,9 @@ const MapView = {
       if (i === 2) { b[0] = p[0]; b[1] = p[1]; }
       if (i === 3) { a[0] = p[0]; b[1] = p[1]; }
     }
+    if (d.mode === 'stkbox') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { boxOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
+    if (d.mode === 'stklbl') { const dx = p[0] - d.gs.p[0], dy = p[1] - d.gs.p[1]; Stack.setMeta(this.plan, it.stk, { lblOff: [d.gs.off[0] + dx, d.gs.off[1] + dy] }); this.renderDevs(); this.renderSel(); Editor.changed(); }
+    if (d.mode === 'stklbl-rot') { const bx = d.gs.base[0] + d.gs.off[0], by = d.gs.base[1] + d.gs.off[1]; const a = Math.atan2(p[1] - by, p[0] - bx) * 180 / Math.PI; let deg = Math.round(a); if (this.shiftDown) deg = Math.round(deg / 15) * 15; Stack.setMeta(this.plan, it.stk, { lblRot: deg }); this.renderDevs(); this.renderSel(); Editor.changed(); }
     if (Editor.isDevice(d.id)) { this.renderCones(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') { this.renderDevs(); Side.liveLabel(it); } this.renderSel(); Side.liveCone(it); }
     else { this.renderMarks(); this.renderSel(); if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') Side.liveLabel(it); }
   },
@@ -6480,6 +6529,7 @@ const Stack = {
   merge(plan, target, devs) {
     if (!target.stk || !this.stkOf(plan, target)) target.stk = uid('k');
     const stk = target.stk;
+    this.ensureName(plan, stk);
     for (const d of devs) {
       if (d === target) continue;
       d.stk = stk; d.x = target.x; d.y = target.y; d.updatedAt = Date.now();
@@ -6493,6 +6543,7 @@ const Stack = {
     const n = {};
     for (const d of plan.devices) if (d.stk) n[d.stk] = (n[d.stk] || 0) + 1;
     for (const d of plan.devices) if (d.stk && n[d.stk] < 2) delete d.stk;
+    if (plan.stacks) for (const k of Object.keys(plan.stacks)) { if (!n[k] || n[k] < 2) delete plan.stacks[k]; }
   },
   /* all the devices of a stack share the first one's spot */
   sync(plan) {
@@ -6527,8 +6578,38 @@ const Stack = {
     try { if (this._t && this._t.remove) this._t.remove(); } catch (e) {}
     this._t = toast(msg, { action: 'Undo', onAction: () => Editor.doUndo() });
   },
-  /* the label shown under a stack on the map */
-  label(members) {
+  meta(plan, stk) {
+    if (!plan.stacks) plan.stacks = {};
+    if (!plan.stacks[stk]) plan.stacks[stk] = {};
+    return plan.stacks[stk];
+  },
+  setMeta(plan, stk, patch) {
+    if (!plan.stacks) plan.stacks = {};
+    plan.stacks[stk] = { ...(plan.stacks[stk] || {}), ...patch };
+  },
+  nextNum(plan) {
+    const used = new Set();
+    for (const v of Object.values(plan.stacks || {})) {
+      const m = (v.name || '').match(/^Stack (\d+)$/);
+      if (m) used.add(+m[1]);
+    }
+    let n = 1; while (used.has(n)) n++;
+    return n;
+  },
+  autoName(plan, stk) {
+    const sm = this.meta(plan, stk);
+    if (!sm.name) sm.name = 'Stack ' + this.nextNum(plan);
+    return sm.name;
+  },
+  label(plan, members) {
+    const stk = members[0] && members[0].stk;
+    if (!stk) return '';
+    const sm = (plan.stacks || {})[stk];
+    if (sm) {
+      if (sm.showBox) return '';
+      if (sm.showIndiv) return '';
+      if (sm.name) return sm.name;
+    }
     const l = members.map(d => d.label).filter(Boolean);
     if (!l.length) return '';
     return l.length <= 3 ? l.join(', ') : `${l[0]} +${l.length - 1}`;
@@ -6561,8 +6642,21 @@ const Stack = {
     const num = `<text class="stk-n" font-size="${fsz}" font-weight="800" fill="#fff" stroke="#0f172a" stroke-opacity=".6" stroke-width="${s * 0.075}" paint-order="stroke" stroke-linejoin="round" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif">${n}</text>`;
     // a status badge only when every device in the stack is at the same (non-planned) status
     const badge = Settings.data.showStatus && lead.status && lead.status !== 'planned' && members.every(m => m.status === lead.status) ? MapView.statusBadge(lead.status, s) : '';
-    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(lead.size || 1) * (plan.labelScale || 1);
-    const lbl = label && Settings.data.showLabels && this.label(members) ? `<text class="dlabel" y="${s * 0.5 + fs * 1.05}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(this.label(members))}</text>` : '';
+    const smd = (plan.stacks || {})[lead.stk] || {};
+    const stkLblScale = smd.lblScale || 1;
+    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(lead.size || 1) * (plan.labelScale || 1) * stkLblScale;
+    const stkLblText = this.label(plan, members);
+    let lbl = '';
+    if (label && Settings.data.showLabels && stkLblText) {
+      const sOff = smd.lblOff || [0, 0], sRot = smd.lblRot || 0;
+      if (sOff[0] || sOff[1] || sRot) {
+        const by = s * 0.5 + fs * 0.7;
+        lbl = `<line x1="0" y1="0" x2="${sOff[0]}" y2="${by + sOff[1]}" class="stk-ind-line" stroke="#94a3b8" stroke-dasharray="3 3"/>` +
+              `<g transform="translate(${sOff[0]} ${by + sOff[1]}) rotate(${sRot})"><text class="dlabel" y="${fs * 0.35}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(stkLblText)}</text></g>`;
+      } else {
+        lbl = `<text class="dlabel" y="${s * 0.5 + fs * 1.05}" font-size="${fs}" stroke-width="${fs * 0.28}">${esc(stkLblText)}</text>`;
+      }
+    }
     const tip = members.map(d => `${d.label || ''} ${Reg.type(d.type).name}`.trim()).join(' · ');
     return `<g class="dev stack ${sel ? 'sel' : ''}" data-dev="${lead.id}" data-stk="${lead.stk}" transform="translate(${lead.x} ${lead.y})">
       <title>${esc(plural(n, 'device'))} here: ${esc(tip)}</title>
@@ -6571,6 +6665,79 @@ const Stack = {
       <circle r="${R}" fill="none" stroke="#fff" stroke-width="${ring}"/>
       ${num}${badge}${lbl}
     </g>`;
+  },
+
+  extraSvg(plan, members) {
+    const lead = members[0];
+    if (!lead || !lead.stk) return '';
+    const sm = (plan.stacks || {})[lead.stk];
+    if (!sm || !Settings.data.showLabels) return '';
+    const u = planUnit(plan);
+    const s = Math.max(...members.map(d => devSize(plan, d)));
+    const fs = 11 * u * (plan.iconScale || 1) * (plan.labelScale || 1);
+
+    if (sm.showBox) {
+      const bx = sm.boxOff || [s * 1.5, -s * 1.5];
+      const rot = sm.boxRot || 0;
+      const sc = sm.boxScale || 1;
+      const bfs = fs * sc;
+      const lines = members.map(d => d.label || Reg.type(d.type).name);
+      const pad = bfs * 0.55, lineH = bfs * 1.35;
+      const tw = Math.max(bfs * 2, ...lines.map(l => l.length * bfs * 0.55 + bfs * 0.3));
+      const bw = tw + pad * 2, bh = lines.length * lineH + pad * 2;
+      const fill = sm.boxFill || '#ffffff';
+      const opacity = sm.boxOpacity != null ? sm.boxOpacity : 0.92;
+      const stroke = sm.boxStroke || '#64748b';
+      const dash = sm.boxDash === 'dotted' ? `${3 * u} ${3 * u}` : sm.boxDash === 'dashed' ? `${8 * u} ${4 * u}` : 'none';
+      const rx = sm.boxRound ? bfs * 0.5 : 0;
+      const cx = lead.x + bx[0], cy = lead.y + bx[1];
+      const textLines = lines.map((l, i) =>
+        `<text x="${pad}" y="${pad + bfs * 0.85 + i * lineH}" font-size="${bfs}" font-weight="600" fill="#0f172a" font-family="system-ui, Arial, sans-serif">${esc(l)}</text>`
+      ).join('');
+      return `<g class="stk-lbl-box" data-stkbox="${lead.stk}">
+        <line x1="${lead.x}" y1="${lead.y}" x2="${cx + bw / 2}" y2="${cy + bh / 2}" stroke="${stroke}" class="stk-ind-line" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
+        <g transform="translate(${cx} ${cy}) rotate(${rot} ${bw / 2} ${bh / 2})">
+          <rect width="${bw}" height="${bh}" rx="${rx}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${1.5 * u}" ${dash !== 'none' ? `stroke-dasharray="${dash}"` : ''}/>
+          ${textLines}
+        </g>
+      </g>`;
+    }
+
+    if (sm.showIndiv) {
+      let html = '';
+      const spread = s * 1.8;
+      members.forEach((d, i) => {
+        const lbl = d.label || Reg.type(d.type).name;
+        const key = 'indOff_' + d.id;
+        const off = sm[key] || [spread * Math.cos((-60 + i * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + i * 360 / members.length) * Math.PI / 180)];
+        const tx = lead.x + off[0], ty = lead.y + off[1];
+        html += `<line x1="${lead.x}" y1="${lead.y}" x2="${tx}" y2="${ty}" stroke="#64748b" class="stk-ind-line"/>`;
+        html += `<text class="stk-ind-lbl dlabel" x="${tx}" y="${ty + fs * 0.35}" font-size="${fs}" text-anchor="middle" fill="#0f172a" stroke="#fff" paint-order="stroke" stroke-linejoin="round" stroke-width="${fs * 0.28}" font-family="var(--font)">${esc(lbl)}</text>`;
+      });
+      return `<g class="stk-lbl-box" data-stkindiv="${lead.stk}">${html}</g>`;
+    }
+
+    return '';
+  },
+
+  ensureName(plan, stk) {
+    if (!plan.stacks) plan.stacks = {};
+    if (!plan.stacks[stk] || !plan.stacks[stk].name) this.autoName(plan, stk);
+  },
+
+  stkLabelGeo(plan, members) {
+    const lead = members[0];
+    if (!lead || !lead.stk) return null;
+    const sm = (plan.stacks || {})[lead.stk] || {};
+    const u = planUnit(plan);
+    const s = Math.max(...members.map(d => devSize(plan, d)));
+    const stkLblScale = sm.lblScale || 1;
+    const fs = 12.5 * u * (plan.iconScale || 1) * Math.sqrt(lead.size || 1) * (plan.labelScale || 1) * stkLblScale;
+    const stkLblText = this.label(plan, members);
+    if (!stkLblText) return null;
+    const off = sm.lblOff || [0, 0];
+    const by = s * 0.5 + fs * 0.7;
+    return { fs, off, rot: sm.lblRot || 0, hw: stkLblText.length * fs * 0.31 + fs * 0.2, hh: fs * 0.6, base: [lead.x, lead.y + by], cx: lead.x + off[0], cy: lead.y + by + off[1] };
   },
 };
 
@@ -7468,6 +7635,8 @@ const Side = {
     const m = Stack.members(plan, stk);
     if (m.length < 2) { this.close(); return; }
     const scrollTop = keepScroll ? ($('.side-body', this.el)?.scrollTop || 0) : 0;
+    const sm = (plan.stacks || {})[stk] || {};
+    const u = planUnit(plan);
     const cols = Stack.colors(m);
     const pie = cols.length === 1 ? cols[0] : `conic-gradient(from 0deg, ${cols.map((c, i) => `${c} ${i * 100 / cols.length}% ${(i + 1) * 100 / cols.length}%`).join(', ')})`;
     const typeOptions = Reg.systemList().map(sy => {
@@ -7478,7 +7647,7 @@ const Side = {
     this.el.innerHTML = `
       <div class="side-head">
         <div class="sd-ico"><span class="stk-ico" style="background:${pie}">${m.length}</span></div>
-        <div class="sd-title"><div class="sd-label static">Stack of ${m.length}</div><div class="sd-type">${esc(Stack.label(m))}</div></div>
+        <div class="sd-title"><div class="sd-label static">${esc(Stack.autoName(plan, stk))}</div><div class="sd-type">${m.length} devices</div></div>
         <button class="icon-btn" id="sd-close" title="Close">${ic('X')}</button>
       </div>
       <div class="sd-nav">
@@ -7488,6 +7657,25 @@ const Side = {
         <button class="icon-btn sm danger" id="sd-del" title="Delete the whole stack">${ic('Trash')}</button>
       </div>
       <div class="side-body">
+        <label class="fld sd-stk-name"><span>Stack name</span><input class="inp" id="stk-name-inp" value="${esc(Stack.autoName(plan, stk))}" placeholder="Stack name"></label>
+        <div class="stk-display-opts">
+          <label><input type="checkbox" id="stk-show-indiv" ${sm.showIndiv ? 'checked' : ''}><span>Show individual device names</span></label>
+          <label><input type="checkbox" id="stk-show-box" ${sm.showBox ? 'checked' : ''}><span>Show names in a box</span></label>
+          ${sm.showBox ? `<div class="stk-box-opts" id="stk-box-opts">
+            <div class="sbo-row"><span>Fill color</span><input type="color" id="sbo-fill" value="${sm.boxFill || '#ffffff'}"></div>
+            <div class="sbo-row"><span>Opacity</span><input type="range" id="sbo-opacity" min="0" max="100" step="5" value="${Math.round((sm.boxOpacity != null ? sm.boxOpacity : 0.92) * 100)}"><em id="sbo-opacity-v">${Math.round((sm.boxOpacity != null ? sm.boxOpacity : 0.92) * 100)}%</em></div>
+            <div class="sbo-row"><span>Outline</span><input type="color" id="sbo-stroke" value="${sm.boxStroke || '#64748b'}"></div>
+            <div class="sbo-row"><span>Line style</span><select id="sbo-dash"><option value="solid" ${!sm.boxDash || sm.boxDash === 'solid' ? 'selected' : ''}>Solid</option><option value="dotted" ${sm.boxDash === 'dotted' ? 'selected' : ''}>Dotted</option><option value="dashed" ${sm.boxDash === 'dashed' ? 'selected' : ''}>Dashed</option></select></div>
+            <div class="sbo-row"><span>Corners</span><select id="sbo-round"><option value="sharp" ${!sm.boxRound ? 'selected' : ''}>Sharp</option><option value="round" ${sm.boxRound ? 'selected' : ''}>Rounded</option></select></div>
+          </div>` : ''}
+        </div>
+        ${!sm.showBox && !sm.showIndiv ? `<div class="lbl-ctl" id="stk-lbl-ctl">
+          <div class="lbl-head"><b>Name on the map</b><a href="#" id="stk-lbl-reset" ${(sm.lblOff || sm.lblRot) ? '' : 'hidden'}>Put it back</a></div>
+          <div class="slider-row"><span>Left / right</span><input type="range" min="-300" max="300" step="1" id="stk-lbl-x" value="${Math.round((sm.lblOff || [0,0])[0] / u)}"><input class="inp sm num" type="number" id="stk-lbl-x-n" value="${Math.round((sm.lblOff || [0,0])[0] / u)}" min="-300" max="300"><em></em></div>
+          <div class="slider-row"><span>Up / down</span><input type="range" min="-300" max="300" step="1" id="stk-lbl-y" value="${Math.round((sm.lblOff || [0,0])[1] / u)}"><input class="inp sm num" type="number" id="stk-lbl-y-n" value="${Math.round((sm.lblOff || [0,0])[1] / u)}" min="-300" max="300"><em></em></div>
+          <div class="slider-row"><span>Angle</span><input type="range" min="-180" max="180" step="1" id="stk-lbl-r" value="${Math.round(sm.lblRot || 0)}"><input class="inp sm num" type="number" id="stk-lbl-r-n" value="${Math.round(sm.lblRot || 0)}" min="-180" max="180"><em>\u00b0</em></div>
+          <p class="tiny muted">Or drag the blue dots on the map.</p>
+        </div>` : ''}
         <div class="stk-list">${m.map(d => { const t = Reg.type(d.type), sy = Reg.system(t.system), st = STATUSES.find(x => x.id === d.status);
           return `<div class="stk-row" data-id="${d.id}"><button class="stk-open" data-open="${d.id}" title="Open ${esc(d.label)}">${typeIconHtml(t, 30)}<span class="stk-name"><b>${esc(d.label || t.name)}</b><em>${esc(t.name)}${d.fields.manufacturer || d.fields.model ? ' · ' + esc([d.fields.manufacturer, d.fields.model].filter(Boolean).join(' ')) : ''}</em></span>${st ? `<i class="stk-st" style="--c:${st.color}" title="${esc(st.name)}"></i>` : ''}</button><button class="btn sm" data-out="${d.id}" title="Move it off the stack">Take out</button></div>`; }).join('')}</div>
         <label class="fld"><span>Add a device to this stack</span>
@@ -7517,6 +7705,38 @@ const Side = {
       this.renderStack(true);
       Stack.say(`Added ${d.label} · ${n} here`);
     };
+    /* stack name & display wiring */
+    const _sNI = $('#stk-name-inp', this.el);
+    if (_sNI) _sNI.oninput = () => { Stack.setMeta(plan, stk, { name: _sNI.value || ('Stack ' + Stack.nextNum(plan)) }); MapView.renderDevs(); Editor.changed(); };
+    const _sCI = $('#stk-show-indiv', this.el);
+    if (_sCI) _sCI.onchange = () => { Stack.setMeta(plan, stk, { showIndiv: _sCI.checked, showBox: false }); MapView.renderDevs(); Editor.changed(); this.renderStack(true); };
+    const _sCB = $('#stk-show-box', this.el);
+    if (_sCB) _sCB.onchange = () => { Stack.setMeta(plan, stk, { showBox: _sCB.checked, showIndiv: false }); MapView.renderDevs(); Editor.changed(); this.renderStack(true); };
+    const _bFill = $('#sbo-fill', this.el);
+    if (_bFill) _bFill.oninput = () => { Stack.setMeta(plan, stk, { boxFill: _bFill.value }); MapView.renderDevs(); Editor.changed(); };
+    const _bOp = $('#sbo-opacity', this.el);
+    if (_bOp) _bOp.oninput = () => { const v = +_bOp.value / 100; Stack.setMeta(plan, stk, { boxOpacity: v }); const e = $('#sbo-opacity-v', this.el); if (e) e.textContent = _bOp.value + '%'; MapView.renderDevs(); Editor.changed(); };
+    const _bStr = $('#sbo-stroke', this.el);
+    if (_bStr) _bStr.oninput = () => { Stack.setMeta(plan, stk, { boxStroke: _bStr.value }); MapView.renderDevs(); Editor.changed(); };
+    const _bDash = $('#sbo-dash', this.el);
+    if (_bDash) _bDash.onchange = () => { Stack.setMeta(plan, stk, { boxDash: _bDash.value }); MapView.renderDevs(); Editor.changed(); };
+    const _bRound = $('#sbo-round', this.el);
+    if (_bRound) _bRound.onchange = () => { Stack.setMeta(plan, stk, { boxRound: _bRound.value === 'round' }); MapView.renderDevs(); Editor.changed(); };
+    /* stack label position sliders */
+    const _sGet = id => $('#' + id, this.el);
+    const _sApply = () => {
+      const x = +(_sGet('stk-lbl-x') || {}).value * u, y = +(_sGet('stk-lbl-y') || {}).value * u, r = +(_sGet('stk-lbl-r') || {}).value;
+      Stack.setMeta(plan, stk, { lblOff: (x || y) ? [Math.round(x * 10) / 10, Math.round(y * 10) / 10] : undefined, lblRot: r || undefined });
+      const rst = _sGet('stk-lbl-reset'); if (rst) rst.hidden = !(x || y || r);
+      MapView.renderDevs(); MapView.renderSel(); Editor.changed();
+    };
+    for (const _sid of ['stk-lbl-x', 'stk-lbl-y', 'stk-lbl-r']) {
+      const rg = _sGet(_sid), nm = _sGet(_sid + '-n');
+      if (rg) rg.oninput = () => { if (nm) nm.value = rg.value; _sApply(); };
+      if (nm) nm.oninput = () => { const v = clamp(Math.round(+nm.value || 0), +rg.min, +rg.max); if (rg) rg.value = v; _sApply(); };
+    }
+    const _sRst = _sGet('stk-lbl-reset');
+    if (_sRst) _sRst.onclick = e => { e.preventDefault(); Stack.setMeta(plan, stk, { lblOff: undefined, lblRot: undefined }); for (const id of ['stk-lbl-x', 'stk-lbl-y', 'stk-lbl-r']) { const rg = _sGet(id), nm = _sGet(id + '-n'); if (rg) rg.value = 0; if (nm) nm.value = 0; } _sRst.hidden = true; MapView.renderDevs(); MapView.renderSel(); Editor.changed(); };
   },
   /* move some devices off their stack (all of them = unstack) */
   takeOut(devs) {
