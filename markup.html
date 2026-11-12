@@ -5316,6 +5316,26 @@ const MapView = {
     const off = d.lblOff || [0, 0], by = s * 0.5 + fs * 0.7;
     return { s, u, fs, off, rot: d.lblRot || 0, hw: String(d.label || '').length * fs * 0.31 + fs * 0.2, hh: fs * 0.6, base: [d.x, d.y + by], cx: d.x + off[0], cy: d.y + by + off[1] };
   },
+  /* geometry for an individual name in a stack (same shape as devLabelGeo) */
+  indivLabelGeo(d, plan = this.plan) {
+    const stkId = Stack.stkOf(plan, d);
+    if (!stkId) return this.devLabelGeo(d, plan);
+    const sm = (plan.stacks || {})[stkId] || {};
+    if (!sm.showIndiv) return this.devLabelGeo(d, plan);
+    const members = Stack.members(plan, stkId);
+    const lead = members[0];
+    const s = Math.max(...members.map(x => devSize(plan, x)));
+    const u = planUnit(plan);
+    const fs = 11 * u * (plan.iconScale || 1) * (plan.labelScale || 1);
+    const spread = s * 1.8;
+    const idx = members.indexOf(d);
+    const key = 'indOff_' + d.id;
+    const off = sm[key] || [spread * Math.cos((-60 + idx * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + idx * 360 / members.length) * Math.PI / 180)];
+    const rot = sm['indRot_' + d.id] || 0;
+    const lbl = d.label || Reg.type(d.type).name;
+    const cx = lead.x + off[0], cy = lead.y + off[1];
+    return { s, u, fs, off, rot, hw: lbl.length * fs * 0.31 + fs * 0.2, hh: fs * 0.6, base: [lead.x, lead.y], cx, cy, isIndiv: true, stkId, devId: d.id };
+  },
   cableLabelText(m) {
     const len = this.lengthLabel(polyLength(m.points));
     return [m.label, len].filter(Boolean).join(' · ');
@@ -5404,7 +5424,10 @@ const MapView = {
     const nph = (d.photos || []).length;
     const photo = nph ? `<g transform="translate(${-s * 0.4} ${-s * 0.4})"><circle r="${s * 0.19}" fill="#0f172a" stroke="#fff" stroke-width="${s * 0.04}"/><text font-size="${s * 0.22}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="Arial">${nph}</text></g>` : '';
     let label = '';
-    if (Settings.data.showLabels && d.label) {
+    /* suppress regular label when device is in a stack with individual names enabled — the name is rendered by Stack.extraSvg instead */
+    const _stkId = Stack.stkOf(plan, d);
+    const _stkIndiv = _stkId && (plan.stacks || {})[_stkId] && (plan.stacks || {})[_stkId].showIndiv;
+    if (Settings.data.showLabels && d.label && !_stkIndiv) {
       if (d.lblOff || d.lblRot) {
         const g = this.devLabelGeo(d, plan), ln = this.leaderLine([d.x, d.y], g, s * 0.55);
         let lead = '';
@@ -5603,7 +5626,17 @@ const MapView = {
         if (Editor.devHidden(it)) continue;
         const s = devSize(this.plan, it);
         html += `<circle cx="${it.x}" cy="${it.y}" r="${s * 0.62 + 4 / k}" class="sel-ring" stroke-width="${2 / k}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
-        if (single && !it.locked && Settings.data.showLabels && it.label) html += this.labelHandles(this.devLabelGeo(it), hr, sw, k, it.lblOff || it.lblRot ? [it.x, it.y] : null);
+        if (single && !it.locked && Settings.data.showLabels && it.label) {
+          const _si = Stack.stkOf(this.plan, it);
+          const _siInd = _si && (this.plan.stacks || {})[_si] && (this.plan.stacks || {})[_si].showIndiv;
+          if (_siInd) {
+            /* individual name: show handles at the individual name position */
+            const _ig = this.indivLabelGeo(it);
+            html += this.labelHandles(_ig, hr, sw, k, [Stack.members(this.plan, _si)[0].x, Stack.members(this.plan, _si)[0].y]);
+          } else {
+            html += this.labelHandles(this.devLabelGeo(it), hr, sw, k, it.lblOff || it.lblRot ? [it.x, it.y] : null);
+          }
+        }
         if (single && !it.locked && it.cone && it.cone.show !== false && Settings.data.showCones) {
           const lens = lensList(it), multi = lens.length > 1, act = multi ? Math.min((typeof Side !== 'undefined' && Side.lens) || 0, lens.length - 1) : 0;
           for (const l of lens) {
@@ -6418,6 +6451,9 @@ const MapView = {
         const obj = {}; obj['indOff_' + d.gs.did] = [d.gs.off[0] + dx, d.gs.off[1] + dy];
         Stack.setMeta(this.plan, it.stk, obj);
         this.renderDevs(); this.renderSel(); Editor.changed();
+        /* sync side panel if the individual device is open */
+        const _indDev = Editor.findItem(d.gs.did);
+        if (_indDev) Side.liveLabel(_indDev);
       }
     } else if (h === 'stklbl' || h === 'stklbl-rot') {
       if (!d.gs) {
@@ -6438,7 +6474,11 @@ const MapView = {
         this.renderDevs(); this.renderSel(); Editor.changed();
       }
     } else if (h === 'lbl' || h === 'lbl-rot' || h === 'lbl-size') {
-      const isDev = Editor.isDevice(d.id), g = isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it);
+      const isDev = Editor.isDevice(d.id);
+      /* detect individual-name mode: use indivLabelGeo and write to stack metadata */
+      const _ilStkId = isDev && Stack.stkOf(this.plan, it);
+      const _ilIndiv = _ilStkId && (this.plan.stacks || {})[_ilStkId] && (this.plan.stacks || {})[_ilStkId].showIndiv;
+      const g = _ilIndiv ? this.indivLabelGeo(it) : (isDev ? this.devLabelGeo(it) : this.cableLabelGeo(it));
       if (g) {
         if (h === 'lbl-size') {
           if (!d.gs) d.gs = { p: p.slice(), s: it.lblScale || 1, c: [g.cx, g.cy] };
@@ -6449,15 +6489,28 @@ const MapView = {
         } else if (h === 'lbl') {
           if (!d.grab) d.grab = [g.cx - p[0], g.cy - p[1]];
           const nx = p[0] + d.grab[0], ny = p[1] + d.grab[1];
-          const o = [Math.round((nx - g.base[0]) * 10) / 10, Math.round((ny - g.base[1]) * 10) / 10];
-          if (Math.hypot(o[0], o[1]) < g.fs * 0.4) delete it.lblOff; else it.lblOff = o;
+          if (_ilIndiv) {
+            /* individual name: write offset relative to stack lead */
+            const _lead = Stack.members(this.plan, _ilStkId)[0];
+            const o = [Math.round((nx - _lead.x) * 10) / 10, Math.round((ny - _lead.y) * 10) / 10];
+            Stack.setMeta(this.plan, _ilStkId, { ['indOff_' + it.id]: o });
+          } else {
+            const o = [Math.round((nx - g.base[0]) * 10) / 10, Math.round((ny - g.base[1]) * 10) / 10];
+            if (Math.hypot(o[0], o[1]) < g.fs * 0.4) delete it.lblOff; else it.lblOff = o;
+          }
         } else {
           let deg = Math.atan2(p[1] - g.cy, p[0] - g.cx) * 180 / Math.PI;
           if (shift) deg = Math.round(deg / 15) * 15;
-          if (!isDev) { if (deg > 90) deg -= 180; if (deg < -90) deg += 180; }
-          deg = Math.round(deg);
-          if (isDev) { if (Math.abs(deg) < 2) delete it.lblRot; else it.lblRot = deg; }
-          else it.lblRot = deg;
+          if (_ilIndiv) {
+            /* individual name rotation */
+            deg = Math.round(deg);
+            Stack.setMeta(this.plan, _ilStkId, { ['indRot_' + it.id]: Math.abs(deg) < 2 ? 0 : deg });
+          } else {
+            if (!isDev) { if (deg > 90) deg -= 180; if (deg < -90) deg += 180; }
+            deg = Math.round(deg);
+            if (isDev) { if (Math.abs(deg) < 2) delete it.lblRot; else it.lblRot = deg; }
+            else it.lblRot = deg;
+          }
         }
       }
     } else if (h.startsWith('vertex:')) {
@@ -6759,16 +6812,21 @@ const Stack = {
         const lbl = d.label || Reg.type(d.type).name;
         const key = 'indOff_' + d.id;
         const off = sm[key] || [spread * Math.cos((-60 + i * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + i * 360 / members.length) * Math.PI / 180)];
+        const rot = sm['indRot_' + d.id] || 0;
         const tx = lead.x + off[0], ty = lead.y + off[1];
         /* clip line at icon edge */
         const dx = tx - lead.x, dy = ty - lead.y;
         const dd = Math.sqrt(dx * dx + dy * dy) || 1;
         const lx1 = lead.x + (dx / dd) * iconR, ly1 = lead.y + (dy / dd) * iconR;
         html += `<line x1="${lx1}" y1="${ly1}" x2="${tx}" y2="${ty}" stroke="#475569" stroke-width="${Math.max(1, 1.2 * u)}" stroke-linecap="round" opacity="0.9" class="stk-ind-line" pointer-events="none"/>`;
+        /* individual name text style — default outline to 0 unless device has a custom outline set */
+        const _iv = LblStyle.of(d, 'dev');
+        if (!d.lbl || d.lbl.ow == null) _iv.ow = 0;
+        const _ia = ` style="fill:${_iv.c};font-weight:${_iv.w};stroke:${_iv.ow > 0 ? _iv.oc : 'none'}" stroke-width="${Math.round(fs * _iv.ow * 10) / 100}"`;
         const pw = fs * lbl.length * 0.6 + fs * 0.6, ph = fs * 1.4;
-        html += `<g class="stk-ind-grab" data-h="stkind" data-stkdid="${d.id}" style="cursor:grab">
-          <rect x="${tx - pw / 2}" y="${ty - ph / 2}" width="${pw}" height="${ph}" rx="2" fill="transparent" stroke="none" pointer-events="all"/>
-          <text class="dlabel" x="${tx}" y="${ty + fs * 0.35}" font-size="${fs}" text-anchor="middle"${LblStyle.attrs(d, 'dev', fs)} pointer-events="none">${esc(lbl)}</text>
+        html += `<g class="stk-ind-grab" data-h="stkind" data-stkdid="${d.id}" style="cursor:grab" transform="translate(${tx} ${ty}) rotate(${rot})">
+          <rect x="${-pw / 2}" y="${-ph / 2}" width="${pw}" height="${ph}" rx="2" fill="transparent" stroke="none" pointer-events="all"/>
+          <text class="dlabel" y="${fs * 0.35}" font-size="${fs}" text-anchor="middle"${_ia} pointer-events="none">${esc(lbl)}</text>
         </g>`;
       });
       return `<g class="stk-lbl-box" data-stkindiv="${lead.stk}">${html}</g>`;
@@ -7353,10 +7411,27 @@ const Side = {
 
   /* name position controls (shared by devices and cable runs) */
   lblControls(it, isDev) {
-    const plan = Editor.plan, u = planUnit(plan), off = it.lblOff || [0, 0];
-    let rot = it.lblRot || 0;
-    if (!isDev) { const g = MapView.cableLabelGeo(it); rot = g ? Math.round(g.rot) : 0; }
-    const lim = Math.round(300), moved = !!(it.lblOff || (isDev ? it.lblRot : it.lblRot != null));
+    const plan = Editor.plan, u = planUnit(plan);
+    /* detect individual-name mode: read position from stack metadata */
+    const _ilStkId = isDev && Stack.stkOf(plan, it);
+    const _ilIndiv = _ilStkId && (plan.stacks || {})[_ilStkId] && (plan.stacks || {})[_ilStkId].showIndiv;
+    let off, rot;
+    if (_ilIndiv) {
+      const sm = (plan.stacks || {})[_ilStkId] || {};
+      const members = Stack.members(plan, _ilStkId);
+      const lead = members[0];
+      const s = Math.max(...members.map(x => devSize(plan, x)));
+      const spread = s * 1.8;
+      const idx = members.indexOf(it);
+      const defOff = [spread * Math.cos((-60 + idx * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + idx * 360 / members.length) * Math.PI / 180)];
+      off = sm['indOff_' + it.id] || defOff;
+      rot = sm['indRot_' + it.id] || 0;
+    } else {
+      off = it.lblOff || [0, 0];
+      rot = it.lblRot || 0;
+      if (!isDev) { const g = MapView.cableLabelGeo(it); rot = g ? Math.round(g.rot) : 0; }
+    }
+    const lim = Math.round(300), moved = _ilIndiv ? !!(((plan.stacks || {})[_ilStkId] || {})['indOff_' + it.id] || ((plan.stacks || {})[_ilStkId] || {})['indRot_' + it.id]) : !!(it.lblOff || (isDev ? it.lblRot : it.lblRot != null));
     const row = (id, label, val, min, max, unit) => `<div class="slider-row"><span>${label}</span><input type="range" min="${min}" max="${max}" step="1" id="${id}" value="${val}"><input class="inp sm num" type="number" id="${id}-n" value="${val}" min="${min}" max="${max}"><em>${unit}</em></div>`;
     return `<div class="lbl-ctl" id="lbl-ctl">
       <div class="lbl-head"><b>Name on the map</b><a href="#" id="lbl-reset" ${moved ? '' : 'hidden'}>Put it back</a></div>
@@ -7368,12 +7443,24 @@ const Side = {
   wireLbl(it, isDev, changed) {
     const u = planUnit(Editor.plan), $$1 = id => $('#' + id, this.el);
     if (!$$1('lbl-ctl')) return;
+    /* detect individual-name mode */
+    const _ilStkId = isDev && Stack.stkOf(Editor.plan, it);
+    const _ilIndiv = _ilStkId && (Editor.plan.stacks || {})[_ilStkId] && (Editor.plan.stacks || {})[_ilStkId].showIndiv;
     const sync = (id, v) => { $$1(id).value = v; $$1(id + '-n').value = v; };
     const apply = () => {
       const x = +$$1('lbl-x').value * u, y = +$$1('lbl-y').value * u, r = +$$1('lbl-r').value;
-      if (x || y) it.lblOff = [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; else delete it.lblOff;
-      if (isDev) { if (r) it.lblRot = r; else delete it.lblRot; } else it.lblRot = r;
-      $$1('lbl-reset').hidden = !(it.lblOff || (isDev ? it.lblRot : true));
+      if (_ilIndiv) {
+        /* write to stack metadata */
+        const meta = {};
+        meta['indOff_' + it.id] = [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+        meta['indRot_' + it.id] = Math.abs(r) < 2 ? 0 : r;
+        Stack.setMeta(Editor.plan, _ilStkId, meta);
+        $$1('lbl-reset').hidden = !(x || y || r);
+      } else {
+        if (x || y) it.lblOff = [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; else delete it.lblOff;
+        if (isDev) { if (r) it.lblRot = r; else delete it.lblRot; } else it.lblRot = r;
+        $$1('lbl-reset').hidden = !(it.lblOff || (isDev ? it.lblRot : true));
+      }
       changed();
     };
     for (const id of ['lbl-x', 'lbl-y', 'lbl-r']) {
@@ -7383,20 +7470,47 @@ const Side = {
     }
     LblStyle.wire(this.el, it, isDev ? 'dev' : 'run', changed, it.color);
     $$1('lbl-reset').onclick = e => {
-      e.preventDefault(); delete it.lblOff; if (isDev) delete it.lblRot; else delete it.lblRot;
-      sync('lbl-x', 0); sync('lbl-y', 0); sync('lbl-r', isDev ? 0 : Math.round((MapView.cableLabelGeo(it) || { rot: 0 }).rot));
+      e.preventDefault();
+      if (_ilIndiv) {
+        /* reset individual name to default spread position */
+        const sm = (Editor.plan.stacks || {})[_ilStkId] || {};
+        delete sm['indOff_' + it.id];
+        delete sm['indRot_' + it.id];
+        const members = Stack.members(Editor.plan, _ilStkId);
+        const s = Math.max(...members.map(x => devSize(Editor.plan, x)));
+        const spread = s * 1.8, idx = members.indexOf(it);
+        const defOff = [spread * Math.cos((-60 + idx * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + idx * 360 / members.length) * Math.PI / 180)];
+        sync('lbl-x', Math.round(defOff[0] / u)); sync('lbl-y', Math.round(defOff[1] / u)); sync('lbl-r', 0);
+      } else {
+        delete it.lblOff; if (isDev) delete it.lblRot; else delete it.lblRot;
+        sync('lbl-x', 0); sync('lbl-y', 0); sync('lbl-r', isDev ? 0 : Math.round((MapView.cableLabelGeo(it) || { rot: 0 }).rot));
+      }
       $$1('lbl-reset').hidden = true; changed();
     };
   },
   /* keep the panel's name controls in step while the name is dragged on the map */
   liveLabel(it) {
     if (!it || this.id !== it.id) return;
-    const isDev = Editor.isDevice(it.id), u = planUnit(Editor.plan), off = it.lblOff || [0, 0];
-    let rot = it.lblRot || 0; if (!isDev) { const g = MapView.cableLabelGeo(it); rot = g ? g.rot : 0; }
+    const isDev = Editor.isDevice(it.id), u = planUnit(Editor.plan);
+    /* detect individual-name mode */
+    const _ilStkId = isDev && Stack.stkOf(Editor.plan, it);
+    const _ilIndiv = _ilStkId && (Editor.plan.stacks || {})[_ilStkId] && (Editor.plan.stacks || {})[_ilStkId].showIndiv;
+    let off, rot;
+    if (_ilIndiv) {
+      const sm = (Editor.plan.stacks || {})[_ilStkId] || {};
+      const members = Stack.members(Editor.plan, _ilStkId);
+      const s = Math.max(...members.map(x => devSize(Editor.plan, x)));
+      const spread = s * 1.8, idx = members.indexOf(it);
+      off = sm['indOff_' + it.id] || [spread * Math.cos((-60 + idx * 360 / members.length) * Math.PI / 180), spread * Math.sin((-60 + idx * 360 / members.length) * Math.PI / 180)];
+      rot = sm['indRot_' + it.id] || 0;
+    } else {
+      off = it.lblOff || [0, 0];
+      rot = it.lblRot || 0; if (!isDev) { const g = MapView.cableLabelGeo(it); rot = g ? g.rot : 0; }
+    }
     const set = (id, v) => { const a = $('#' + id, this.el), b = $('#' + id + '-n', this.el); if (a) a.value = v; if (b) b.value = v; };
     set('lbl-x', Math.round(off[0] / u)); set('lbl-y', Math.round(off[1] / u)); set('lbl-r', Math.round(rot));
     const sz = $('#ls-sz', this.el); if (sz) { sz.value = Math.round((it.lblScale || 1) * 100); const sv = $('#ls-sz-v', this.el); if (sv) sv.textContent = sz.value + '%'; }
-    const r = $('#lbl-reset', this.el); if (r) r.hidden = !(it.lblOff || (isDev ? it.lblRot : it.lblRot != null));
+    const r = $('#lbl-reset', this.el); if (r) r.hidden = _ilIndiv ? !!(((Editor.plan.stacks || {})[_ilStkId] || {})['indOff_' + it.id] || ((Editor.plan.stacks || {})[_ilStkId] || {})['indRot_' + it.id]) : !(it.lblOff || (isDev ? it.lblRot : it.lblRot != null));
   },
 
   liveCone(d) {
