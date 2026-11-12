@@ -6768,7 +6768,7 @@ const Stack = {
         const pw = fs * lbl.length * 0.6 + fs * 0.6, ph = fs * 1.4;
         html += `<g class="stk-ind-grab" data-h="stkind" data-stkdid="${d.id}" style="cursor:grab">
           <rect x="${tx - pw / 2}" y="${ty - ph / 2}" width="${pw}" height="${ph}" rx="2" fill="transparent" stroke="none" pointer-events="all"/>
-          <text class="dlabel" x="${tx}" y="${ty + fs * 0.35}" font-size="${fs}" text-anchor="middle" stroke-width="${Math.round(fs * 2.8 * 10) / 100}"${sm.indTextColor ? ` style="fill:${sm.indTextColor}"` : ''} pointer-events="none">${esc(lbl)}</text>
+          <text class="dlabel" x="${tx}" y="${ty + fs * 0.35}" font-size="${fs}" text-anchor="middle"${LblStyle.attrs(d, 'dev', fs)} pointer-events="none">${esc(lbl)}</text>
         </g>`;
       });
       return `<g class="stk-lbl-box" data-stkindiv="${lead.stk}">${html}</g>`;
@@ -7717,9 +7717,7 @@ const Side = {
         <label class="fld sd-stk-name"><span>Stack name</span><input class="inp" id="stk-name-inp" value="${esc(Stack.autoName(plan, stk))}" placeholder="Stack name"></label>
         <div class="stk-display-opts">
           <label><input type="checkbox" id="stk-show-indiv" ${sm.showIndiv ? 'checked' : ''}><span>Show individual device names</span></label>
-          ${sm.showIndiv ? `<div class="stk-box-opts" id="stk-ind-opts">
-            <div class="sbo-row"><span>Text color</span><input type="color" id="sio-text" value="${sm.indTextColor || '#0f172a'}"></div>
-          </div>` : ''}
+          ${sm.showIndiv ? `<p class="tiny muted" style="margin:4px 0 0">Each device's name uses its own text style — open a device to adjust it.</p>` : ''}
           <label><input type="checkbox" id="stk-show-box" ${sm.showBox ? 'checked' : ''}><span>Show names in a box</span></label>
           ${sm.showBox ? `<div class="stk-box-opts" id="stk-box-opts">
             <div class="sbo-row"><span>Fill color</span><input type="color" id="sbo-fill" value="${sm.boxFill || '#ffffff'}"></div>
@@ -7782,9 +7780,7 @@ const Side = {
     if (_bDash) _bDash.onchange = () => { Stack.setMeta(plan, stk, { boxDash: _bDash.value }); MapView.renderDevs(); Editor.changed(); };
     const _bRound = $('#sbo-round', this.el);
     if (_bRound) _bRound.onchange = () => { Stack.setMeta(plan, stk, { boxRound: _bRound.value === 'round' }); MapView.renderDevs(); Editor.changed(); };
-    /* individual name option wiring */
-    const _iText = $('#sio-text', this.el);
-    if (_iText) _iText.oninput = () => { Stack.setMeta(plan, stk, { indTextColor: _iText.value }); MapView.renderDevs(); Editor.changed(); };
+    /* individual name text style: per-device via LblStyle (open device to adjust) */
     /* stack label position sliders */
     const _sGet = id => $('#' + id, this.el);
     const _sApply = () => {
