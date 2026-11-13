@@ -5777,16 +5777,24 @@ const MapView = {
       html += this.markSvg({ id: '_tmp', kind: 'pen', points: d.pts, color: this.markColor('pen'), width: this.markWidth('pen') }, true);
     }
     if (this.poly) {
-      const pts = this.hover ? [...this.poly.pts, this.hover] : this.poly.pts;
+      const pts = this.hover && !this.poly.splitMode ? [...this.poly.pts, this.hover] : this.poly.pts;
       if (pts.length >= 2) html += this.markSvg({ id: '_tmp', kind: 'cable', points: pts, color: this.markColor('cable'), width: this.markWidth('cable'), dash: 'dash' }, true);
-      html += this.poly.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${4 / k}" fill="#fff" stroke="#0891b2" stroke-width="${2 / k}"/>`).join('');
+      if (this.poly.splitMode) {
+        /* split mode: highlight dots as clickable targets with pulsing rings */
+        html += this.poly.pts.map((p, i) => {
+          const hovered = this.hover && dist(this.hover, p) < (Device.touch ? 30 : 18) / k;
+          return `<circle cx="${p[0]}" cy="${p[1]}" r="${(hovered ? 10 : 7) / k}" fill="${hovered ? '#f59e0b' : 'rgba(245,158,11,0.3)'}" stroke="#f59e0b" stroke-width="${2.5 / k}" style="cursor:pointer"><title>Click to split here</title></circle>`;
+        }).join('');
+      } else {
+        html += this.poly.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${4 / k}" fill="#fff" stroke="#0891b2" stroke-width="${2 / k}"/>`).join('');
+      }
       /* show device-linked points with a filled marker */
       for (const w of this.poly.wires || []) {
         const pt = this.poly.pts[w.pointIndex];
         if (pt) html += `<circle cx="${pt[0]}" cy="${pt[1]}" r="${7 / k}" fill="#0891b2" stroke="#fff" stroke-width="${2 / k}"><title>Linked to device</title></circle>`;
       }
-      /* show hover snap preview near devices */
-      if (this.hover) {
+      /* show hover snap preview near devices (not in split mode) */
+      if (this.hover && !this.poly.splitMode) {
         const devSnapR = devSize(this.plan, { size: 1 }) * 1.2;
         for (const dv of this.visibleDevices()) {
           if (dist(this.hover, [dv.x, dv.y]) < devSnapR) {
@@ -6189,6 +6197,18 @@ const MapView = {
         break;
       }
       case 'cablept': {
+        /* --- split mode: clicking a dot splits the run here --- */
+        if (this.poly && this.poly.splitMode && this.poly.pts.length > 1) {
+          const near = (Device.touch ? 30 : 18) / this.k;
+          let hitIdx = -1, hitDist = near;
+          for (let i = 0; i < this.poly.pts.length; i++) {
+            const dd = dist(p, this.poly.pts[i]);
+            if (dd < hitDist) { hitDist = dd; hitIdx = i; }
+          }
+          if (hitIdx >= 0) { this.splitPoly(hitIdx); break; }
+          toast('Tap on one of the dots to split there');
+          break;
+        }
         /* check if click is on/near a device → snap & auto-link */
         let snapped = p, hitDev = null;
         const devSnapR = devSize(this.plan, { size: 1 }) * 1.2;   // snap radius: slightly larger than device icon
@@ -6334,6 +6354,8 @@ const MapView = {
           return { ...w, pointIndex: best };
         }).filter(Boolean);
         m.wires = autoWires.length ? autoWires : [{ id: uid('w'), type: '', count: 1, extraFt: 0, device: null }];
+        /* carry over splitFrom reference if this was a branch run */
+        if (poly.splitFrom) m.splitFrom = poly.splitFrom;
         /* sync auto-linked wires to their devices */
         for (const w of m.wires) if (w.device) Side.syncWireToDevice(m, w);
         this.plan.markups.push(m);
@@ -6341,11 +6363,48 @@ const MapView = {
         this.renderAll();
         Editor.changed();
         Side.showMarkup(m.id);
-        if (autoWires.length) toast(`${plural(autoWires.length, 'device')} auto-linked to this run`);
+        if (poly.splitFrom) toast(`Branch run saved — splits from parent run`);
+        else if (autoWires.length) toast(`${plural(autoWires.length, 'device')} auto-linked to this run`);
       }
     }
     this.renderTemp();
     if (Editor.tool === 'cable') Editor.hint(TOOL_HINTS.cable);
+  },
+
+  /* split a run-in-progress at an existing dot: finish current run up to that point, then start a new branch */
+  splitPoly(dotIdx) {
+    const poly = this.poly;
+    if (!poly || dotIdx < 0 || dotIdx >= poly.pts.length) return;
+    this.poly = null;
+    /* 1. commit the current run (all points from start through the last point drawn) */
+    const pts = [];
+    for (const q of poly.pts) if (!pts.length || dist(pts[pts.length - 1], q) * this.k > 4) pts.push(q);
+    if (pts.length >= 2) {
+      const m = { id: uid('m'), kind: 'cable', points: pts, color: this.markColor('cable'), width: this.markWidth('cable'), dash: 'dash', label: '' };
+      const autoWires = (poly.wires || []).map(w => {
+        const orig = poly.pts[w.pointIndex]; if (!orig) return null;
+        let best = 0, bestD = Infinity;
+        for (let j = 0; j < pts.length; j++) { const dd = dist(pts[j], orig); if (dd < bestD) { bestD = dd; best = j; } }
+        return { ...w, pointIndex: best };
+      }).filter(Boolean);
+      m.wires = autoWires.length ? autoWires : [{ id: uid('w'), type: '', count: 1, extraFt: 0, device: null }];
+      for (const w of m.wires) if (w.device) Side.syncWireToDevice(m, w);
+      this.plan.markups.push(m);
+      this.renderAll(); Editor.changed();
+      /* 2. find the split point in the committed run */
+      const splitPt = poly.pts[dotIdx];
+      let splitIdx = 0, splitBest = Infinity;
+      for (let j = 0; j < pts.length; j++) { const dd = dist(pts[j], splitPt); if (dd < splitBest) { splitBest = dd; splitIdx = j; } }
+      /* 3. start a new drawing branch from the split point */
+      this.poly = { pts: [pts[splitIdx]], wires: [], splitFrom: { runId: m.id, pointIndex: splitIdx } };
+      this.renderTemp();
+      toast(`Run saved. Now draw the branch from the split point.`);
+      Editor.hint(`Branch run from split point. Click to add points, snap to devices. Double-click or <kbd>Enter</kbd> to finish.`, true);
+      Touch.updateBar();
+      Side.showMarkup(m.id);
+    } else {
+      this.renderTemp();
+    }
   },
 
   onWheel(e) {
@@ -7815,10 +7874,27 @@ const Side = {
     $('#dt-del').onclick = () => { MapView.removeVertex(m.id, i); };
   },
 
+  /* distance contributed by the parent run up to the split point */
+  splitBaseFt(m) {
+    if (!m.splitFrom) return 0;
+    const parent = Editor.findItem(m.splitFrom.runId);
+    if (!parent || !parent.points) return 0;
+    const s = Editor.plan.scale; if (!s) return 0;
+    const idx = Math.min(m.splitFrom.pointIndex, parent.points.length - 1);
+    const pts = parent.points.slice(0, idx + 1);
+    let dotFt = 0;
+    for (let i = 0; i <= idx && parent.dots; i++) {
+      const d = parent.dots[i];
+      if (d && (d.kind === 'updown' || d.kind === 'slack')) dotFt += Math.max(0, +(d.f && d.f.len) || 0);
+    }
+    /* if parent itself is a branch, recurse */
+    const parentSplit = parent.splitFrom ? this.splitBaseFt(parent) : 0;
+    return parentSplit + polyLength(pts) / s.pxPerFt + dotFt;
+  },
   /* per-wire length (before count multiply) */
   wireBaseFt(m) {
     const s = Editor.plan.scale; if (!s) return null;
-    return polyLength(m.points) / s.pxPerFt + Dots.feet(m);
+    return this.splitBaseFt(m) + polyLength(m.points) / s.pxPerFt + Dots.feet(m);
   },
   /* per-wire segment length: start of run to the wire's pointIndex */
   wireSegmentFt(m, w) {
@@ -7831,7 +7907,7 @@ const Side = {
       const d = m.dots[i];
       if (d && (d.kind === 'updown' || d.kind === 'slack')) dotFt += Math.max(0, +(d.f && d.f.len) || 0);
     }
-    return polyLength(pts) / s.pxPerFt + dotFt;
+    return this.splitBaseFt(m) + polyLength(pts) / s.pxPerFt + dotFt;
   },
   wireFt(m, w) {
     /* use per-segment distance when pointIndex is set, otherwise full run */
@@ -7860,9 +7936,10 @@ const Side = {
     const segFt = this.wireSegmentFt(m, w);
     const ftTxt = ft != null ? `${ft.toLocaleString()} ft${(w.count || 1) > 1 ? ' (' + (w.count || 1) + ' × ' + Math.round(ft / Math.max(1, w.count || 1)).toLocaleString() + ')' : ''}` : '';
     const segNote = segFt != null ? `<span class="wire-seg muted" title="Distance from start of run to this device's connection point">(${Math.round(segFt).toLocaleString()} ft from start)</span>` : '';
+    const splitNote = m.splitFrom ? (() => { const sFt = this.splitBaseFt(m); return sFt > 0 ? `<span class="wire-seg muted" title="This branch run includes ${Math.round(sFt)} ft of shared path from the parent run">incl. ${Math.round(sFt)} ft shared</span>` : ''; })() : '';
     const canDel = (m.wires || []).length > 1;
     return `<div class="wire-card" data-wid="${esc(w.id)}">
-      <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}${segNote ? ' ' + segNote : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
+      <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}${segNote ? ' ' + segNote : ''}${splitNote ? ' ' + splitNote : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
       <div class="cab-grid">
         <label class="fld"><span>Cable type</span><select class="inp wc-type" data-wid="${esc(w.id)}">${OtherOpt.options(CABLE_TYPES, 'cable', w.type || '')}</select></label>
         <label class="fld"><span>Count</span><input class="inp wc-count" data-wid="${esc(w.id)}" type="number" min="1" step="1" value="${w.count || 1}"></label>
@@ -7985,6 +8062,7 @@ const Side = {
           <div class="slider-row"><span>Fill</span><input type="range" id="mk-fill" min="0" max="1" step="0.02" value="${m.fill || 0}"><em id="mk-fill-v">${Math.round((m.fill || 0) * 100)}%</em></div>` : ''}
         ${m.kind === 'line' || m.kind === 'rect' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-barrier" ${m.barrier ? 'checked' : ''}><span>Blocks camera views &amp; sensor coverage (a wall)</span></label>` : ''}
         ${m.kind === 'arrow' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-both" ${m.both ? 'checked' : ''}><span>Arrowheads on both ends</span></label>` : ''}
+        ${m.kind === 'cable' && m.splitFrom ? (() => { const pr = Editor.findItem(m.splitFrom.runId); const sFt = this.splitBaseFt(m); return `<p class="tiny muted" style="color:var(--amber-600,#d97706)">⑂ Branch run — splits from ${pr ? esc(pr.label || 'Run') : 'parent run'}${sFt > 0 ? ' (+' + Math.round(sFt) + ' ft shared path)' : ''}</p>`; })() : ''}
         ${m.kind === 'cable' ? `<p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
           <div class="wire-cards" id="mk-wires">${(m.wires || []).map((w, i) => this.wireCardHtml(m, w, i)).join('')}</div>
           <button type="button" class="btn sm" id="mk-addwire">${ic('Plus')}<span>Add wire type</span></button>
@@ -12393,6 +12471,7 @@ const Touch = {
       btns.push({ a: 'finish-chain', icon: 'Check', label: 'Done', primary: true });
     } else if (t === 'cable' && poly) {
       btns.push({ a: 'undo-pt', icon: 'ArrowBackUp', label: 'Undo' });
+      if (poly.pts.length > 1) btns.push({ a: 'split-poly', icon: 'GitBranch', label: poly.splitMode ? 'Splitting…' : '+ Split', on: !!poly.splitMode });
       btns.push({ a: 'cancel-poly', icon: 'X', label: 'Cancel' });
       if (poly.pts.length > 1) btns.push({ a: 'finish-poly', icon: 'Check', label: 'Finish', primary: true });
     } else if (t === 'room' && LayoutUI.ghostRoom) {
@@ -12415,6 +12494,7 @@ const Touch = {
       case 'undo-wall': LayoutUI.undoChainWall(); break;
       case 'finish-chain': LayoutUI.finishChain(); break;
       case 'undo-pt': if (MapView.poly) { MapView.poly.pts.pop(); if (!MapView.poly.pts.length) MapView.poly = null; } break;
+      case 'split-poly': if (MapView.poly) { MapView.poly.splitMode = !MapView.poly.splitMode; if (MapView.poly.splitMode) Editor.hint('Tap a dot on the run to split from that point. Tap + Split again to cancel.', true); else Editor.hint(TOOL_HINTS.cable); } break;
       case 'cancel-poly': MapView.finishPoly(false); break;
       case 'finish-poly': MapView.finishPoly(true); break;
       case 'cancel-ghost': LayoutUI.ghostRoom = null; Editor.hint(TOUCH_HINTS.room); break;
@@ -12817,7 +12897,10 @@ const Overview = {
       for (const m of pl.markups || []) {
         if (m.kind !== 'cable' || !m.points || m.points.length < 2) continue;
         if (!ppf) { unscaled++; continue; }
-        const baseFt = polyLength(m.points) / ppf + Dots.feet(m);
+        /* splitFrom: add parent run's shared-path distance */
+        let splitFt = 0;
+        if (m.splitFrom) { const pm = pl.markups.find(mm => mm.id === m.splitFrom.runId); if (pm && pm.points) { const si = Math.min(m.splitFrom.pointIndex, pm.points.length - 1); const sp = pm.points.slice(0, si + 1); let sdf = 0; for (let i = 0; i <= si && pm.dots; i++) { const dd = pm.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) sdf += Math.max(0, +(dd.f && dd.f.len) || 0); } splitFt = polyLength(sp) / ppf + sdf; } }
+        const baseFt = splitFt + polyLength(m.points) / ppf + Dots.feet(m);
         for (const w of m.wires || []) {
           const n = Math.max(1, w.count || 1);
           /* use per-segment distance when pointIndex is set */
@@ -12827,7 +12910,7 @@ const Overview = {
             const segPts = m.points.slice(0, idx + 1);
             let dotFt = 0;
             for (let i = 0; i <= idx && m.dots; i++) { const dd = m.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) dotFt += Math.max(0, +(dd.f && dd.f.len) || 0); }
-            segBase = polyLength(segPts) / ppf + dotFt;
+            segBase = splitFt + polyLength(segPts) / ppf + dotFt;
           }
           const ft = (segBase + (w.extraFt || 0)) * n;
           const t = w.type || 'No type'; cab.set(t, (cab.get(t) || 0) + ft);
@@ -13714,8 +13797,11 @@ if (HUB) {
           devices: pl.devices.map(d => { const t = HubField.typeOf(p, d.type); const s = HubField.sysOf(p, t.system);
             return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0 }; }),
           cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
-            const baseFt = ppf ? polyLength(m.points) / ppf + Dots.feet(m) : null;
-            return { id: m.id, label: m.label || '', wires: (m.wires || []).map(w => {
+            /* splitFrom: add parent run's shared-path distance */
+            let splitFt = 0;
+            if (m.splitFrom && ppf) { const pm = pl.markups.find(mm => mm.id === m.splitFrom.runId); if (pm && pm.points) { const si = Math.min(m.splitFrom.pointIndex, pm.points.length - 1); const sp = pm.points.slice(0, si + 1); let sdf = 0; for (let i = 0; i <= si && pm.dots; i++) { const dd = pm.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) sdf += Math.max(0, +(dd.f && dd.f.len) || 0); } splitFt = polyLength(sp) / ppf + sdf; } }
+            const baseFt = ppf ? splitFt + polyLength(m.points) / ppf + Dots.feet(m) : null;
+            return { id: m.id, label: m.label || '', splitFrom: m.splitFrom || null, wires: (m.wires || []).map(w => {
               const n = Math.max(1, w.count || 1);
               /* per-segment distance when pointIndex available */
               let wBase = baseFt;
@@ -13723,7 +13809,7 @@ if (HUB) {
                 const idx = Math.min(w.pointIndex, m.points.length - 1);
                 let dotFt = 0;
                 for (let i = 0; i <= idx && m.dots; i++) { const dd = m.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) dotFt += Math.max(0, +(dd.f && dd.f.len) || 0); }
-                wBase = polyLength(m.points.slice(0, idx + 1)) / ppf + dotFt;
+                wBase = splitFt + polyLength(m.points.slice(0, idx + 1)) / ppf + dotFt;
               }
               const ft = wBase != null ? Math.round((wBase + (w.extraFt || 0)) * n) : null;
               return { id: w.id, type: w.type || '', count: n, ft, device: w.device || null, pointIndex: w.pointIndex ?? null };
@@ -13936,6 +14022,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (key === 'Enter' && MapView.poly) { MapView.finishPoly(true); return; }
   if (key === 'Backspace' && MapView.poly) { e.preventDefault(); MapView.poly.pts.pop(); if (!MapView.poly.pts.length) MapView.poly = null; MapView.renderTemp(); return; }
+  if ((k === 's') && MapView.poly && MapView.poly.pts.length > 1) { e.preventDefault(); MapView.poly.splitMode = !MapView.poly.splitMode; if (MapView.poly.splitMode) Editor.hint('Click a dot on the run to split from that point. Press <kbd>S</kbd> again to cancel.', true); else Editor.hint(TOOL_HINTS.cable); MapView.renderTemp(); Touch.updateBar(); return; }
   if ((key === 'Delete' || key === 'Backspace') && MapView.selVertex && MapView.sel.size === 1 && MapView.sel.has(MapView.selVertex.id)) {
     e.preventDefault(); const sv = MapView.selVertex; if (MapView.removeVertex(sv.id, sv.i)) return;
   }
