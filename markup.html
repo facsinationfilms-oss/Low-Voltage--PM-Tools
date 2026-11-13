@@ -913,6 +913,7 @@ html.in-hub .hub-only { display: inline-flex !important; }
 .wire-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .wire-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent, #2563eb); color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .wire-ft { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.wire-seg { font-weight: 400; font-size: 11px; }
 .wire-del { width: 24px; height: 24px; padding: 0; flex-shrink: 0; opacity: .5; }
 .wire-del:hover { opacity: 1; }
 .wire-dev .lk-add { display: flex; gap: 4px; }
@@ -5712,7 +5713,18 @@ const MapView = {
             it.points.forEach((p, i) => { html += `<circle data-h="vertex:${i}" cx="${p[0]}" cy="${p[1]}" r="${hr}" class="handle round${this.selVertex && this.selVertex.id === it.id && this.selVertex.i === i ? ' vsel' : ''}" stroke-width="${sw}"><title>Drag to move. Double-click for details. Right-click or press Delete to remove this dot</title></circle>`; });
             if (it.kind === 'cable' && Side.mode === 'markup' && Side.id === it.id && Side.dot != null && it.points[Side.dot]) { const q = it.points[Side.dot]; html += `<circle cx="${q[0]}" cy="${q[1]}" r="${hr * 1.9}" class="sel-ring" stroke-width="${2.5 / k}" pointer-events="none"/>`; }
           }
-          if (it.kind === 'cable' && it.links) for (const lid of it.links) { const ld = Editor.findItem(lid); if (!ld || !Editor.isDevice(lid) || Editor.devHidden(ld)) continue; html += `<circle cx="${ld.x}" cy="${ld.y}" r="${devSize(this.plan, ld) * 0.72 + 5 / k}" class="sel-ring" stroke-width="${2.5 / k}" stroke="${it.color}" pointer-events="none"/>`; }
+          if (it.kind === 'cable') {
+            for (const w of it.wires || []) {
+              if (!w.device) continue;
+              const ld = Editor.findItem(w.device); if (!ld || !Editor.isDevice(w.device) || Editor.devHidden(ld)) continue;
+              html += `<circle cx="${ld.x}" cy="${ld.y}" r="${devSize(this.plan, ld) * 0.72 + 5 / k}" class="sel-ring" stroke-width="${2.5 / k}" stroke="${it.color}" pointer-events="none"/>`;
+              /* show connection marker on the run at the device's pointIndex */
+              if (w.pointIndex != null && it.points[w.pointIndex]) {
+                const cp = it.points[w.pointIndex];
+                html += `<circle cx="${cp[0]}" cy="${cp[1]}" r="${6 / k}" fill="${it.color}" stroke="#fff" stroke-width="${2 / k}" pointer-events="none"><title>${esc((ld.label || Reg.type(ld.type).name) + ' connected here')}</title></circle>`;
+              }
+            }
+          }
         }
       }
     }
@@ -5768,6 +5780,21 @@ const MapView = {
       const pts = this.hover ? [...this.poly.pts, this.hover] : this.poly.pts;
       if (pts.length >= 2) html += this.markSvg({ id: '_tmp', kind: 'cable', points: pts, color: this.markColor('cable'), width: this.markWidth('cable'), dash: 'dash' }, true);
       html += this.poly.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${4 / k}" fill="#fff" stroke="#0891b2" stroke-width="${2 / k}"/>`).join('');
+      /* show device-linked points with a filled marker */
+      for (const w of this.poly.wires || []) {
+        const pt = this.poly.pts[w.pointIndex];
+        if (pt) html += `<circle cx="${pt[0]}" cy="${pt[1]}" r="${7 / k}" fill="#0891b2" stroke="#fff" stroke-width="${2 / k}"><title>Linked to device</title></circle>`;
+      }
+      /* show hover snap preview near devices */
+      if (this.hover) {
+        const devSnapR = devSize(this.plan, { size: 1 }) * 1.2;
+        for (const dv of this.visibleDevices()) {
+          if (dist(this.hover, [dv.x, dv.y]) < devSnapR) {
+            html += `<circle cx="${dv.x}" cy="${dv.y}" r="${devSize(this.plan, dv) * 0.7 + 6 / k}" fill="none" stroke="#0891b2" stroke-width="${2.5 / k}" stroke-dasharray="${5 / k} ${3 / k}" opacity="0.7"/>`;
+            break;
+          }
+        }
+      }
     }
     if (this.placeType && this.hover && (!d || d.mode === 'place')) {
       const t = Reg.type(this.placeType);
@@ -6162,13 +6189,27 @@ const MapView = {
         break;
       }
       case 'cablept': {
-        if (!this.poly) this.poly = { pts: [p] };
+        /* check if click is on/near a device → snap & auto-link */
+        let snapped = p, hitDev = null;
+        const devSnapR = devSize(this.plan, { size: 1 }) * 1.2;   // snap radius: slightly larger than device icon
+        for (const dv of this.visibleDevices()) {
+          if (dist(p, [dv.x, dv.y]) < devSnapR) { snapped = [dv.x, dv.y]; hitDev = dv; break; }
+        }
+        if (!this.poly) { this.poly = { pts: [snapped], wires: [] }; }
         else {
           const last = this.poly.pts[this.poly.pts.length - 1];
-          if (dist(last, p) * this.k > 4) this.poly.pts.push(p);
+          if (dist(last, snapped) * this.k > 4) this.poly.pts.push(snapped);
+        }
+        /* if we hit a device, record a wire entry for it */
+        if (hitDev) {
+          const already = this.poly.wires.some(w => w.device === hitDev.id);
+          if (!already) {
+            this.poly.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: hitDev.id, pointIndex: this.poly.pts.length - 1 });
+          }
         }
         this.renderTemp();
-        Editor.hint(`Cable run: ${plural(this.poly.pts.length, 'point')}${this.poly.pts.length > 1 && this.plan.scale ? ' · ' + this.lengthLabel(polyLength(this.poly.pts)) : ''}. Double-click or <kbd>Enter</kbd> to finish, <kbd>Esc</kbd> to cancel.`, true);
+        const devCount = this.poly.wires.length;
+        Editor.hint(`Cable run: ${plural(this.poly.pts.length, 'point')}${devCount ? ' · ' + plural(devCount, 'device') + ' linked' : ''}${this.poly.pts.length > 1 && this.plan.scale ? ' · ' + this.lengthLabel(polyLength(this.poly.pts)) : ''}. Double-click or <kbd>Enter</kbd> to finish, <kbd>Esc</kbd> to cancel.`, true);
         break;
       }
       case 'handle': case 'lhandle':
@@ -6283,11 +6324,24 @@ const MapView = {
       for (const q of poly.pts) if (!pts.length || dist(pts[pts.length - 1], q) * this.k > 4) pts.push(q);
       if (pts.length >= 2) {
         const m = { id: uid('m'), kind: 'cable', points: pts, color: this.markColor('cable'), width: this.markWidth('cable'), dash: 'dash', label: '' };
+        /* carry over auto-linked wires from drawing, adjusting pointIndex for removed duplicates */
+        const autoWires = (poly.wires || []).map(w => {
+          /* find closest surviving point to original */
+          const orig = poly.pts[w.pointIndex];
+          if (!orig) return null;
+          let best = 0, bestD = Infinity;
+          for (let j = 0; j < pts.length; j++) { const dd = dist(pts[j], orig); if (dd < bestD) { bestD = dd; best = j; } }
+          return { ...w, pointIndex: best };
+        }).filter(Boolean);
+        m.wires = autoWires.length ? autoWires : [{ id: uid('w'), type: '', count: 1, extraFt: 0, device: null }];
+        /* sync auto-linked wires to their devices */
+        for (const w of m.wires) if (w.device) Side.syncWireToDevice(m, w);
         this.plan.markups.push(m);
         this.sel = new Set([m.id]);
         this.renderAll();
         Editor.changed();
         Side.showMarkup(m.id);
+        if (autoWires.length) toast(`${plural(autoWires.length, 'device')} auto-linked to this run`);
       }
     }
     this.renderTemp();
@@ -7766,8 +7820,24 @@ const Side = {
     const s = Editor.plan.scale; if (!s) return null;
     return polyLength(m.points) / s.pxPerFt + Dots.feet(m);
   },
+  /* per-wire segment length: start of run to the wire's pointIndex */
+  wireSegmentFt(m, w) {
+    if (w.pointIndex == null) return null;
+    const s = Editor.plan.scale; if (!s) return null;
+    const idx = Math.min(w.pointIndex, m.points.length - 1);
+    const pts = m.points.slice(0, idx + 1);
+    let dotFt = 0;
+    for (let i = 0; i <= idx && m.dots; i++) {
+      const d = m.dots[i];
+      if (d && (d.kind === 'updown' || d.kind === 'slack')) dotFt += Math.max(0, +(d.f && d.f.len) || 0);
+    }
+    return polyLength(pts) / s.pxPerFt + dotFt;
+  },
   wireFt(m, w) {
-    const base = this.wireBaseFt(m); if (base == null) return null;
+    /* use per-segment distance when pointIndex is set, otherwise full run */
+    const seg = this.wireSegmentFt(m, w);
+    const base = seg != null ? seg : this.wireBaseFt(m);
+    if (base == null) return null;
     return Math.round((base + (w.extraFt || 0)) * Math.max(1, w.count || 1));
   },
   cableTotalText(m) {
@@ -7787,10 +7857,12 @@ const Side = {
     const devs = plan.devices.filter(d => !claimed.has(d.id) && d.id !== w.device).sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true, sensitivity: 'base' }));
     const nm = d => (d.label || Reg.type(d.type).name) + ' · ' + Reg.type(d.type).name;
     const ft = this.wireFt(m, w);
+    const segFt = this.wireSegmentFt(m, w);
     const ftTxt = ft != null ? `${ft.toLocaleString()} ft${(w.count || 1) > 1 ? ' (' + (w.count || 1) + ' × ' + Math.round(ft / Math.max(1, w.count || 1)).toLocaleString() + ')' : ''}` : '';
+    const segNote = segFt != null ? `<span class="wire-seg muted" title="Distance from start of run to this device's connection point">(${Math.round(segFt).toLocaleString()} ft from start)</span>` : '';
     const canDel = (m.wires || []).length > 1;
     return `<div class="wire-card" data-wid="${esc(w.id)}">
-      <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
+      <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}${segNote ? ' ' + segNote : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
       <div class="cab-grid">
         <label class="fld"><span>Cable type</span><select class="inp wc-type" data-wid="${esc(w.id)}">${OtherOpt.options(CABLE_TYPES, 'cable', w.type || '')}</select></label>
         <label class="fld"><span>Count</span><input class="inp wc-count" data-wid="${esc(w.id)}" type="number" min="1" step="1" value="${w.count || 1}"></label>
@@ -12748,7 +12820,16 @@ const Overview = {
         const baseFt = polyLength(m.points) / ppf + Dots.feet(m);
         for (const w of m.wires || []) {
           const n = Math.max(1, w.count || 1);
-          const ft = (baseFt + (w.extraFt || 0)) * n;
+          /* use per-segment distance when pointIndex is set */
+          let segBase = baseFt;
+          if (w.pointIndex != null) {
+            const idx = Math.min(w.pointIndex, m.points.length - 1);
+            const segPts = m.points.slice(0, idx + 1);
+            let dotFt = 0;
+            for (let i = 0; i <= idx && m.dots; i++) { const dd = m.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) dotFt += Math.max(0, +(dd.f && dd.f.len) || 0); }
+            segBase = polyLength(segPts) / ppf + dotFt;
+          }
+          const ft = (segBase + (w.extraFt || 0)) * n;
           const t = w.type || 'No type'; cab.set(t, (cab.get(t) || 0) + ft);
         }
       }
@@ -13636,8 +13717,16 @@ if (HUB) {
             const baseFt = ppf ? polyLength(m.points) / ppf + Dots.feet(m) : null;
             return { id: m.id, label: m.label || '', wires: (m.wires || []).map(w => {
               const n = Math.max(1, w.count || 1);
-              const ft = baseFt != null ? Math.round((baseFt + (w.extraFt || 0)) * n) : null;
-              return { id: w.id, type: w.type || '', count: n, ft, device: w.device || null };
+              /* per-segment distance when pointIndex available */
+              let wBase = baseFt;
+              if (w.pointIndex != null && ppf) {
+                const idx = Math.min(w.pointIndex, m.points.length - 1);
+                let dotFt = 0;
+                for (let i = 0; i <= idx && m.dots; i++) { const dd = m.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) dotFt += Math.max(0, +(dd.f && dd.f.len) || 0); }
+                wBase = polyLength(m.points.slice(0, idx + 1)) / ppf + dotFt;
+              }
+              const ft = wBase != null ? Math.round((wBase + (w.extraFt || 0)) * n) : null;
+              return { id: w.id, type: w.type || '', count: n, ft, device: w.device || null, pointIndex: w.pointIndex ?? null };
             }) };
           }),
         };
