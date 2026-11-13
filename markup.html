@@ -7855,6 +7855,7 @@ const Side = {
           <button class="btn sm" id="dt-next" ${i === last ? 'disabled' : ''}><span>Next dot</span>${ic('ArrowRight')}</button>
           <button class="btn sm danger-ghost" id="dt-del" ${m.points.length <= 2 || m.locked ? 'disabled' : ''} title="${m.points.length <= 2 ? 'A run needs at least two dots' : 'Remove this dot from the run'}">${ic('Trash')}<span>Remove dot</span></button>
         </div>
+        <button class="btn sm" id="dt-split" style="margin-top:6px;color:var(--amber-600,#d97706);border-color:var(--amber-600,#d97706)" title="Start a new branch run from this dot">${ic('GitBranch')}<span>⑂ Split from here</span></button>
       </div>`;
     if (act) { const el = $('#' + act, this.el); if (el) el.focus({ preventScroll: true }); }
     const save = (commit = 'soon') => { Dots.clean(m); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit }); };
@@ -7872,6 +7873,18 @@ const Side = {
     $('#dt-prev').onclick = () => { this.dot = Math.max(0, i - 1); MapView.renderSel(); this.renderDot(m); };
     $('#dt-next').onclick = () => { this.dot = Math.min(last, i + 1); MapView.renderSel(); this.renderDot(m); };
     $('#dt-del').onclick = () => { MapView.removeVertex(m.id, i); };
+    $('#dt-split').onclick = () => {
+      /* start a new branch cable run from this dot on the completed run */
+      const pt = m.points[i];
+      if (!pt) return;
+      MapView.sel.clear(); MapView.renderSelState(); this.close();
+      Editor.setTool('cable');
+      MapView.poly = { pts: [[pt[0], pt[1]]], wires: [], splitFrom: { runId: m.id, pointIndex: i } };
+      MapView.renderTemp();
+      toast('Draw the branch run from this dot. Click to add points, snap to devices.');
+      Editor.hint('Branch run from split point. Click to add points, snap to devices. Double-click or <kbd>Enter</kbd> to finish.', true);
+      Touch.updateBar();
+    };
   },
 
   /* distance contributed by the parent run up to the split point */
