@@ -907,6 +907,19 @@ html.in-hub .hub-only { display: inline-flex !important; }
 .cab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cab-grid .fld:first-child { grid-column: 1 / -1; }
 .cab-total { margin: 2px 0 0; color: var(--text-2); }
+/* wire cards */
+.wire-cards { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
+.wire-card { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 10px; background: var(--bg-2, rgba(0,0,0,.03)); }
+.wire-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.wire-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent, #2563eb); color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.wire-ft { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.wire-del { width: 24px; height: 24px; padding: 0; flex-shrink: 0; opacity: .5; }
+.wire-del:hover { opacity: 1; }
+.wire-dev .lk-add { display: flex; gap: 4px; }
+.wire-dev .lk-add select { flex: 1; }
+.wire-dev .lk-add .btn { flex-shrink: 0; padding: 0 8px; }
+.wire-linked-note { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 13px; }
+.wire-linked-note .btn { flex-shrink: 0; }
 html.phone #ed-quote span { display: none; }
 html.hub-tech #ed-quote { display: none !important; }
 
@@ -2819,6 +2832,25 @@ function normalizeProject(p) {
     pl.stacks = pl.stacks || {};
     for (const d of pl.devices) { d.fields = d.fields || {}; d.photos = d.photos || []; d.status = d.status || 'planned'; }
     if (pl.kind === 'layout') Layout.ensure(pl);
+    /* migrate old single-cable-type runs to the wires[] model */
+    for (const m of pl.markups) {
+      if (m.kind !== 'cable' || m.wires) continue;
+      const links = Array.isArray(m.links) ? m.links.filter(Boolean) : [];
+      if (m.cableType || m.count > 1 || m.extraFt || links.length) {
+        m.wires = [];
+        if (links.length <= 1) {
+          m.wires.push({ id: uid('w'), type: m.cableType || '', count: m.count || 1, extraFt: m.extraFt || 0, device: links[0] || null });
+        } else {
+          /* one wire per linked device — inherit type from the run, split count evenly */
+          for (let i = 0; i < links.length; i++) {
+            m.wires.push({ id: uid('w'), type: m.cableType || '', count: 1, extraFt: i === 0 ? (m.extraFt || 0) : 0, device: links[i] });
+          }
+        }
+      } else {
+        m.wires = [{ id: uid('w'), type: '', count: 1, extraFt: 0, device: null }];
+      }
+      delete m.cableType; delete m.count; delete m.extraFt; delete m.links;
+    }
   }
   return p;
 }
@@ -7292,7 +7324,14 @@ const Side = {
 
         ${isPano ? '' : this.section(isCam || d.cone || t.cov ? 'cam' : 'cov', isCam ? 'Camera view' : 'Coverage area', cam, 'View360', isCam || !!d.cone || !!t.cov)}
 
-        ${isPano ? '' : this.section('cable', 'Cabling', COMMON_FIELDS.cabling.map(f => this.fieldHtml(f, d.fields[f[0]])).join(''), 'Route', false)}
+        ${isPano ? '' : this.section('cable', 'Cabling', (() => {
+          const ref = d.fields._wireRef;
+          const run = ref ? Editor.findItem(ref.runId) : null;
+          const wire = run && run.wires ? run.wires.find(ww => ww.id === ref.wireId) : null;
+          const linked = !!(run && wire);
+          return (linked ? `<p class="tiny wire-linked-note"><span class="muted">Linked to wire run${run.label ? ' <b>' + esc(run.label) + '</b>' : ''}</span> <button type="button" class="btn sm" id="sd-goto-run" data-rid="${esc(run.id)}">${ic('Route')}<span>Go to run</span></button></p>` : '')
+            + COMMON_FIELDS.cabling.map(f => this.fieldHtml(f, d.fields[f[0]])).join('');
+        })(), 'Route', false)}
         ${isPano ? '' : this.section('install', 'Install', COMMON_FIELDS.install.map(f => this.fieldHtml(f, d.fields[f[0]])).join(''), 'ClipboardList', false)}
 
         ${this.section('notes', isPano ? 'Description' : 'Notes', `<textarea class="inp" id="sd-notes" rows="${isPano ? 6 : 4}" placeholder="${isPano ? 'What is this photo showing? Anything worth pointing out…' : 'Anything the crew should know…'}">${esc(d.notes || '')}</textarea>`, 'FileText')}
@@ -7348,9 +7387,19 @@ const Side = {
         let v = inp.type === 'checkbox' ? inp.checked : inp.value;
         if (inp.type === 'number' && v !== '') v = Number(v);
         if (v === '' || v === false) delete d.fields[k]; else d.fields[k] = v;
+        /* sync cable fields back to the wire run if linked */
+        if ((k === 'cableType' || k === 'cableLength') && d.fields._wireRef) {
+          const ref = d.fields._wireRef;
+          const run = Editor.findItem(ref.runId);
+          const wire = run && run.wires ? run.wires.find(ww => ww.id === ref.wireId) : null;
+          if (wire && k === 'cableType') wire.type = d.fields.cableType || '';
+        }
         touch({ map: k === 'location' });
       });
     });
+    /* go-to-run button in cabling section */
+    const goRun = $('#sd-goto-run');
+    if (goRun) goRun.onclick = () => { const rid = goRun.dataset.rid; const run = Editor.findItem(rid); if (run) { MapView.sel = new Set([rid]); MapView.renderSelState(); this.showMarkup(rid); } };
     $('#sd-notes').addEventListener('input', e => { d.notes = e.target.value; touch(); });
     DevCatUI.wire(this.el, d);
 
@@ -7712,11 +7761,126 @@ const Side = {
     $('#dt-del').onclick = () => { MapView.removeVertex(m.id, i); };
   },
 
+  /* per-wire length (before count multiply) */
+  wireBaseFt(m) {
+    const s = Editor.plan.scale; if (!s) return null;
+    return polyLength(m.points) / s.pxPerFt + Dots.feet(m);
+  },
+  wireFt(m, w) {
+    const base = this.wireBaseFt(m); if (base == null) return null;
+    return Math.round((base + (w.extraFt || 0)) * Math.max(1, w.count || 1));
+  },
   cableTotalText(m) {
-    const s = Editor.plan.scale; const n = m.count || 1;
-    if (!s) return `${m.cableType ? esc(m.cableType) + ' · ' : ''}Set the plan scale to measure this run.`;
-    const dv = Dots.feet(m), ft = Math.round((polyLength(m.points) / s.pxPerFt + (m.extraFt || 0) + dv) * n);
-    return `<b>${ft.toLocaleString()} ft</b> of ${esc(m.cableType || 'cable')}${n > 1 ? ` (${n} cables)` : ''}${dv ? `<br><span class="muted">includes ${Math.round(dv * 10) / 10} ft going up/down or slack from the dots</span>` : ''}`;
+    const wires = m.wires || [];
+    const s = Editor.plan.scale;
+    if (!s) { const types = wires.map(w => w.type).filter(Boolean); return `${types.length ? esc(types.join(', ')) + ' · ' : ''}Set the plan scale to measure this run.`; }
+    let total = 0, n = 0;
+    for (const w of wires) { const ft = this.wireFt(m, w); if (ft != null) { total += ft; n += Math.max(1, w.count || 1); } }
+    const dv = Dots.feet(m);
+    return `<b>${total.toLocaleString()} ft</b> total${n > 1 ? ` (${n} cables)` : ''}${dv ? `<br><span class="muted">includes ${Math.round(dv * 10) / 10} ft going up/down or slack from the dots</span>` : ''}`;
+  },
+  wireCardHtml(m, w, idx) {
+    const plan = Editor.plan;
+    /* device dropdown: only devices not claimed by OTHER wires in this run */
+    const claimed = new Set((m.wires || []).filter(ww => ww !== w && ww.device).map(ww => ww.device));
+    const linked = w.device ? Editor.findItem(w.device) : null;
+    const devs = plan.devices.filter(d => !claimed.has(d.id) && d.id !== w.device).sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true, sensitivity: 'base' }));
+    const nm = d => (d.label || Reg.type(d.type).name) + ' · ' + Reg.type(d.type).name;
+    const ft = this.wireFt(m, w);
+    const ftTxt = ft != null ? `${ft.toLocaleString()} ft${(w.count || 1) > 1 ? ' (' + (w.count || 1) + ' × ' + Math.round(ft / Math.max(1, w.count || 1)).toLocaleString() + ')' : ''}` : '';
+    const canDel = (m.wires || []).length > 1;
+    return `<div class="wire-card" data-wid="${esc(w.id)}">
+      <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
+      <div class="cab-grid">
+        <label class="fld"><span>Cable type</span><select class="inp wc-type" data-wid="${esc(w.id)}">${OtherOpt.options(CABLE_TYPES, 'cable', w.type || '')}</select></label>
+        <label class="fld"><span>Count</span><input class="inp wc-count" data-wid="${esc(w.id)}" type="number" min="1" step="1" value="${w.count || 1}"></label>
+        <label class="fld"><span>Extra ft</span><input class="inp wc-extra" data-wid="${esc(w.id)}" type="number" min="0" step="1" value="${w.extraFt || ''}" placeholder="slack"></label>
+      </div>
+      <div class="fld wire-dev">
+        <span>Device</span>
+        <div class="lk-add"><select class="inp wc-dev" data-wid="${esc(w.id)}">
+          <option value="">— none —</option>
+          ${linked ? `<option value="${esc(linked.id)}" selected>${esc(nm(linked))}</option>` : ''}
+          ${devs.map(d => `<option value="${esc(d.id)}">${esc(nm(d))}</option>`).join('')}
+        </select>${linked ? `<button type="button" class="btn sm wc-goto" data-did="${esc(linked.id)}" title="Go to device">${ic('ArrowRight')}</button>` : ''}</div>
+      </div>
+    </div>`;
+  },
+  /* sync wire data → device cabling fields */
+  syncWireToDevice(m, w) {
+    if (!w.device) return;
+    const d = Editor.findItem(w.device);
+    if (!d || !Editor.isDevice(d.id)) return;
+    d.fields = d.fields || {};
+    if (w.type) d.fields.cableType = w.type;
+    d.fields.cableId = m.label || '';
+    const ft = this.wireFt(m, w);
+    if (ft != null) d.fields.cableLength = ft;
+    d.fields._wireRef = { runId: m.id, wireId: w.id };
+  },
+  /* clear wire ref from a device */
+  clearWireRef(deviceId) {
+    const d = Editor.findItem(deviceId);
+    if (d && d.fields && d.fields._wireRef) { delete d.fields._wireRef; }
+  },
+  /* wire up all events on the wire cards */
+  wireWire(m, touch) {
+    const self = this;
+    const refresh = () => { $('#mk-ctotal').innerHTML = this.cableTotalText(m); };
+    const findW = (wid) => (m.wires || []).find(w => w.id === wid);
+
+    /* per-card events */
+    $$('.wire-card', this.el).forEach(card => {
+      const wid = card.dataset.wid, w = findW(wid);
+      if (!w) return;
+
+      /* cable type */
+      const tsel = $('.wc-type', card);
+      if (tsel) { OtherOpt.attach(tsel, 'cable'); tsel.onchange = () => { if (tsel.value === OtherOpt.SENT) return; w.type = tsel.value || ''; this.syncWireToDevice(m, w); refresh(); touch('now'); }; }
+
+      /* count */
+      const cnt = $('.wc-count', card);
+      if (cnt) cnt.oninput = () => { w.count = Math.max(1, Math.round(+cnt.value || 1)); this.syncWireToDevice(m, w); refresh(); touch(); };
+
+      /* extra ft */
+      const ext = $('.wc-extra', card);
+      if (ext) ext.oninput = () => { w.extraFt = Math.max(0, +ext.value || 0); this.syncWireToDevice(m, w); refresh(); touch(); };
+
+      /* device select */
+      const dev = $('.wc-dev', card);
+      if (dev) dev.onchange = () => {
+        const old = w.device;
+        if (old) this.clearWireRef(old);
+        w.device = dev.value || null;
+        if (w.device) this.syncWireToDevice(m, w);
+        refresh(); touch('now');
+        /* re-render to update "go" button and available devices across cards */
+        self.renderMarkup();
+      };
+
+      /* go to device */
+      const go = $('.wc-goto', card);
+      if (go) go.onclick = () => { const d = Editor.findItem(go.dataset.did); if (d) { MapView.sel = new Set([d.id]); MapView.renderSelState(); this.show(d.id); } };
+
+      /* delete wire */
+      const del = $('.wire-del', card);
+      if (del) del.onclick = () => {
+        if (w.device) this.clearWireRef(w.device);
+        m.wires = (m.wires || []).filter(ww => ww.id !== wid);
+        if (!m.wires.length) m.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
+        refresh(); touch('now');
+        self.renderMarkup();
+      };
+    });
+
+    /* add wire button */
+    const addBtn = $('#mk-addwire');
+    if (addBtn) addBtn.onclick = () => {
+      m.wires = m.wires || [];
+      m.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
+      touch('now');
+      self.renderMarkup();
+    };
   },
   renderMarkup() {
     const m = Editor.findItem(this.id);
@@ -7749,12 +7913,10 @@ const Side = {
           <div class="slider-row"><span>Fill</span><input type="range" id="mk-fill" min="0" max="1" step="0.02" value="${m.fill || 0}"><em id="mk-fill-v">${Math.round((m.fill || 0) * 100)}%</em></div>` : ''}
         ${m.kind === 'line' || m.kind === 'rect' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-barrier" ${m.barrier ? 'checked' : ''}><span>Blocks camera views &amp; sensor coverage (a wall)</span></label>` : ''}
         ${m.kind === 'arrow' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-both" ${m.both ? 'checked' : ''}><span>Arrowheads on both ends</span></label>` : ''}
-        ${m.kind === 'cable' ? `<div class="cab-grid"><label class="fld"><span>Cable type</span><select class="inp" id="mk-ctype">${OtherOpt.options(CABLE_TYPES, 'cable', m.cableType || '')}</select></label>
-          <label class="fld"><span>Cables in this run</span><input class="inp" id="mk-count" type="number" min="1" step="1" value="${m.count || 1}"></label>
-          <label class="fld"><span>Extra per cable (ft)</span><input class="inp" id="mk-extra" type="number" min="0" step="1" value="${m.extraFt || ''}" placeholder="slack, drops"></label></div>
-          <p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
-          <p class="tiny muted">Drag the dots on the map to reshape the run. <b>Double-click a dot</b> for its details (up/down, penetration, pull box…), or double-click the line to add a dot. ${plural(m.points.length, 'point')}. The cable type and total feet go into estimates and quotes in the Office Hub.</p>` : ''}
-        ${m.kind === 'cable' ? this.linkHtml(m) : ''}
+        ${m.kind === 'cable' ? `<p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
+          <div class="wire-cards" id="mk-wires">${(m.wires || []).map((w, i) => this.wireCardHtml(m, w, i)).join('')}</div>
+          <button type="button" class="btn sm" id="mk-addwire">${ic('Plus')}<span>Add wire type</span></button>
+          <p class="tiny muted">Drag the dots on the map to reshape the run. <b>Double-click a dot</b> for its details (up/down, penetration, pull box…), or double-click the line to add a dot. ${plural(m.points.length, 'point')}.</p>` : ''}
         ${m.kind === 'cable' && MapView.cableLabelGeo(m) ? this.lblControls(m, false) : ''}
         ${m.kind === 'cable' ? this.section('photos', `Photos${(m.photos || []).length ? ' (' + m.photos.length + ')' : ''}`, `
           <div class="photo-grid" id="sd-photos">
@@ -7776,10 +7938,8 @@ const Side = {
     $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
     const t = $('#mk-text'); if (t) t.oninput = () => { m.text = t.value; touch(); };
     const lb = $('#mk-label'); if (lb) lb.oninput = () => { m.label = lb.value; touch(); };
-    const ct = $('#mk-ctype'); if (ct) OtherOpt.attach(ct, 'cable');
-    if (ct) ct.onchange = () => { if (ct.value === OtherOpt.SENT) return; m.cableType = ct.value || undefined; if (m.cableType && !m.label) { m.label = m.cableType; if (lb) lb.value = m.label; } $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch('now'); };
-    const cn = $('#mk-count'); if (cn) cn.oninput = () => { const v = Math.max(1, Math.round(+cn.value || 1)); m.count = v > 1 ? v : undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
-    const cx = $('#mk-extra'); if (cx) cx.oninput = () => { const v = Math.max(0, +cx.value || 0); m.extraFt = v || undefined; $('#mk-ctotal').innerHTML = this.cableTotalText(m); touch(); };
+    /* wire cards wiring */
+    if (m.kind === 'cable') this.wireWire(m, touch);
     $$('#mk-colors [data-c]', this.el).forEach(b => b.onclick = () => { m.color = b.dataset.c; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.toggle('on', x === b)); touch('now'); $('.mk-ico', this.el).style.setProperty('--c', m.color); });
     $('#mk-color').oninput = e => { m.color = e.target.value; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.remove('on')); touch(); };
     const w = $('#mk-width'); if (w) w.oninput = () => { m.width = +w.value * u; $('#mk-width-v').textContent = w.value; touch(); };
@@ -7792,7 +7952,6 @@ const Side = {
     const fl = $('#mk-fill'); if (fl) fl.oninput = () => { m.fill = +fl.value || 0; $('#mk-fill-v').textContent = Math.round(m.fill * 100) + '%'; touch(); };
     const both = $('#mk-both'); if (both) both.onchange = () => { m.both = both.checked; touch('now'); };
     if (m.kind === 'cable') this.wireLbl(m, false, () => touch());
-    if (m.kind === 'cable') this.wireLinks(m);
     if (m.kind === 'cable') {
       $('#sd-addph').onclick = async () => { const files = await pickFiles({ accept: 'image/*', multiple: true }); if (files.length) this.addPhotos(files); };
       $$('#sd-photos .ph[data-i]', this.el).forEach(b => b.onclick = () => Lightbox.open(m, +b.dataset.i));
@@ -12586,10 +12745,14 @@ const Overview = {
       for (const m of pl.markups || []) {
         if (m.kind !== 'cable' || !m.points || m.points.length < 2) continue;
         if (!ppf) { unscaled++; continue; }
-        const ft = (polyLength(m.points) / ppf + (m.extraFt || 0)) * Math.max(1, m.count || 1);
-        const t = m.cableType || 'No type'; cab.set(t, (cab.get(t) || 0) + ft);
+        const baseFt = polyLength(m.points) / ppf + Dots.feet(m);
+        for (const w of m.wires || []) {
+          const n = Math.max(1, w.count || 1);
+          const ft = (baseFt + (w.extraFt || 0)) * n;
+          const t = w.type || 'No type'; cab.set(t, (cab.get(t) || 0) + ft);
+        }
       }
-      for (const d of pl.devices || []) { const f = d.fields || {}; if (+f.cableLength > 0) { const t = f.cableType || 'No type'; cab.set(t, (cab.get(t) || 0) + +f.cableLength); } }
+      for (const d of pl.devices || []) { const f = d.fields || {}; if (+f.cableLength > 0 && !(f._wireRef && f._wireRef.runId)) { const t = f.cableType || 'No type'; cab.set(t, (cab.get(t) || 0) + +f.cableLength); } }
     }
     return `<div class="ov-tiles">
         <div><span>Devices</span><b>${devs.length}</b><small>${sysList.length} system${sysList.length === 1 ? '' : 's'}</small></div>
@@ -13183,7 +13346,7 @@ const SideSections = {
         const flush = () => {
           if (!run.length) return;
           const has = s => run.some(n => n.matches && (n.matches(s) || n.querySelector(s)));
-          const title = has('.cab-grid') ? 'Cable' : has('.cab-links') ? 'Devices on this run' : has('.swatches') ? 'Appearance'
+          const title = has('.wire-cards') ? 'Wires' : has('.cab-grid') ? 'Cable' : has('.cab-links') ? 'Devices on this run' : has('.swatches') ? 'Appearance'
             : (body.querySelector('.multi-types') ? 'Edit all selected' : 'Details');
           this.wrap(el, run, title); run = [];
         };
@@ -13193,7 +13356,7 @@ const SideSections = {
           else if (c.classList.contains('lbl-ctl')) { flush(); this.wrap(el, [c], 'Name on the map'); }
           else if (c.classList.contains('lbl-style')) { flush(); this.wrap(el, [c], 'Name text style'); }
           else if (SKIP(c)) flush();
-          else { if (c.classList.contains('cab-grid') || c.classList.contains('cab-links')) flush(); run.push(c); }
+          else { if (c.classList.contains('wire-cards') || c.classList.contains('cab-grid') || c.classList.contains('cab-links')) flush(); run.push(c); }
         }
         flush();
       }
@@ -13470,9 +13633,12 @@ if (HUB) {
           devices: pl.devices.map(d => { const t = HubField.typeOf(p, d.type); const s = HubField.sysOf(p, t.system);
             return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0 }; }),
           cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
-            const n = Math.max(1, m.count || 1);
-            const ft = ppf ? Math.round((polyLength(m.points) / ppf + (m.extraFt || 0) + Dots.feet(m)) * n) : null;
-            return { id: m.id, label: m.label || '', cableType: m.cableType || (CABLE_TYPES.find(c => new RegExp('\\b' + c.replace(/[^a-z0-9]/gi, '.?'), 'i').test(m.label || '')) || ''), count: n, ft };
+            const baseFt = ppf ? polyLength(m.points) / ppf + Dots.feet(m) : null;
+            return { id: m.id, label: m.label || '', wires: (m.wires || []).map(w => {
+              const n = Math.max(1, w.count || 1);
+              const ft = baseFt != null ? Math.round((baseFt + (w.extraFt || 0)) * n) : null;
+              return { id: w.id, type: w.type || '', count: n, ft, device: w.device || null };
+            }) };
           }),
         };
       });
