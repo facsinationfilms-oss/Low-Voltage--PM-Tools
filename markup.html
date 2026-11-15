@@ -811,7 +811,7 @@ html.phone .rail-sep { width: 1px; height: 26px; margin: 0 4px; }
 html.phone .rail-grow { display: none; }
 html.phone .stage { order: 1; }
 html.phone .palette { left: 0; right: 0; top: auto; bottom: 0; width: 100%; max-width: none; height: min(74%, 620px); border: 1px solid var(--line-2); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -14px 40px rgba(0,0,0,.35); z-index: 12; }
-html.phone .palette::before, html.phone .side::before { content: ''; position: absolute; top: 7px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--line-2); }
+html.phone .palette::before, html.phone .side-grip::before { content: ''; position: absolute; top: 7px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--line-2); }
 html.phone .palette .pal-tabs { margin-top: 18px; }
 html.phone .palette .pal-head { padding-top: 18px; }
 html.phone .palette .pal-tabs:not([hidden]) + .pal-head { padding-top: 8px; }
@@ -819,10 +819,18 @@ html.phone .ed-body.pal-hidden .palette { transform: translateY(105%); }
 html.phone .pal-foot { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 html.phone .side { left: 0; right: 0; top: auto; width: 100%; height: 62%; border-left: 0; border-top: 1px solid var(--line-2); border-radius: 18px 18px 0 0; box-shadow: 0 -14px 40px rgba(0,0,0,.35); transform: translateY(105%); transition: transform .24s var(--ease), height .24s var(--ease); z-index: 12; }
 html.phone .side.open { transform: none; }
-html.phone .side { touch-action: none; }
-html.phone .side .side-body, html.phone .side .le-body { touch-action: pan-y; }
+/* the drag strip at the top of the phone sheet: stays put while the panel scrolls beneath it */
+.side-grip { display: none; }
+html.phone .side.open + .side-grip { display: block; position: absolute; left: 0; right: 0; bottom: calc(62% - 26px); height: 26px; z-index: 13; touch-action: none; border-radius: 18px 18px 0 0; cursor: grab; background: linear-gradient(to bottom, var(--panel) 0, var(--panel) 16px, transparent 26px); }
+html.phone .side.full.open + .side-grip { bottom: calc(100% - 30px); }
+html.phone .side-grip::before { top: 7px; }
 html.phone .side.full { height: calc(100% - 4px); }
-html.phone .side .side-head, html.phone .side .le-head { padding-top: 24px; touch-action: none; }
+html.phone .side .side-head, html.phone .side .le-head { padding-top: 24px; }
+/* phones and tablets: the whole panel (title, lock row, fields, buttons) scrolls as ONE page, so every bit of the sheet is scrollable, not just a small window */
+html.touch .side { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+html.touch .side > * { flex: none; }
+html.touch .side > .side-body, html.touch .side > .le-body { overflow: visible; flex: none; min-height: 0; }
+html.touch .side-foot { position: sticky; bottom: 0; z-index: 2; background: var(--panel); }
 html.phone .side-foot { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 html.phone .side-body { padding-bottom: calc(30px + env(safe-area-inset-bottom)); }
 html.phone .plan-tabs { padding: 0 6px env(safe-area-inset-bottom); height: calc(42px + env(safe-area-inset-bottom)); }
@@ -1493,6 +1501,7 @@ html.phone .shape-fly.in { transform: none; }
       <div class="stage-drop"><div><i data-ic="Upload"></i><b>Drop to add</b><span>Images on a device become its photos · PDFs and images elsewhere become new plans</span></div></div>
     </main>
     <aside class="side" id="side"></aside>
+    <div class="side-grip" id="side-grip" aria-hidden="true"></div>
   </div>
   <footer class="plan-tabs" id="plan-tabs"></footer>
 </section>
@@ -1833,6 +1842,11 @@ function safeFileName(s) {
 function fileBase(name) { return String(name || '').replace(/\.[^.]+$/, ''); }
 
 /* ---------- Tabler icon helper for UI ---------- */
+/* which element actually scrolls the details panel: the body on desktop, the whole panel on touch screens */
+function sideScroller(el) {
+  const b = el && el.querySelector('.side-body');
+  return b && b.scrollHeight > b.clientHeight + 1 && getComputedStyle(b).overflowY !== 'visible' ? b : el;
+}
 function ic(name, cls = '') {
   const inner = TB[name] || '';
   return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
@@ -7352,7 +7366,7 @@ const Side = {
     if (!d) { this.close(); return; }
     const t = Reg.type(d.type);
     const sys = Reg.system(t.system);
-    const scrollTop = keepScroll ? ($('.side-body', this.el)?.scrollTop || 0) : 0;
+    const scrollTop = keepScroll ? ((sideScroller(this.el) || {}).scrollTop || 0) : 0;
     const active = document.activeElement;
     const activeKey = active && this.el.contains(active) ? active.dataset.f || active.id : null;
     const order = this.orderedDevices();
@@ -7470,8 +7484,7 @@ const Side = {
       </div>`;
 
     this.wireSections();
-    const body = $('.side-body', this.el);
-    body.scrollTop = scrollTop;
+    { const sc = sideScroller(this.el); if (sc) sc.scrollTop = scrollTop; }
     if (activeKey) { const el = this.el.querySelector(`[data-f="${activeKey}"]`) || this.el.querySelector('#' + activeKey); if (el) el.focus({ preventScroll: true }); }
 
     const touch = (opts = {}) => {
@@ -7790,12 +7803,10 @@ const Side = {
   },
   renderLayout(keep) {
     if (!Editor.findItem(this.id)) { this.close(); return; }
-    const body = $('.side-body', this.el);
-    const top = body ? body.scrollTop : 0;
+    const top = (sideScroller(this.el) || {}).scrollTop || 0;
     const act = document.activeElement && this.el.contains(document.activeElement) ? document.activeElement.id : null;
     LayoutUI.panel(this.el, this.id);
-    const nb = $('.side-body', this.el);
-    if (nb && keep) nb.scrollTop = top;
+    if (keep) { const nb = sideScroller(this.el); if (nb) nb.scrollTop = top; }
     if (act) { const a = $('#' + act, this.el); if (a) a.focus({ preventScroll: true }); }
   },
 
@@ -8182,7 +8193,7 @@ const Side = {
     const plan = Editor.plan, stk = this.id;
     const m = Stack.members(plan, stk);
     if (m.length < 2) { this.close(); return; }
-    const scrollTop = keepScroll ? ($('.side-body', this.el)?.scrollTop || 0) : 0;
+    const scrollTop = keepScroll ? ((sideScroller(this.el) || {}).scrollTop || 0) : 0;
     const sm = (plan.stacks || {})[stk] || {};
     const u = planUnit(plan);
     const cols = Stack.colors(m);
@@ -8255,7 +8266,7 @@ const Side = {
         `, 'FileText', true)}
       </div>`;
     this.open();
-    const body = $('.side-body', this.el); if (body) body.scrollTop = scrollTop;
+    { const sc = sideScroller(this.el); if (sc) sc.scrollTop = scrollTop; }
     $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
     $('#sd-locate').onclick = () => MapView.centerOn(m[0].x, m[0].y, MapView.fitK() * 2.5);
     $('#sd-del').onclick = $('#stk-del').onclick = () => Editor.deleteSelection();
@@ -12562,18 +12573,18 @@ const Touch = {
 
   /* ---------- bottom sheet (details panel on phones): drag the grip to expand or close ---------- */
   sheetGrip() {
-    const side = $('#side');
+    const side = $('#side'), grip = $('#side-grip');
+    if (!grip) return;
     let g = null;
-    side.addEventListener('pointerdown', e => {
+    grip.addEventListener('pointerdown', e => {
       if (!Device.phone || !side.classList.contains('open')) return;
       const r = side.getBoundingClientRect();
-      if (e.clientY - r.top > 26) return;
       g = { y: e.clientY, h: r.height, id: e.pointerId, moved: false };
-      side.setPointerCapture(e.pointerId);
+      grip.setPointerCapture(e.pointerId);
       side.style.transition = 'none';
       e.preventDefault();
     });
-    side.addEventListener('pointermove', e => {
+    grip.addEventListener('pointermove', e => {
       if (!g || e.pointerId !== g.id) return;
       const dy = e.clientY - g.y;
       g.last = e.clientY;
@@ -12590,8 +12601,8 @@ const Touch = {
       else if (dy < -40) side.classList.add('full');
       g = null;
     };
-    side.addEventListener('pointerup', end);
-    side.addEventListener('pointercancel', end);
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
   },
 
   /* When the details sheet opens on a phone, slide the map so the picked item isn't hidden under it */
