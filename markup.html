@@ -1356,6 +1356,41 @@ html.phone .shape-fly.in { transform: none; }
 .lay-row .lay-btns .btn { padding: 6px 4px; font-size: 12px; justify-content: center; white-space: nowrap; }
 .lay-row .chk-row { margin-top: 6px; align-items: flex-start; }
 .lay-row .lay-sm { display: block; color: var(--muted); font-size: 11.5px; font-weight: 400; }
+
+/* ===== Phones held sideways and tablets: the details panel takes about a quarter of the screen, with a compact layout inside ===== */
+html.touch:not(.phone) { --side-w: clamp(200px, 25vw, 300px); }
+html.touch:not(.phone) .side { width: var(--side-w); font-size: 13px; }
+html.touch:not(.phone) .side-head { padding: 6px 6px 6px 10px; gap: 8px; }
+html.touch:not(.phone) .sd-ico { zoom: .66; margin-right: -4px; }
+html.touch:not(.phone) .sd-label, html.touch:not(.phone) .sd-label.static { font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+html.touch:not(.phone) .sd-type { font-size: 11px; }
+html.touch:not(.phone) .side-head .icon-btn, html.touch:not(.phone) #sd-close { width: 32px; height: 32px; }
+html.touch:not(.phone) .side-body { padding: 6px 8px 22px; }
+html.touch:not(.phone) .side .btn, html.touch:not(.phone) .side .btn.sm { height: 34px; padding: 0 8px; font-size: 12.5px; gap: 5px; }
+html.touch:not(.phone) .side .inp, html.touch:not(.phone) .side select, html.touch:not(.phone) .side textarea { font-size: 13px; }
+html.touch:not(.phone) .side .inp { height: 34px; }
+html.touch:not(.phone) .side .lock-row { margin: 6px 8px 0; padding: 6px 8px; gap: 8px; }
+html.touch:not(.phone) .side .lock-row small, html.touch:not(.phone) .side .lock-row .tiny { font-size: 11px; line-height: 1.25; }
+html.touch:not(.phone) .lay-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+html.touch:not(.phone) .lay-sm, html.touch:not(.phone) .chk-row small { font-size: 11px; }
+html.touch:not(.phone) .side .fld > span, html.touch:not(.phone) .side .fld > label, html.touch:not(.phone) .side .tiny { font-size: 11.5px; }
+html.touch:not(.phone) .dot-opt { padding: 8px 8px; gap: 8px; }
+html.touch:not(.phone) .dot-circ { width: 18px; height: 18px; }
+html.touch:not(.phone) .dot-t b { font-size: 13px; }
+html.touch:not(.phone) .dot-t small { font-size: 11px; line-height: 1.25; }
+html.touch:not(.phone) .dt-split { min-height: 38px; font-size: 13px; margin: 6px 0 10px; }
+html.touch:not(.phone) .mk-actions { flex-wrap: wrap; gap: 6px; }
+html.touch:not(.phone) .sd-nav { padding: 0 4px 6px; gap: 0; }
+html.touch:not(.phone) .sd-nav .icon-btn.sm { width: 28px; height: 30px; }
+html.touch:not(.phone) .side .seg { display: flex; width: 100%; }
+html.touch:not(.phone) .side .seg button { flex: 1 1 0; min-width: 0; padding: 0 4px; justify-content: center; }
+html.touch:not(.phone) .slider-row { gap: 6px; }
+html.touch:not(.phone) .slider-row input[type=range] { flex: 1 1 0; min-width: 0; width: auto; }
+html.touch:not(.phone) .slider-row em { flex: none; min-width: 0; }
+html.touch:not(.phone) .sd-count { white-space: nowrap; font-size: 11.5px; padding: 0 2px; }
+html.touch:not(.phone) .sd-plan { display: none; }
+html.touch:not(.phone) #editor.side-open .zoombar { right: calc(var(--side-w) + 8px); }
+html.touch:not(.phone) #editor.side-open .stage-top { left: calc((100% - var(--side-w)) / 2); max-width: calc(100% - var(--side-w) - 20px); }
 </style>
 </head>
 <body data-view="home">
@@ -7430,7 +7465,7 @@ const Side = {
       </div>
       <div class="sd-nav">
         <button class="icon-btn sm" id="sd-prev" title="Previous device ([)" ${order.length < 2 ? 'disabled' : ''}>${ic('ChevronLeft')}</button>
-        <span>${idx + 1} of ${order.length} on this plan</span>
+        <span class="sd-count">${idx + 1} of ${order.length}<span class="sd-plan"> on this plan</span></span>
         <button class="icon-btn sm" id="sd-next" title="Next device (])" ${order.length < 2 ? 'disabled' : ''}>${ic('ChevronRight')}</button>
         <span class="spacer"></span>
         <button class="icon-btn sm" id="sd-locate" title="Center on map">${ic('Crosshair')}</button>
@@ -12607,7 +12642,8 @@ const Touch = {
 
   /* When the details sheet opens on a phone, slide the map so the picked item isn't hidden under it */
   onSideOpen() {
-    if (!Device.phone || MapView.sel.size !== 1 || !Editor.plan) return;
+    const sideBox = !Device.phone && Device.touch;   /* phone sideways / tablet: the panel sits on the right edge */
+    if ((!Device.phone && !sideBox) || MapView.sel.size !== 1 || !Editor.plan) return;
     requestAnimationFrame(() => {
       const id = [...MapView.sel][0];
       let c = null;
@@ -12618,9 +12654,14 @@ const Touch = {
       if (!c) return;
       const sr = MapView.svg.getBoundingClientRect();
       // the sheet is still sliding in: work out where its top will end up
+      const y = MapView.ty + c[1] * MapView.k, x = MapView.tx + c[0] * MapView.k;
+      if (sideBox) {
+        const visW = Math.max(120, sr.width - $('#side').offsetWidth);
+        if (x > visW - 30 || x < 20 || y < 40 || y > sr.height - 40) MapView.setView(MapView.k, MapView.tx + (visW / 2 - x), MapView.ty + (sr.height / 2 - y));
+        return;
+      }
       const sheetTop = $('.ed-body').getBoundingClientRect().bottom - $('#side').offsetHeight;
       const visH = Math.max(80, sheetTop - sr.top);
-      const y = MapView.ty + c[1] * MapView.k, x = MapView.tx + c[0] * MapView.k;
       if (y > visH - 40 || y < 50 || x < 20 || x > sr.width - 20) {
         MapView.setView(MapView.k, MapView.tx + (x < 20 || x > sr.width - 20 ? sr.width / 2 - x : 0), MapView.ty + (visH * 0.45 - y));
       }
