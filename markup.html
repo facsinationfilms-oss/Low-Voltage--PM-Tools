@@ -817,14 +817,16 @@ html.phone .palette .pal-head { padding-top: 18px; }
 html.phone .palette .pal-tabs:not([hidden]) + .pal-head { padding-top: 8px; }
 html.phone .ed-body.pal-hidden .palette { transform: translateY(105%); }
 html.phone .pal-foot { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-html.phone .side { left: 0; right: 0; top: auto; width: 100%; height: 62%; border-left: 0; border-top: 1px solid var(--line-2); border-radius: 18px 18px 0 0; box-shadow: 0 -14px 40px rgba(0,0,0,.35); transform: translateY(105%); transition: transform .24s var(--ease), height .24s var(--ease); z-index: 12; }
+html.phone .side { left: 0; right: 0; top: auto; width: 100%; height: var(--sheet-h, 40%); border-left: 0; border-top: 1px solid var(--line-2); border-radius: 18px 18px 0 0; box-shadow: 0 -14px 40px rgba(0,0,0,.35); transform: translateY(105%); transition: transform .24s var(--ease), height .24s var(--ease); z-index: 12; }
 html.phone .side.open { transform: none; }
 /* the drag strip at the top of the phone sheet: stays put while the panel scrolls beneath it */
 .side-grip { display: none; }
-html.phone .side.open + .side-grip { display: block; position: absolute; left: 0; right: 0; bottom: calc(62% - 26px); height: 26px; z-index: 13; touch-action: none; border-radius: 18px 18px 0 0; cursor: grab; background: linear-gradient(to bottom, var(--panel) 0, var(--panel) 16px, transparent 26px); }
-html.phone .side.full.open + .side-grip { bottom: calc(100% - 30px); }
+html.phone .side.open + .side-grip { display: block; position: absolute; left: 0; right: 0; bottom: calc(var(--sheet-h, 40%) - 26px); transition: bottom .24s var(--ease); height: 26px; z-index: 13; touch-action: none; border-radius: 18px 18px 0 0; cursor: grab; background: linear-gradient(to bottom, var(--panel) 0, var(--panel) 16px, transparent 26px); }
+html.phone .side.dragging, html.phone .side.dragging + .side-grip { transition: none; }
+html.phone #editor.side-open .viewbar, html.phone #editor.side-open .zoombar { bottom: calc(var(--sheet-px, 0px) + 10px); transition: bottom .24s var(--ease), opacity .18s; }
+html.phone .sheet-drag .viewbar, html.phone .sheet-drag .zoombar { transition: none !important; }
+html.phone .sheet-tall .viewbar, html.phone .sheet-tall .zoombar { opacity: 0; pointer-events: none; }
 html.phone .side-grip::before { top: 7px; }
-html.phone .side.full { height: calc(100% - 4px); }
 html.phone .side .side-head, html.phone .side .le-head { padding-top: 24px; }
 /* phones and tablets: the whole panel (title, lock row, fields, buttons) scrolls as ONE page, so every bit of the sheet is scrollable, not just a small window */
 html.touch .side { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
@@ -7305,6 +7307,10 @@ const Side = {
     const was = this.el.classList.contains('open');
     this.el.classList.add('open'); $('#editor').classList.add('side-open');
     if (Device.phone && !Editor.palHidden()) Editor.togglePalette(false);
+    if (Device.phone) {
+      if (!was) Touch.sheetReset();
+      else if (Touch.sheet.peek) { Touch.sheet.peek = false; Touch.sheetApply(); }   /* a new panel opened while tucked away: bring it back up */
+    }
     if (!was) Touch.onSideOpen();
   },
   close() {
@@ -12606,35 +12612,71 @@ const Touch = {
     this.updateBar();
   },
 
-  /* ---------- bottom sheet (details panel on phones): drag the grip to expand or close ---------- */
+  /* ---------- bottom sheet (details panel on phones): drag the handle to any height; flick down to tuck it away ---------- */
+  sheet: { frac: 0.40, peek: false },
+  sheetLoad() { try { const f = parseFloat(localStorage.getItem('bs.sheetFrac')); if (f >= 0.15 && f <= 0.97) return f; } catch (e) {} return 0.40; },
+  sheetSave(f) { try { localStorage.setItem('bs.sheetFrac', f.toFixed(4)); } catch (e) {} },
+  sheetPeekPx() { const hd = document.querySelector('#side .side-head, #side .le-head'); return Math.max(64, (hd ? hd.offsetHeight : 76) + 4); },
+  sheetPx(box, px) {   /* tell the map buttons how tall the sheet is, so they ride on top of it */
+    box.style.setProperty('--sheet-px', Math.round(px) + 'px');
+    box.classList.toggle('sheet-tall', px > box.clientHeight * 0.72);
+  },
+  sheetApply() {
+    const side = $('#side'); if (!side) return;
+    const box = side.parentElement;
+    box.style.setProperty('--sheet-h', this.sheet.peek ? this.sheetPeekPx() + 'px' : (this.sheet.frac * 100).toFixed(2) + '%');
+    this.sheetPx(box, this.sheet.peek ? this.sheetPeekPx() : this.sheet.frac * box.clientHeight);
+    if (this.sheet.peek) side.scrollTop = 0;
+  },
+  sheetReset() { this.sheet.frac = this.sheetLoad(); this.sheet.peek = false; this.sheetApply(); },
   sheetGrip() {
     const side = $('#side'), grip = $('#side-grip');
     if (!grip) return;
+    const FLICK = 0.7;   /* px per millisecond */
     let g = null;
     grip.addEventListener('pointerdown', e => {
       if (!Device.phone || !side.classList.contains('open')) return;
-      const r = side.getBoundingClientRect();
-      g = { y: e.clientY, h: r.height, id: e.pointerId, moved: false };
+      g = { y: e.clientY, h: side.offsetHeight, H: side.parentElement.clientHeight, id: e.pointerId, moved: false, over: 0, h2: side.offsetHeight, s: [{ t: performance.now(), y: e.clientY }], peekStart: this.sheet.peek };
       grip.setPointerCapture(e.pointerId);
-      side.style.transition = 'none';
+      side.classList.add('dragging'); side.parentElement.classList.add('sheet-drag');
       e.preventDefault();
     });
     grip.addEventListener('pointermove', e => {
       if (!g || e.pointerId !== g.id) return;
-      const dy = e.clientY - g.y;
-      g.last = e.clientY;
-      if (Math.abs(dy) > 4) g.moved = true;
-      side.style.transform = dy > 0 ? `translateY(${dy}px)` : '';
-      if (dy < 0) side.style.height = Math.min(g.h - dy, window.innerHeight) + 'px';
+      const now = performance.now(), dy = e.clientY - g.y, peek = this.sheetPeekPx();
+      g.s.push({ t: now, y: e.clientY }); while (g.s.length > 2 && now - g.s[0].t > 120) g.s.shift();
+      if (Math.abs(dy) > 5) g.moved = true;
+      let h = Math.min(g.h - dy, g.H - 4);
+      g.over = 0;
+      if (h < peek) { g.over = peek - h; h = peek; }
+      g.h2 = h;
+      side.style.transform = g.over ? `translateY(${g.over}px)` : '';
+      side.parentElement.style.setProperty('--sheet-h', h + 'px'); this.sheetPx(side.parentElement, h);
     });
     const end = e => {
       if (!g || e.pointerId !== g.id) return;
-      const dy = (g.last ?? e.clientY) - g.y;
-      side.style.transition = ''; side.style.transform = ''; side.style.height = '';
-      if (!g.moved) side.classList.toggle('full');
-      else if (dy > 90) { if (side.classList.contains('full')) side.classList.remove('full'); else Side.close(); }
-      else if (dy < -40) side.classList.add('full');
-      g = null;
+      const gg = g; g = null;
+      const a = gg.s[0], b = gg.s[gg.s.length - 1];
+      const v = (b.y - a.y) / Math.max(8, b.t - a.t);   /* + = moving down */
+      side.classList.remove('dragging'); side.parentElement.classList.remove('sheet-drag'); side.style.transform = '';
+      const peek = this.sheetPeekPx(), S = this.sheet, full = Math.min(0.99, 1 - 4 / gg.H);
+      if (!gg.moved) {                                  /* tap: full height <-> your usual height */
+        if (S.peek) { S.peek = false; S.frac = this.sheetLoad(); }
+        else if (S.frac >= full - 0.02) S.frac = this.sheetLoad();
+        else S.frac = full;
+      } else if (v > FLICK && e.type !== 'pointercancel') {   /* quick flick down: tuck away, flick again to close */
+        if (gg.peekStart) { this.sheetApply(); Side.close(); return; }
+        S.peek = true;
+      } else if (v < -FLICK) {                          /* quick flick up: back to your height, or all the way up */
+        if (gg.peekStart) { S.peek = false; S.frac = this.sheetLoad(); } else { S.peek = false; S.frac = full; }
+      } else if (gg.over > 60) {                        /* pulled well past the bottom: close */
+        this.sheetApply(); Side.close(); return;
+      } else if (gg.h2 <= peek + 12) {
+        S.peek = true;
+      } else {                                          /* slow drag: stay exactly where you let go, and remember it */
+        S.peek = false; S.frac = gg.h2 / gg.H; this.sheetSave(S.frac);
+      }
+      this.sheetApply();
     };
     grip.addEventListener('pointerup', end);
     grip.addEventListener('pointercancel', end);
