@@ -12618,7 +12618,9 @@ const Touch = {
   sheetSave(f) { try { localStorage.setItem('bs.sheetFrac', f.toFixed(4)); } catch (e) {} },
   sheetPeekPx() { const hd = document.querySelector('#side .side-head, #side .le-head'); return Math.max(64, (hd ? hd.offsetHeight : 76) + 4); },
   sheetPx(box, px) {   /* tell the map buttons how tall the sheet is, so they ride on top of it */
-    box.style.setProperty('--sheet-px', Math.round(px) + 'px');
+    const st = $('#stage'); let below = 0;   /* the plan-tabs bar etc. sits under the map but the sheet covers it */
+    if (st) below = Math.max(0, box.getBoundingClientRect().bottom - st.getBoundingClientRect().bottom);
+    box.style.setProperty('--sheet-px', Math.max(0, Math.round(px - below)) + 'px');
     box.classList.toggle('sheet-tall', px > box.clientHeight * 0.72);
   },
   sheetApply() {
