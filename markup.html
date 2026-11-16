@@ -3662,6 +3662,7 @@ const Home = {
     drop.addEventListener('dragleave', () => drop.classList.remove('over'));
     drop.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
 
+    setTimeout(() => Suggest.prefill(body), 60);
     const m = Modal.open({
       title: 'New project', icon: 'FilePlus', body, cls: 'np-modal',
       buttons: [
@@ -14662,6 +14663,39 @@ const HUB = (() => {
   catch (e) { return false; }
 })();
 
+/* ===== Smart suggestions from the Office Hub: customers, contacts and addresses already in the system =====
+   The hub page provides the engine (window.QFS); this just tells it which boxes here are which. */
+const Suggest = {
+  Q: null,
+  init() {
+    if (!HUB) return;
+    try { this.Q = window.parent.QFS; } catch (e) { this.Q = null; }
+    if (!this.Q || !this.Q.attach) return;
+    const D = this.Q.D, v = (r, sel) => { const e = r.querySelector(sel); return e ? e.value.trim() : ''; };
+    const jobRec = () => { const id = App.project && App.project.hub && App.project.hub.jobId; return id ? D.get(id) : null; };
+    this.Q.attach(document, [
+      { /* New project */
+        root: '.np', match: r => !!r.querySelector('#np-client'),
+        fields: () => ({ '#np-client': { t: 'company' }, '#np-address': { t: 'address' }, '#np-contact': { t: 'person', fill: { phone: '#np-phone' } }, '#np-phone': { t: 'phone' } }),
+        profile: r => { const sel = r.querySelector('#np-job'); if (sel && sel.value) return D.profileOf(D.get(sel.value)); return D.profileByName(v(r, '#np-client')); },
+        profileSelect: '#np-job',
+        apply: { company: '#np-client', address: '#np-address', person: '#np-contact', phone: '#np-phone' },
+      },
+      { /* Project details */
+        root: '.modal', match: r => !!r.querySelector('[data-k="client"]'),
+        fields: () => ({ '[data-k="client"]': { t: 'company' }, '[data-k="address"]': { t: 'address' }, '[data-k="contact"]': { t: 'person', fill: { phone: '[data-k="phone"]', email: '[data-k="email"]' } }, '[data-k="phone"]': { t: 'phone' }, '[data-k="email"]': { t: 'email' } }),
+        profile: r => D.profileOf(jobRec()) || D.profileByName(v(r, '[data-k="client"]')),
+        apply: { address: '[data-k="address"]', person: '[data-k="contact"]', phone: '[data-k="phone"]', email: '[data-k="email"]' },
+      },
+    ], { css: `.qfs-pop{background:var(--elev);color:var(--text);border-color:var(--line-2);font-family:var(--font)}.qfs-scope,.qfs-t small,.qfs-more{color:var(--muted)}.qfs-o:hover{background:var(--hover)}.qfs-av.sq{background:var(--panel-2);border-color:var(--line)}` });
+  },
+  /* a new project opened from a job: bring in the job's customer info */
+  prefill(root) {
+    const sel = root && root.querySelector('#np-job');
+    if (this.Q && sel && sel.value) sel.dispatchEvent(new Event('change', { bubbles: true }));
+  },
+};
+
 const Hub = {
   mode: 'markup',          // which home list the hub tab shows: 'markup' or 'layout'
   pendingJob: null,        // job the next new project belongs to
@@ -14677,6 +14711,7 @@ const Hub = {
     return !lay ? 'markup' : lay === p.plans.length ? 'layout' : 'mixed';
   },
 };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => Suggest.init()); else setTimeout(() => Suggest.init(), 0);
 
 if (HUB) {
   document.documentElement.classList.add('in-hub');

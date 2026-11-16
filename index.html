@@ -3622,7 +3622,7 @@ Thanks,
     <div class="field"><label for="nq-job">For which job?</label><select id="nq-job"><option value="">No job yet</option><option value="__new">+ New job\u2026</option>${t.map(c=>`<option value="${c.id}" ${e.jobId===c.id?"selected":""}>${p(c.name)}${c.type==="project"?" (customer profile)":""}${c.client?" \u2014 "+p(c.client):""}</option>`).join("")}</select></div>
     <div class="field" id="nq-newjob" hidden><label for="nq-jobname">New job name</label><input id="nq-jobname" maxlength="200" placeholder="e.g. Acme Manufacturing \u2013 access control"></div>
     <div class="field"><label for="nq-title">Quote title</label><input id="nq-title" maxlength="300" placeholder="e.g. Access control upgrade \u2013 12 doors" value="${p(e.title||"")}"></div>
-    ${a.length?`<div class="field"><label>Start from</label><div class="nq-tpls"><label class="nq-tpl"><input type="radio" name="nq-tpl" value="" checked><span><b>Blank quote</b><small>Your default terms and settings</small></span></label>${a.map(c=>{const r=ut(c);return`<label class="nq-tpl"><input type="radio" name="nq-tpl" value="${c.id}"><span><b>${p(c.title||"Template")}</b><small>${c.sections.length} section${c.sections.length===1?"":"s"} \xB7 ${r.count} item${r.count===1?"":"s"} \xB7 ${T(r.total,{cents:!1})}</small></span></label>`}).join("")}</div></div>`:""}`,actions:[{label:"Cancel"},{label:"Create quote",kind:"primary",act:c=>{let r=c.querySelector("#nq-job").value;if(r==="__new"){const u=c.querySelector("#nq-jobname").value.trim();if(!u)return x("Name the new job"),c.querySelector("#nq-jobname").focus(),!1;r=(Ht(u)||yo({name:u,status:"quoted"})).id}const d=(c.querySelector("input[name=nq-tpl]:checked")||{}).value||"",m=Wl({jobId:r,title:c.querySelector("#nq-title").value.trim(),tplId:d});da(m.id)}}]});if(!s)return;const n=s.querySelector("#nq-job"),o=s.querySelector("#nq-newjob"),i=s.querySelector("#nq-title"),l=()=>{if(o.hidden=n.value!=="__new",!i.dataset.touched){const c=h.jobs[n.value];i.placeholder=c?c.name:"e.g. Access control upgrade \u2013 12 doors"}};n.addEventListener("change",()=>{l(),n.value==="__new"&&s.querySelector("#nq-jobname").focus()}),i.addEventListener("input",()=>i.dataset.touched="1"),l(),(e.jobId?i:n).focus()}function zl(e=""){return{id:Q("sec"),name:e,desc:"",lines:[]}}function Vl(e){return e?{name:e.contact||e.client||"",company:e.contact&&e.client&&e.client!==e.contact?e.client:"",email:e.email||"",phone:e.phone||"",address:e.address||""}:{name:"",company:"",email:"",phone:"",address:""}}function Wl({jobId:e="",title:t="",tplId:a=""}={}){const s=qt(),n=h.jobs[e],o=Date.now(),i=jo(),l=a&&h.quotes[a],c=l?De(l):{sections:[zl()],contracts:$i().filter(d=>d.auto).map(d=>({id:Q("ct"),title:d.title,body:d.body,tplId:d.id})),intro:"",notes:"",discType:"pct",disc:0,taxRate:+s.taxRate||0,depositPct:+s.depositPct||0,show:{full:!1,mfr:!0,generic:!0}};if(l){for(const d of c.sections){d.id=Q("sec");for(const m of d.lines)m.id=Q("l")}for(const d of c.contracts)d.id=Q("ct")}const r=X.quotes({...c,id:Q("q"),num:i,number:(s.prefix||"")+i,title:t||(l&&!n?l.title:"")||(n?n.name:""),jobId:e,status:"draft",template:!1,files:[],share:null,cc:[],customer:Vl(n),site:{name:n?n.name:"",address:n?n.address:""},date:P(),validUntil:G(P(),+s.validDays||30),history:[{at:o,what:l?`Created from the template \u201C${l.title}\u201D`:"Created"}],acceptedAt:0,acceptedBy:"",signature:"",viewedAt:0,declinedAt:0,responseNote:"",createdAt:o,updatedAt:o});return r.totals=ut(r),r.totals={sub:r.totals.sub,total:r.totals.total,cost:r.totals.cost},Xt("quotes",r),n&&n.status==="lead"&&N("jobs",n.id,{status:"quoted"}),r}let O=null;function da(e){const t=Wt(e);if(!t)return;O&&So(),Zt&&Zt(),O={id:e,kind:En(e),q:De(t),unlocked:!1,saved:!0,timer:0};const a=Ol("qb",'<div class="qb-top"></div><div class="qb-banner"></div><div class="qb-scroll"><div class="qb-body"><div class="qb-main"></div><aside class="qb-side"></aside></div></div><div class="qb-bottom"></div>',{onClose:()=>{St(),O=null,I()}});O.el=a,Kl(a),Ma(),a.focus({preventScroll:!0})}function So(){O&&Tn(O.el)}document.addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&O&&St()}),window.addEventListener("pagehide",()=>{O&&St()}),window.addEventListener("blur",()=>{O&&St()});const Ba=()=>O&&!O.unlocked&&(jt(O.q)?O.q.status==="void"||mt(O.q)==="paid":O.q.status==="accepted"&&!O.q.template);function ji(){return ut(O.q)}function xe({rerender:e=!1,totals:t=!0}={}){O.saved=!1,td(),clearTimeout(O.timer),O.timer=setTimeout(St,600),e?Jl():t&&Ao()}function St(){if(!O||O.saved)return;clearTimeout(O.timer);const e=h[O.kind][O.id];if(!e)return;const t=ji(),a=O.q.history.length>=e.history.length?O.q.history:e.history,s=jt(e)?{status:e.status,viewedAt:e.viewedAt,voidedAt:e.voidedAt,share:e.share,history:a}:{status:e.status,viewedAt:e.viewedAt,acceptedAt:e.acceptedAt,acceptedBy:e.acceptedBy,signature:e.signature,declinedAt:e.declinedAt,responseNote:e.responseNote,share:e.share,history:a},n=X[O.kind]({...O.q,...s,totals:{sub:t.sub,total:t.total,cost:t.cost},updatedAt:Date.now()});E.put(O.kind,n),O.q={...O.q,...s},O.saved=!0,td(),n.share&&n.share.hash&&(n.status==="sent"||n.status==="viewed")&&Ql()}function td(){const e=O&&O.el.querySelector(".qb-saved");e&&(e.textContent=O.saved?"Saved":"Saving\u2026",e.classList.toggle("busy",!O.saved))}function Ma(){Gl(),Jl(),xo()}function Gl(){if(!O)return;const e=O.q,t=O.el,a=ji(),s=h.jobs[e.jobId],n=jt(e);t.classList.toggle("is-inv",n),t.querySelector(".qb-top").innerHTML=`<button class="qb-back" data-qa="close" data-esc title="Back (Esc)">${f("back")}<span>${p(s?s.name:n?"Invoices":"Quotes")}</span></button>
+    ${a.length?`<div class="field"><label>Start from</label><div class="nq-tpls"><label class="nq-tpl"><input type="radio" name="nq-tpl" value="" checked><span><b>Blank quote</b><small>Your default terms and settings</small></span></label>${a.map(c=>{const r=ut(c);return`<label class="nq-tpl"><input type="radio" name="nq-tpl" value="${c.id}"><span><b>${p(c.title||"Template")}</b><small>${c.sections.length} section${c.sections.length===1?"":"s"} \xB7 ${r.count} item${r.count===1?"":"s"} \xB7 ${T(r.total,{cents:!1})}</small></span></label>`}).join("")}</div></div>`:""}`,actions:[{label:"Cancel"},{label:"Create quote",kind:"primary",act:c=>{let r=c.querySelector("#nq-job").value;if(r==="__new"){const u=c.querySelector("#nq-jobname").value.trim();if(!u)return x("Name the new job"),c.querySelector("#nq-jobname").focus(),!1;r=(Ht(u)||yo({name:u,status:"quoted"})).id}const d=(c.querySelector("input[name=nq-tpl]:checked")||{}).value||"",m=Wl({jobId:r,title:c.querySelector("#nq-title").value.trim(),tplId:d});da(m.id)}}]});if(!s)return;const n=s.querySelector("#nq-job"),o=s.querySelector("#nq-newjob"),i=s.querySelector("#nq-title"),l=()=>{if(o.hidden=n.value!=="__new",!i.dataset.touched){const c=h.jobs[n.value];i.placeholder=c?c.name:"e.g. Access control upgrade \u2013 12 doors"}};n.addEventListener("change",()=>{l(),n.value==="__new"&&s.querySelector("#nq-jobname").focus()}),i.addEventListener("input",()=>i.dataset.touched="1"),l(),(e.jobId?i:n).focus()}function zl(e=""){return{id:Q("sec"),name:e,desc:"",lines:[]}}function Vl(e){if(e&&window.QFS)try{return window.QFS.customerFor(e)}catch(x){}return e?{name:e.contact||e.client||"",company:e.contact&&e.client&&e.client!==e.contact?e.client:"",email:e.email||"",phone:e.phone||"",address:e.address||""}:{name:"",company:"",email:"",phone:"",address:""}}function Wl({jobId:e="",title:t="",tplId:a=""}={}){const s=qt(),n=h.jobs[e],o=Date.now(),i=jo(),l=a&&h.quotes[a],c=l?De(l):{sections:[zl()],contracts:$i().filter(d=>d.auto).map(d=>({id:Q("ct"),title:d.title,body:d.body,tplId:d.id})),intro:"",notes:"",discType:"pct",disc:0,taxRate:+s.taxRate||0,depositPct:+s.depositPct||0,show:{full:!1,mfr:!0,generic:!0}};if(l){for(const d of c.sections){d.id=Q("sec");for(const m of d.lines)m.id=Q("l")}for(const d of c.contracts)d.id=Q("ct")}const r=X.quotes({...c,id:Q("q"),num:i,number:(s.prefix||"")+i,title:t||(l&&!n?l.title:"")||(n?n.name:""),jobId:e,status:"draft",template:!1,files:[],share:null,cc:[],customer:Vl(n),site:{name:n?n.name:"",address:n?n.address:""},date:P(),validUntil:G(P(),+s.validDays||30),history:[{at:o,what:l?`Created from the template \u201C${l.title}\u201D`:"Created"}],acceptedAt:0,acceptedBy:"",signature:"",viewedAt:0,declinedAt:0,responseNote:"",createdAt:o,updatedAt:o});return r.totals=ut(r),r.totals={sub:r.totals.sub,total:r.totals.total,cost:r.totals.cost},Xt("quotes",r),n&&n.status==="lead"&&N("jobs",n.id,{status:"quoted"}),r}let O=null;function da(e){const t=Wt(e);if(!t)return;O&&So(),Zt&&Zt(),O={id:e,kind:En(e),q:De(t),unlocked:!1,saved:!0,timer:0};const a=Ol("qb",'<div class="qb-top"></div><div class="qb-banner"></div><div class="qb-scroll"><div class="qb-body"><div class="qb-main"></div><aside class="qb-side"></aside></div></div><div class="qb-bottom"></div>',{onClose:()=>{St(),O=null,I()}});O.el=a,Kl(a),Ma(),a.focus({preventScroll:!0})}function So(){O&&Tn(O.el)}document.addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&O&&St()}),window.addEventListener("pagehide",()=>{O&&St()}),window.addEventListener("blur",()=>{O&&St()});const Ba=()=>O&&!O.unlocked&&(jt(O.q)?O.q.status==="void"||mt(O.q)==="paid":O.q.status==="accepted"&&!O.q.template);function ji(){return ut(O.q)}function xe({rerender:e=!1,totals:t=!0}={}){O.saved=!1,td(),clearTimeout(O.timer),O.timer=setTimeout(St,600),e?Jl():t&&Ao()}function St(){if(!O||O.saved)return;clearTimeout(O.timer);const e=h[O.kind][O.id];if(!e)return;const t=ji(),a=O.q.history.length>=e.history.length?O.q.history:e.history,s=jt(e)?{status:e.status,viewedAt:e.viewedAt,voidedAt:e.voidedAt,share:e.share,history:a}:{status:e.status,viewedAt:e.viewedAt,acceptedAt:e.acceptedAt,acceptedBy:e.acceptedBy,signature:e.signature,declinedAt:e.declinedAt,responseNote:e.responseNote,share:e.share,history:a},n=X[O.kind]({...O.q,...s,totals:{sub:t.sub,total:t.total,cost:t.cost},updatedAt:Date.now()});E.put(O.kind,n),O.q={...O.q,...s},O.saved=!0,td(),n.share&&n.share.hash&&(n.status==="sent"||n.status==="viewed")&&Ql()}function td(){const e=O&&O.el.querySelector(".qb-saved");e&&(e.textContent=O.saved?"Saved":"Saving\u2026",e.classList.toggle("busy",!O.saved))}function Ma(){Gl(),Jl(),xo()}function Gl(){if(!O)return;const e=O.q,t=O.el,a=ji(),s=h.jobs[e.jobId],n=jt(e);t.classList.toggle("is-inv",n),t.querySelector(".qb-top").innerHTML=`<button class="qb-back" data-qa="close" data-esc title="Back (Esc)">${f("back")}<span>${p(s?s.name:n?"Invoices":"Quotes")}</span></button>
     <div class="qb-id"><span class="qb-num">${p(e.template?"Template":e.number)}</span><input class="qb-title" data-q="title" value="${p(e.title)}" placeholder="${e.template?"Template name":n?"Invoice title":"Quote title"}" aria-label="${n?"Invoice":"Quote"} title" ${Ba()?"disabled":""}>${e.template?"":n?hd(e):Zc(e)}<span class="qb-saved">${O.saved?"Saved":"Saving\u2026"}</span></div>
     <div class="qb-acts"><button class="btn qb-savebtn" data-qa="savedone" title="Save and close">${f("check")}<span>${e.status==="draft"&&!e.template?"Save draft":"Save"}</span></button>${n&&e.status!=="void"&&mt(e)!=="paid"?`<button class="btn" data-qa="pay-add">${f("coins")}<span>Record payment</span></button>`:""}<button class="btn" data-qa="preview">${f("eye")}<span>Finished view</span></button>${e.template||e.status==="void"?"":`<button class="btn primary" data-qa="send">${f("send")}<span>${e.status==="draft"?"Send":"Send again"}</span></button>`}<button class="icon-btn" data-qa="menu" aria-label="More" title="More">${f("more")}</button></div>`,t.querySelector(".qb-bottom").innerHTML=`<div class="qbb-tot"><span>${n?"Balance due":"Total"}</span><b data-t="${n?"bal":"total"}">${T(n?Gt(e).balance:a.total)}</b></div>${n&&e.status!=="void"&&mt(e)!=="paid"?`<button class="btn" data-qa="pay-add">${f("coins")}Payment</button>`:`<button class="btn" data-qa="preview">${f("eye")}Finished view</button>`}<button class="btn qbb-save" data-qa="savedone">${f("check")}${e.status==="draft"&&!e.template&&!n?"Save draft":"Save"}</button>${e.template||e.status==="void"?"":`<button class="btn primary" data-qa="send">${f("send")}Send</button>`}`,Ql()}function Ql(){if(!O)return;const e=O.q,t=O.el.querySelector(".qb-banner");let a="";if(jt(e)){a=Zm(e),t.innerHTML=a,t.hidden=!a;return}e.template?a=`<div class="qbn info">${f("copy")}<span><b>This is a template.</b> New quotes can start from it. Customer details and numbers aren\u2019t kept.</span></div>`:e.status==="accepted"?a=`<div class="qbn ok">${f("done")}<span><b>Accepted${e.acceptedBy?" by "+p(e.acceptedBy):""}</b>${e.acceptedAt?" on "+p(we(e.acceptedAt)):""}. ${Ba()?"It\u2019s locked so the signed version stays as it was.":"Editing is unlocked \u2014 changes don\u2019t reach the customer unless you send it again."}${(()=>{const s=ut(e).total,n=en(e.id);return n?` ${T(n)} of ${T(s)} invoiced.`:""})()}</span><button class="btn sm primary" data-qa="inv-from-quote">${f("invoice")}${en(e.id)?"Invoice more":"Create invoice"}</button>${Ba()?`<button class="btn sm" data-qa="revise">${f("copy")}Make a revision</button><button class="btn sm ghost" data-qa="unlock">Unlock editing</button>`:""}</div>`:e.status==="declined"?a=`<div class="qbn bad">${f("close")}<span><b>Declined</b>${e.declinedAt?" on "+p(we(e.declinedAt)):""}${e.responseNote?` \u2014 \u201C${p(e.responseNote)}\u201D`:""}</span><button class="btn sm" data-qa="revise">${f("copy")}Make a revision</button></div>`:e.share&&e.share.hash&&qi(e)!==e.share.hash?a=`<div class="qbn warn">${f("warn")}<span><b>Changed since you sent it.</b> The customer still sees the earlier version.</span><button class="btn sm primary" data-qa="send">${f("send")}Send the update</button></div>`:e.status==="viewed"&&(a=`<div class="qbn info">${f("eye")}<span><b>The customer opened it</b>${e.viewedAt?" "+p(we(e.viewedAt)):""}. You\u2019ll see it here the moment they accept.</span></div>`),Xc(e)&&(a+=`<div class="qbn warn">${f("clock")}<span><b>Expired</b> on ${p(Pe(e.validUntil))}. The customer can\u2019t accept it online until you extend \u201CValid until\u201D and send it again.</span></div>`),t.innerHTML=a,t.hidden=!a}function Sm(){const e=O.q,t=Vt(Object.values(h.jobs).filter(n=>n.status!=="done"||n.id===e.jobId)),a=(n,o,i,{type:l="text",ph:c="",wide:r=!1,list:d=""}={})=>`<div class="qf ${r?"wide":""}"><label for="qf-${n.replace(".","-")}">${o}</label><input id="qf-${n.replace(".","-")}" data-q="${n}" type="${l}" value="${p(i)}" placeholder="${p(c)}" ${d?`list="${d}"`:""}></div>`,s=e.validUntil?ze(e.validUntil,e.date):null;return`<section class="qcard"><h2>${f("user")}Customer & job</h2>
     <div class="qfields">
@@ -3820,7 +3820,7 @@ prs=e.projects||[],secP=`<section class="ip-sec"><h2 class="ip-sec-h">${f("proje
 siblings(e){const pr=Cpf.prj(e),pf=Fa(e);if(!pr||!pf)return"";const ph=Cpf.phases(pf,pr.id);return`<section class="ip-sec"><h2 class="ip-sec-h">${f("project")}${p(pr.name)} \xB7 phases <span class="count">${ph.length}</span><span class="spacer"></span><button class="btn sm" data-act="prj-phase" data-id="${pf.id}" data-pid="${pr.id}">${f("plus")}Add phase</button></h2><div class="ip-card prj"><div class="prj-ph">${ph.map((j,k)=>`<div class="prj-row ${j.id===e.id?"here":""}"><span class="prj-no">${k+1}</span>${Il(j,{compact:!0})}</div>`).join("")}</div></div></section>`},
 setPrj(j,fn){const a=(h.jobs[j.id].projects||[]).map(t=>({...t}));fn(a);N("jobs",j.id,{projects:a})},
 phaseDlg(j,pid){const pr=(j.projects||[]).find(t=>t.id===pid);if(!pr)return;const n=Cpf.phases(j,pid).length;re({title:`Add a phase to ${p(pr.name)}`,body:`<div class="field"><label for="ph-name">Phase name</label><input id="ph-name" maxlength="160" placeholder="${n?"e.g. Intercom & alarm":"e.g. Camera & access install"}"></div><div class="field"><label for="ph-st">Status</label><select id="ph-st">${Ah(n?"lead":"active")}</select></div><div class="field"><label for="ph-start">Planned start (optional)</label><input id="ph-start" type="date"></div>`,onOpen:s=>{s.querySelector("#ph-name").addEventListener("keydown",a=>{a.key==="Enter"&&(a.preventDefault(),s.querySelector(".btn.primary").click())})},actions:[{label:"Cancel"},{label:"Add phase",kind:"primary",act:s=>{const a=s.querySelector("#ph-name").value.trim();if(!a)return s.querySelector("#ph-name").focus(),x("Give the phase a name"),!1;let o=`${j.name} – ${a}`,c=2;for(;Ht(o);)o=`${j.name} – ${a} (${c++})`;const d=s.querySelector("#ph-start").value,m=h.jobs[j.id]||j,u=Cpf.phases(m,pid);yo({name:o,type:"job",projectId:j.id,prjId:pid,phase:(u.length?Math.max(...u.map(v=>v.phase||0)):0)+1,phaseName:a,client:m.client||m.name,address:m.address,contact:m.contact,phone:m.phone,email:m.email,contactId:m.contactId,status:s.querySelector("#ph-st").value||"active",start:ve(d)?d:""}),x(`Phase “${a}” added`),I()}}]})},
-act(e,t){const d=t.dataset;if(e==="prj-list-new"){const q=Vt(Ka("project"));return q.length?ft(t,q.slice(0,30).map(g=>({label:g.name,icon:"project",act:()=>{Cpf.act("prj-new",{dataset:{id:g.id}})}}))):x("Make a customer profile first — projects live inside one"),!0}const j=h.jobs[d.id];if(!j)return!0;switch(e){case"prj-open":return Bt("jobs",d.id),y.jobTab="jobs",I(),!0;case"prof-add":ft(t,[{label:"New job",icon:"job",act:()=>Ds("job",{projectId:j.id,client:j.client,address:j.address},{onDone:n=>{n&&Bt("jobs",n.id)}})},{label:"New project (phases)",icon:"project",act:()=>Cpf.act("prj-new",t)}]);return!0;case"prof-con-add":Ds("contact",{company:j.client||j.name,address:j.address||""},{onDone:c=>{if(!c||!h.jobs[j.id])return;const m=h.jobs[j.id];m.contact||m.contactId?N("jobs",j.id,{contactIds:[...new Set([...(m.contactIds||[]),c.id])]}):N("jobs",j.id,{contactId:c.id,contact:c.name,phone:c.phone||m.phone,email:c.email||m.email}),I()}});return!0;case"prof-con-link":{const pm=Un(j,{make:!1}),used=new Set([pm&&pm.id,...(j.contactIds||[])]),list=pr().filter(c=>!used.has(c.id)).slice(0,60);if(!list.length)return x("No other contacts yet — use Add contact"),!0;ft(t,list.map(c=>({label:c.name,icon:"user",hint:c.company||"",act:()=>{const m=h.jobs[j.id];N("jobs",j.id,{contactIds:[...new Set([...(m.contactIds||[]),c.id])]}),x(`${c.name} linked`),I()}})));return!0}case"prof-con-rm":N("jobs",j.id,{contactIds:(j.contactIds||[]).filter(i=>i!==d.cid)}),I();return!0;case"prj-new":re({title:"New project",body:`<p class="muted" style="margin:0 0 10px">A project is bigger work done in phases over time.</p><div class="field"><label for="pj-name">Project name</label><input id="pj-name" maxlength="200" placeholder="e.g. Building security upgrade"></div><div class="field"><label for="pj-notes">Notes (optional)</label><textarea id="pj-notes" rows="2" placeholder="Scope, goals, anything to remember…"></textarea></div>`,onOpen:s=>{s.querySelector("#pj-name").addEventListener("keydown",a=>{a.key==="Enter"&&(a.preventDefault(),s.querySelector(".btn.primary").click())})},actions:[{label:"Cancel"},{label:"Create project",kind:"primary",act:s=>{const a=s.querySelector("#pj-name").value.trim();if(!a)return s.querySelector("#pj-name").focus(),x("Give the project a name"),!1;const o=Q("pr");Cpf.setPrj(j,c=>c.push({id:o,name:a,notes:s.querySelector("#pj-notes").value.trim(),createdAt:Date.now()})),x(`Project “${a}” created`),I(),setTimeout(()=>Cpf.phaseDlg(h.jobs[j.id],o),60)}}]});return!0;case"prj-phase":Cpf.phaseDlg(j,d.pid);return!0;case"prj-menu":{const pj=(j.projects||[]).find(c=>c.id===d.pid);if(!pj)return!0;ft(t,[{label:"Rename or edit notes",icon:"edit",act:()=>re({title:"Edit project",body:`<div class="field"><label for="pj-name">Project name</label><input id="pj-name" maxlength="200" value="${p(pj.name)}"></div><div class="field"><label for="pj-notes">Notes</label><textarea id="pj-notes" rows="3">${p(pj.notes||"")}</textarea></div>`,actions:[{label:"Cancel"},{label:"Save",kind:"primary",act:s=>{const a=s.querySelector("#pj-name").value.trim();if(!a)return x("Give the project a name"),!1;Cpf.setPrj(j,c=>{const m=c.find(k=>k.id===pj.id);m&&(m.name=a,m.notes=s.querySelector("#pj-notes").value.trim())}),I()}}]})},{sep:!0},{label:"Delete project",icon:"trash",danger:!0,act:()=>re({title:`Delete “${p(pj.name)}”?`,body:"<p>The project folder is removed. Its phases are kept as ordinary jobs in this customer profile — nothing else is deleted.</p>",actions:[{label:"Cancel"},{label:"Delete project",kind:"danger",act:()=>{for(const c of Cpf.phases(j,pj.id))N("jobs",c.id,{prjId:"",phase:0,phaseName:""});Cpf.setPrj(j,c=>{const m=c.findIndex(k=>k.id===pj.id);m>=0&&c.splice(m,1)}),I()}}]})}]);return!0}}return!1}};function Un(e,{make:t=!0}={}){if(!e)return null;if(e.contactId&&h.contacts[e.contactId])return h.contacts[e.contactId];if(!e.contact||!e.contact.trim())return null;let a=Ms(e.contact);return!a&&t&&(a=To({name:e.contact.trim(),phone:e.phone||"",email:e.email||"",company:e.client&&_e(e.client)!==_e(e.contact)?e.client:""})),a&&h.jobs[e.id]&&e.contactId!==a.id&&N("jobs",e.id,{contactId:a.id}),a}function Sh(){let e=0;for(const t of Object.values(h.jobs))if(t.contact&&!t.contactId&&!Ms(t.contact)&&(To({id:Di(t.contact),name:t.contact.trim(),phone:t.phone,email:t.email,company:t.client&&_e(t.client)!==_e(t.contact)?t.client:""}),e++),t.contact&&!t.contactId){const a=Ms(t.contact);a&&N("jobs",t.id,{contactId:a.id})}for(const t of Object.values(h.tasks)){if(!t.contact||t.contactId||_e(t.contact)===_e(t.job))continue;let a=Ms(t.contact);a||(a=To({id:Di(t.contact),name:t.contact.trim()}),e++),N("tasks",t.id,{contactId:a.id})}return e}{const e=ds;ds=function(){e(),E.readonly||Sh()}}const xh={project:"project",job:"job",contact:"contact"};function Ii(e,t,{id:a,ph:s="",disabled:n=!1}={}){return`<div class="cbx" data-cbx="${e}"><span class="cbx-ic">${f("search")}</span><input id="${a}" class="d-text cbx-in" value="${p(t||"")}" placeholder="${p(s)}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" ${n?"disabled":""}><button type="button" class="cbx-x" ${t?"":"hidden"} aria-label="Clear" title="Clear">${f("close")}</button><div class="cbx-drop" role="listbox" hidden></div></div>`}function Td(e,t,a={}){const s=_a(t),n=i=>!s||String(i||"").toLowerCase().includes(s),o=(i,l)=>_a(l).startsWith(s)?0:1;if(e==="project")return Id().filter(i=>n([i.name,i.client,i.address].join(" "))).sort((i,l)=>o(i,i.name)-o(l,l.name)||(i.status==="done")-(l.status==="done")).slice(0,30).map(i=>({id:i.id,name:i.name,sub:[i.client,i.address].filter(Boolean).join(" \xB7 "),badge:i.status==="done"?"Done":"",rec:i}));if(e==="job"){const i=a.projectId;let l=Object.values(h.jobs).filter(c=>c.type==="job"&&n([c.name,c.client,c.address,(Fa(c)||{}).name].join(" ")));return l=Vt(l).sort((c,r)=>(r.projectId===i)-(c.projectId===i)||o(c,c.name)-o(r,r.name)||(c.status==="done")-(r.status==="done")),l.slice(0,40).map(c=>({id:c.id,name:c.name,sub:[Fa(c)?"In "+Fa(c).name:"",c.client,c.address].filter(Boolean).join(" \xB7 "),badge:c.status==="done"?"Done":"",group:i?c.projectId===i?"In this project":"Other jobs":"",rec:c}))}return pr().filter(i=>n([i.name,i.company,i.role,i.phone,i.email].join(" "))).sort((i,l)=>o(i,i.name)-o(l,l.name)).slice(0,30).map(i=>({id:i.id,name:i.name,sub:[i.role,i.company,i.phone].filter(Boolean).join(" \xB7 "),rec:i}))}function Ed(e,{onPick:t,onText:a,onClear:s,onCreate:n,ctx:o=()=>({})}){const i=e.dataset.cbx,l=e.querySelector(".cbx-in"),c=e.querySelector(".cbx-drop"),r=e.querySelector(".cbx-x"),d=xh[i];let m=[],u=0,b=!1,v=l.value;const w=()=>{c.hidden=!0,l.setAttribute("aria-expanded","false"),e.classList.remove("open")},A=()=>{const g=l.value.trim(),$=Td(i,g,o()),S=$.find(C=>_a(C.name)===_a(g));m=$.map(C=>({type:"pick",...C})),g&&!S&&m.push({type:"new",name:g}),g||m.push({type:"new",name:""}),u=Math.min(u,m.length-1),u<0&&(u=0);let k=null;c.innerHTML=(g&&!$.length?`<div class="cbx-none">${f("search")}<span>No ${d} called <b>\u201C${p(g)}\u201D</b></span></div>`:"")+m.map((C,q)=>{if(C.type==="new")return`<button type="button" class="cbx-o cbx-new ${q===u?"on":""}" data-i="${q}" role="option"><span class="cbx-plus">${f("plus")}</span><span class="cbx-t"><b>${C.name?`New ${d} \u201C${p(C.name)}\u201D`:`New ${d}\u2026`}</b><small>Opens beside the editor so you can fill it in</small></span></button>`;const D=C.group&&C.group!==k?`<div class="cbx-g">${p(C.group)}</div>`:"";return k=C.group,D+`<button type="button" class="cbx-o ${q===u?"on":""}" data-i="${q}" role="option"><span class="cbx-av">${f(i==="project"?"project":i==="job"?"job":"user")}</span><span class="cbx-t"><b>${p(C.name)}</b>${C.sub?`<small>${p(C.sub)}</small>`:""}</span>${C.badge?`<span class="cbx-badge">${p(C.badge)}</span>`:""}</button>`}).join(""),c.hidden=!1,l.setAttribute("aria-expanded","true"),e.classList.add("open")},j=g=>{if(b=!0,w(),g.type==="new"){const $=g.name||l.value.trim();l.value=v,r.hidden=!v,n&&n($)}else l.value=g.name,v=g.name,r.hidden=!1,t&&t(g.rec);setTimeout(()=>b=!1,50)};l.addEventListener("focus",()=>{v=l.value,A()}),l.addEventListener("input",()=>{u=0,r.hidden=!l.value,A()}),l.addEventListener("keydown",g=>{if(c.hidden&&g.key==="ArrowDown"){A(),g.preventDefault();return}if(g.key==="ArrowDown"||g.key==="ArrowUp"){if(g.preventDefault(),!m.length)return;u=(u+(g.key==="ArrowDown"?1:-1)+m.length)%m.length,c.querySelectorAll(".cbx-o").forEach(S=>S.classList.toggle("on",+S.dataset.i===u));const $=c.querySelector(".cbx-o.on");$&&$.scrollIntoView({block:"nearest"})}else g.key==="Enter"?(g.preventDefault(),!c.hidden&&m[u]?j(m[u]):l.blur()):g.key==="Escape"?c.hidden||(g.preventDefault(),g.stopPropagation(),w()):g.key==="Tab"&&w()}),c.addEventListener("mousedown",g=>g.preventDefault()),c.addEventListener("click",g=>{const $=g.target.closest(".cbx-o");$&&j(m[+$.dataset.i])}),l.addEventListener("blur",()=>setTimeout(()=>{if(b)return;w();const g=l.value.trim();if(g!==v.trim()){const $=Td(i,g,o()).find(S=>_a(S.name)===_a(g));$&&t?(l.value=$.name,t($.rec)):a&&a(g),v=g}},120)),r.addEventListener("click",()=>{l.value="",r.hidden=!0,v="",s?s():a&&a(""),l.focus()})}let Ua=null;function Pd(){const e=M("#subpanel");if(!e)return;const t=M("#detail"),a=t&&document.body.classList.contains("detail-open")?t.getBoundingClientRect():null,s=Math.min(420,innerWidth);if(a&&a.width>0&&a.left>s*.6)Object.assign(e.style,{top:a.top+"px",height:a.height+"px",right:innerWidth-a.left+"px",left:"auto",width:s+"px"}),e.classList.remove("solo");else{const n=(M(".appbar")||{getBoundingClientRect:()=>({bottom:0})}).getBoundingClientRect().bottom,o=innerWidth<=600;Object.assign(e.style,{top:(o?0:n)+"px",height:(o?innerHeight:innerHeight-n)+"px",right:"0px",left:"auto",width:(o?innerWidth:s)+"px"}),e.classList.add("solo")}}addEventListener("resize",()=>{Ua&&Pd()});function nn(){const e=M("#subpanel");if(!e)return;e.classList.remove("in"),document.body.classList.remove("sub-open");const t=Ua;if(Ua=null,setTimeout(()=>{Ua||e.remove()},220),t&&t.returnFocus)try{t.returnFocus.focus({preventScroll:!0})}catch{}}const Ah=e=>Ln.map(([t,a])=>`<option value="${t}" ${e===t?"selected":""}>${a}</option>`).join("");function Ds(e,t={},{onDone:a,edit:s=null}={}){Ua&&nn();const n=M("#subpanel");n&&n.remove();const o=document.createElement("aside");o.id="subpanel",o.className="subpanel",o.setAttribute("aria-label",`New ${e}`);const i=s||t,l=!!s,c=(b,v,w,{type:A="text",ph:j="",ic:g="",wide:$=!1}={})=>`<label class="sp-f ${$?"wide":""}" for="${b}"><span>${g?f(g):""}${v}</span><input id="${b}" type="${A}" value="${p(w||"")}" placeholder="${p(j)}" autocomplete="off"></label>`;let r="",d="";if(e==="contact")d=l?"Contact":"New contact",r=`${c("sp-name","Name",i.name,{ph:"Full name",ic:"user",wide:!0})}${c("sp-role","Position / role",i.role,{ph:"e.g. Facilities manager",ic:"tag"})}${c("sp-company","Company",i.company,{ph:"Company",ic:"building"})}${c("sp-phone","Phone",i.phone,{type:"tel",ph:"Phone",ic:"phone2"})}${c("sp-phone2","Other phone",i.phone2,{type:"tel",ph:"Cell / office",ic:"phone2"})}${c("sp-email","Email",i.email,{type:"email",ph:"Email",ic:"mail",wide:!0})}${c("sp-address","Address",i.address,{ph:"Optional",ic:"place",wide:!0})}
+act(e,t){const d=t.dataset;if(e==="prj-list-new"){const q=Vt(Ka("project"));return q.length?ft(t,q.slice(0,30).map(g=>({label:g.name,icon:"project",act:()=>{Cpf.act("prj-new",{dataset:{id:g.id}})}}))):x("Make a customer profile first — projects live inside one"),!0}const j=h.jobs[d.id];if(!j)return!0;switch(e){case"prj-open":return Bt("jobs",d.id),y.jobTab="jobs",I(),!0;case"prof-add":ft(t,[{label:"New job",icon:"job",act:()=>Ds("job",{projectId:j.id,client:j.client,address:j.address},{onDone:n=>{n&&Bt("jobs",n.id)}})},{label:"New project (phases)",icon:"project",act:()=>Cpf.act("prj-new",t)}]);return!0;case"prof-con-add":Ds("contact",{company:j.client||j.name,address:j.address||""},{onDone:c=>{if(!c||!h.jobs[j.id])return;const m=h.jobs[j.id];m.contact||m.contactId?N("jobs",j.id,{contactIds:[...new Set([...(m.contactIds||[]),c.id])]}):N("jobs",j.id,{contactId:c.id,contact:c.name,phone:c.phone||m.phone,email:c.email||m.email}),I()}});return!0;case"prof-con-link":{const pm=Un(j,{make:!1}),used=new Set([pm&&pm.id,...(j.contactIds||[])]),list=pr().filter(c=>!used.has(c.id)).slice(0,60);if(!list.length)return x("No other contacts yet — use Add contact"),!0;ft(t,list.map(c=>({label:c.name,icon:"user",hint:c.company||"",act:()=>{const m=h.jobs[j.id];N("jobs",j.id,{contactIds:[...new Set([...(m.contactIds||[]),c.id])]}),x(`${c.name} linked`),I()}})));return!0}case"prof-con-rm":N("jobs",j.id,{contactIds:(j.contactIds||[]).filter(i=>i!==d.cid)}),I();return!0;case"prj-new":re({title:"New project",body:`<p class="muted" style="margin:0 0 10px">A project is bigger work done in phases over time.</p><div class="field"><label for="pj-name">Project name</label><input id="pj-name" maxlength="200" placeholder="e.g. Building security upgrade"></div><div class="field"><label for="pj-notes">Notes (optional)</label><textarea id="pj-notes" rows="2" placeholder="Scope, goals, anything to remember…"></textarea></div>`,onOpen:s=>{s.querySelector("#pj-name").addEventListener("keydown",a=>{a.key==="Enter"&&(a.preventDefault(),s.querySelector(".btn.primary").click())})},actions:[{label:"Cancel"},{label:"Create project",kind:"primary",act:s=>{const a=s.querySelector("#pj-name").value.trim();if(!a)return s.querySelector("#pj-name").focus(),x("Give the project a name"),!1;const o=Q("pr");Cpf.setPrj(j,c=>c.push({id:o,name:a,notes:s.querySelector("#pj-notes").value.trim(),createdAt:Date.now()})),x(`Project “${a}” created`),I(),setTimeout(()=>Cpf.phaseDlg(h.jobs[j.id],o),60)}}]});return!0;case"prj-phase":Cpf.phaseDlg(j,d.pid);return!0;case"prj-menu":{const pj=(j.projects||[]).find(c=>c.id===d.pid);if(!pj)return!0;ft(t,[{label:"Rename or edit notes",icon:"edit",act:()=>re({title:"Edit project",body:`<div class="field"><label for="pj-name">Project name</label><input id="pj-name" maxlength="200" value="${p(pj.name)}"></div><div class="field"><label for="pj-notes">Notes</label><textarea id="pj-notes" rows="3">${p(pj.notes||"")}</textarea></div>`,actions:[{label:"Cancel"},{label:"Save",kind:"primary",act:s=>{const a=s.querySelector("#pj-name").value.trim();if(!a)return x("Give the project a name"),!1;Cpf.setPrj(j,c=>{const m=c.find(k=>k.id===pj.id);m&&(m.name=a,m.notes=s.querySelector("#pj-notes").value.trim())}),I()}}]})},{sep:!0},{label:"Delete project",icon:"trash",danger:!0,act:()=>re({title:`Delete “${p(pj.name)}”?`,body:"<p>The project folder is removed. Its phases are kept as ordinary jobs in this customer profile — nothing else is deleted.</p>",actions:[{label:"Cancel"},{label:"Delete project",kind:"danger",act:()=>{for(const c of Cpf.phases(j,pj.id))N("jobs",c.id,{prjId:"",phase:0,phaseName:""});Cpf.setPrj(j,c=>{const m=c.findIndex(k=>k.id===pj.id);m>=0&&c.splice(m,1)}),I()}}]})}]);return!0}}return!1}};function Un(e,{make:t=!0}={}){if(!e)return null;if(e.contactId&&h.contacts[e.contactId])return h.contacts[e.contactId];if(!e.contact||!e.contact.trim())return null;let a=Ms(e.contact);return!a&&t&&(a=To({name:e.contact.trim(),phone:e.phone||"",email:e.email||"",company:e.client&&_e(e.client)!==_e(e.contact)?e.client:""})),a&&h.jobs[e.id]&&e.contactId!==a.id&&N("jobs",e.id,{contactId:a.id}),a}function Sh(){let e=0;for(const t of Object.values(h.jobs))if(t.contact&&!t.contactId&&!Ms(t.contact)&&(To({id:Di(t.contact),name:t.contact.trim(),phone:t.phone,email:t.email,company:t.client&&_e(t.client)!==_e(t.contact)?t.client:""}),e++),t.contact&&!t.contactId){const a=Ms(t.contact);a&&N("jobs",t.id,{contactId:a.id})}for(const t of Object.values(h.tasks)){if(!t.contact||t.contactId||_e(t.contact)===_e(t.job))continue;let a=Ms(t.contact);a||(a=To({id:Di(t.contact),name:t.contact.trim()}),e++),N("tasks",t.id,{contactId:a.id})}return e}{const e=ds;ds=function(){e(),E.readonly||Sh()}}const xh={project:"project",job:"job",contact:"contact"};function Ii(e,t,{id:a,ph:s="",disabled:n=!1}={}){return`<div class="cbx" data-cbx="${e}"><span class="cbx-ic">${f("search")}</span><input id="${a}" class="d-text cbx-in" value="${p(t||"")}" placeholder="${p(s)}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" ${n?"disabled":""}><button type="button" class="cbx-x" ${t?"":"hidden"} aria-label="Clear" title="Clear">${f("close")}</button><div class="cbx-drop" role="listbox" hidden></div></div>`}function Td(e,t,a={}){const s=_a(t),n=i=>!s||String(i||"").toLowerCase().includes(s),o=(i,l)=>_a(l).startsWith(s)?0:1;if(e==="project")return Id().filter(i=>n([i.name,i.client,i.address].join(" "))).sort((i,l)=>o(i,i.name)-o(l,l.name)||(i.status==="done")-(l.status==="done")).slice(0,30).map(i=>({id:i.id,name:i.name,sub:[i.client,i.address].filter(Boolean).join(" \xB7 "),badge:i.status==="done"?"Done":"",rec:i}));if(e==="job"){const i=a.projectId;let l=Object.values(h.jobs).filter(c=>c.type==="job"&&n([c.name,c.client,c.address,(Fa(c)||{}).name].join(" ")));return l=Vt(l).sort((c,r)=>(r.projectId===i)-(c.projectId===i)||o(c,c.name)-o(r,r.name)||(c.status==="done")-(r.status==="done")),l.slice(0,40).map(c=>({id:c.id,name:c.name,sub:[Fa(c)?"In "+Fa(c).name:"",c.client,c.address].filter(Boolean).join(" \xB7 "),badge:c.status==="done"?"Done":"",group:i?c.projectId===i?"In this project":"Other jobs":"",rec:c}))}return pr().filter(i=>n([i.name,i.company,i.role,i.phone,i.email].join(" "))).sort((i,l)=>o(i,i.name)-o(l,l.name)).slice(0,30).map(i=>({id:i.id,name:i.name,sub:[i.role,i.company,i.phone].filter(Boolean).join(" \xB7 "),rec:i}))}function Ed(e,{onPick:t,onText:a,onClear:s,onCreate:n,ctx:o=()=>({})}){const i=e.dataset.cbx,l=e.querySelector(".cbx-in"),c=e.querySelector(".cbx-drop"),r=e.querySelector(".cbx-x"),d=xh[i];let m=[],u=0,b=!1,v=l.value;const w=()=>{c.hidden=!0,l.setAttribute("aria-expanded","false"),e.classList.remove("open")},A=()=>{const g=l.value.trim(),$=Td(i,g,o()),S=$.find(C=>_a(C.name)===_a(g));m=$.map(C=>({type:"pick",...C})),g&&!S&&m.push({type:"new",name:g}),g||m.push({type:"new",name:""}),u=Math.min(u,m.length-1),u<0&&(u=0);let k=null;c.innerHTML=(g&&!$.length?`<div class="cbx-none">${f("search")}<span>No ${d} called <b>\u201C${p(g)}\u201D</b></span></div>`:"")+m.map((C,q)=>{if(C.type==="new")return`<button type="button" class="cbx-o cbx-new ${q===u?"on":""}" data-i="${q}" role="option"><span class="cbx-plus">${f("plus")}</span><span class="cbx-t"><b>${C.name?`New ${d} \u201C${p(C.name)}\u201D`:`New ${d}\u2026`}</b><small>Opens beside the editor so you can fill it in</small></span></button>`;const D=C.group&&C.group!==k?`<div class="cbx-g">${p(C.group)}</div>`:"";return k=C.group,D+`<button type="button" class="cbx-o ${q===u?"on":""}" data-i="${q}" role="option"><span class="cbx-av">${f(i==="project"?"project":i==="job"?"job":"user")}</span><span class="cbx-t"><b>${p(C.name)}</b>${C.sub?`<small>${p(C.sub)}</small>`:""}</span>${C.badge?`<span class="cbx-badge">${p(C.badge)}</span>`:""}</button>`}).join(""),c.hidden=!1,l.setAttribute("aria-expanded","true"),e.classList.add("open")},j=g=>{if(b=!0,w(),g.type==="new"){const $=g.name||l.value.trim();l.value=v,r.hidden=!v,n&&n($)}else l.value=g.name,v=g.name,r.hidden=!1,t&&t(g.rec);setTimeout(()=>b=!1,50)};l.addEventListener("focus",()=>{v=l.value,A()}),l.addEventListener("input",()=>{u=0,r.hidden=!l.value,A()}),l.addEventListener("keydown",g=>{if(c.hidden&&g.key==="ArrowDown"){A(),g.preventDefault();return}if(g.key==="ArrowDown"||g.key==="ArrowUp"){if(g.preventDefault(),!m.length)return;u=(u+(g.key==="ArrowDown"?1:-1)+m.length)%m.length,c.querySelectorAll(".cbx-o").forEach(S=>S.classList.toggle("on",+S.dataset.i===u));const $=c.querySelector(".cbx-o.on");$&&$.scrollIntoView({block:"nearest"})}else g.key==="Enter"?(g.preventDefault(),!c.hidden&&m[u]?j(m[u]):l.blur()):g.key==="Escape"?c.hidden||(g.preventDefault(),g.stopPropagation(),w()):g.key==="Tab"&&w()}),c.addEventListener("mousedown",g=>g.preventDefault()),c.addEventListener("click",g=>{const $=g.target.closest(".cbx-o");$&&j(m[+$.dataset.i])}),l.addEventListener("blur",()=>setTimeout(()=>{if(b)return;w();const g=l.value.trim();if(g!==v.trim()){const $=Td(i,g,o()).find(S=>_a(S.name)===_a(g));$&&t?(l.value=$.name,t($.rec)):a&&a(g),v=g}},120)),r.addEventListener("click",()=>{l.value="",r.hidden=!0,v="",s?s():a&&a(""),l.focus()})}let Ua=null;function Pd(){const e=M("#subpanel");if(!e)return;const t=M("#detail"),a=t&&document.body.classList.contains("detail-open")?t.getBoundingClientRect():null,s=Math.min(420,innerWidth);if(a&&a.width>0&&a.left>s*.6)Object.assign(e.style,{top:a.top+"px",height:a.height+"px",right:innerWidth-a.left+"px",left:"auto",width:s+"px"}),e.classList.remove("solo");else{const n=(M(".appbar")||{getBoundingClientRect:()=>({bottom:0})}).getBoundingClientRect().bottom,o=innerWidth<=600;Object.assign(e.style,{top:(o?0:n)+"px",height:(o?innerHeight:innerHeight-n)+"px",right:"0px",left:"auto",width:(o?innerWidth:s)+"px"}),e.classList.add("solo")}}addEventListener("resize",()=>{Ua&&Pd()});function nn(){const e=M("#subpanel");if(!e)return;e.classList.remove("in"),document.body.classList.remove("sub-open");const t=Ua;if(Ua=null,setTimeout(()=>{Ua||e.remove()},220),t&&t.returnFocus)try{t.returnFocus.focus({preventScroll:!0})}catch{}}const Ah=e=>Ln.map(([t,a])=>`<option value="${t}" ${e===t?"selected":""}>${a}</option>`).join("");function Ds(e,t={},{onDone:a,edit:s=null}={}){Ua&&nn();const n=M("#subpanel");n&&n.remove();const o=document.createElement("aside");o.id="subpanel",o.className="subpanel",o.setAttribute("aria-label",`New ${e}`);const i=s||(window.QFS?window.QFS.prefill(e,t):t),l=!!s,c=(b,v,w,{type:A="text",ph:j="",ic:g="",wide:$=!1}={})=>`<label class="sp-f ${$?"wide":""}" for="${b}"><span>${g?f(g):""}${v}</span><input id="${b}" type="${A}" value="${p(w||"")}" placeholder="${p(j)}" autocomplete="off"></label>`;let r="",d="";if(e==="contact")d=l?"Contact":"New contact",r=`${c("sp-name","Name",i.name,{ph:"Full name",ic:"user",wide:!0})}${c("sp-role","Position / role",i.role,{ph:"e.g. Facilities manager",ic:"tag"})}${c("sp-company","Company",i.company,{ph:"Company",ic:"building"})}${c("sp-phone","Phone",i.phone,{type:"tel",ph:"Phone",ic:"phone2"})}${c("sp-phone2","Other phone",i.phone2,{type:"tel",ph:"Cell / office",ic:"phone2"})}${c("sp-email","Email",i.email,{type:"email",ph:"Email",ic:"mail",wide:!0})}${c("sp-address","Address",i.address,{ph:"Optional",ic:"place",wide:!0})}
       <label class="sp-f wide" for="sp-notes"><span>${f("text")}Notes</span><textarea id="sp-notes" rows="3" placeholder="Best time to reach them, gate codes, who to ask for\u2026">${p(i.notes||"")}</textarea></label>`;else{const b=e==="project";d=b?"New customer profile":"New job";const v=Id().filter(w=>w.status!=="done"||w.id===i.projectId).map(w=>`<option value="${w.id}" ${i.projectId===w.id?"selected":""}>${p(w.name)}</option>`).join("");r=`${c("sp-name",b?"Customer / company name":"Job name",i.name,{ph:b?"e.g. Lincoln Elementary School":"e.g. Lincoln Elementary \u2013 cameras",ic:b?"project":"job",wide:!0})}
       ${b?"":`<label class="sp-f wide" for="sp-project"><span>${f("project")}Customer profile</span><select id="sp-project"><option value="">No customer profile</option>${v}</select></label>`}
       ${b?"":c("sp-client","Client / company",i.client,{ph:"Optional",ic:"building"})}
@@ -4093,6 +4093,381 @@ Alarm panel is in the break room.`,order:4,folderId:"dm_f2"});const d=(S,k,C,q,D
     <div class="hp-bar">${a}${t}</div>
     <div id="hp-empty" class="group-empty" hidden>Nothing matches that search.</div>
     ${e==="guides"?s:n}</div>`};const Wf=()=>Tr.map(gp).join("");Na.push(["help","Help & tutorials","help"]);{const e=Ue;Ue=function(t,a,s){return t==="help-open"?(vs.guide=a.dataset.id,I(),setTimeout(()=>{const n=M(".content");n&&(n.scrollTop=0)},30),!0):t==="help-back"?(vs.guide=null,I(),!0):t==="help-tab"?(vs.tab=a.dataset.val==="qa"?"qa":"guides",I(),!0):e(t,a,s)}}document.addEventListener("input",e=>{if(!e.target||e.target.id!=="help-q")return;const t=e.target.value.trim().toLowerCase();let a=!1;document.querySelectorAll(".hp [data-t]").forEach(n=>{const o=!t||n.dataset.t.includes(t);n.hidden=!o,o&&(a=!0)}),document.querySelectorAll(".hp [data-topic]").forEach(n=>{n.hidden=!!t&&!n.querySelector("[data-t]:not([hidden])")});const s=document.getElementById("hp-empty");s&&(s.hidden=a||!t)});function Gf(){M("#add-folder-btn").innerHTML=f("plus"),M("#menu-btn").innerHTML=f("menu"),M("#search-ico").innerHTML=f("search"),M("#search-clear").innerHTML=f("close"),M("#new-task-btn").insertAdjacentHTML("afterbegin",f("plus")),M("#new-note-btn").insertAdjacentHTML("afterbegin",f("note")),Ec(),fi(),Sp(),Kp(),(!ce[y.view]||y.view==="search")&&(y.view="home"),y.view==="folder"&&!h.folders[y.folderId]&&(y.view="home"),Ju(),Go(),Kt("connecting");let e=null;if(window.BSCloud){E.cloud=!0,window.BSCloud.start({connect:a=>Fr(a),online:()=>{E.mode==="db"&&E.ready&&(E.backoff=0,E.pending.size?(Kt("saving"),E.schedule(100)):Kt("synced"))},offline:()=>{E.mode==="db"&&Kt("offline")},unsynced:()=>E.pending.size+E.inflight.size,clearLocal:()=>{Hr=!0;try{localStorage.removeItem(Xi)}catch{}},toast:x,openModal:re,closeModal:pt,esc:p});return}if(!(window.claude&&typeof window.claude.use=="function")){fn();return}window.claude.use("db").then(a=>{e=a,e?Fr(e):fn()},()=>fn())}let $p=P();setInterval(()=>{const e=P();e!==$p?($p=e,I()):jp()},3e4),addEventListener("pagehide",()=>{_s.flush(),Ns.flush(),E.flush()}),document.addEventListener("visibilitychange",()=>{document.visibilityState==="hidden"&&(_s.flush(),Ns.flush(),E.flush())}),window.__punch={S:h,UI:y,Store:E,parseQuick:Wo,sanitize:Ot,runSearch:ec,parseSched:xl,occurrences:vt,conflictsIn:Ss,cfgFor:It,applyRules:xa,hoursFor:An},Gf(),"launchQueue"in window&&window.launchQueue.setConsumer(async e=>{const t=e.files&&e.files[0];if(t)try{const s=await(await t.getFile()).text();Se.withApi(n=>n.openText(s,{}),{show:"markup"})}catch{x("Couldn\u2019t open that file")}}),"serviceWorker"in navigator&&/^https?:$/.test(location.protocol)&&navigator.serviceWorker.register("sw.js").catch(e=>console.warn("offline support unavailable",e&&e.message)),window.__hub={Demo:Ro,HELP:Ir,HELP_QA:Tr,HELP_UI:vs,helpVideo:yp,Pins:cn,Recent:Ts,AW:Fi,awRows:hp,awStart:bp,PO:We,poDialog:Jn,poReceiveDialog:Mr,INV:R,Feat:Ie,Scan:bs,Code128:Ar,buildLabelsPdf:dp,S:h,UI:y,Store:E,Maps:Se,HUB:Ye,go:Ae,openItem:Bt,createJob:yo,createTask:(...e)=>Dt(...e),patch:(...e)=>N(...e),openDetail:(...e)=>et(...e),Groups:ge,seedJobs:Bc,jobByName:Ht,renderAll:()=>I(),newQuote:()=>{const e=Wl({title:""});return da(e.id),e.id},fmPdf:e=>Cs([...Object.values(h.quotes),...Object.values(h.invoices)].find(t=>t.number===e)),quoteCalc:ut}})();
+
+</script>
+<script id="qf-suggest">
+/* ===== QuaField smart suggestions =====
+   Text boxes that ask for client info suggest what's already in the system as you type.
+   Once a form knows which customer profile it belongs to, its contact / phone / email / address boxes
+   only suggest things from that profile, and picking a person fills in what the system knows about them.
+   Also used by the map tool (same origin iframe) through window.QFS.attach(document, groups). */
+(function () {
+  'use strict';
+  const S = () => (window.__hub && window.__hub.S) || {};
+  const vals = t => Object.values(S()[t] || {}).filter(x => x && !x.deleted);
+  const norm = v => String(v == null ? '' : v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const digits = v => String(v || '').replace(/\D/g, '');
+  const escH = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const by = k => (a, b) => (a[k] || 0) - (b[k] || 0);
+
+  /* ---------------- the data ---------------- */
+  const D = {
+    profiles() { return vals('jobs').filter(j => j.type === 'project'); },
+    jobs() { return vals('jobs').filter(j => j.type !== 'project'); },
+    get(id) { const j = id && S().jobs && S().jobs[id]; return j && !j.deleted ? j : null; },
+    profileOf(job) { if (!job) return null; return job.type === 'project' ? job : this.get(job.projectId); },
+    profileByName(name) {
+      const n = norm(name); if (!n) return null;
+      return this.profiles().find(p => norm(p.name) === n) || this.profiles().find(p => p.client && norm(p.client) === n) || null;
+    },
+    jobByName(name) { const n = norm(name); return n ? vals('jobs').find(j => norm(j.name) === n) || null : null; },
+    contact(id) { const c = id && S().contacts && S().contacts[id]; return c && !c.deleted ? c : null; },
+    /* everyone tied to a profile, the one it was made with first */
+    people(p) {
+      if (!p) return [];
+      const out = [], seen = new Set(), names = new Set([norm(p.name), norm(p.client)].filter(Boolean));
+      const add = (c, src) => { if (!c || !c.name) return; const k = norm(c.name); if (seen.has(k)) { const o = out.find(x => norm(x.name) === k); for (const f of ['role', 'phone', 'email', 'company', 'address']) if (!o[f] && c[f]) o[f] = c[f]; return; } seen.add(k); out.push({ name: c.name, role: c.role || '', phone: c.phone || c.phone2 || '', email: c.email || '', company: c.company || p.client || p.name, address: c.address || '', src }); };
+      add(this.contact(p.contactId), 'main');
+      if (p.contact) add({ name: p.contact, phone: p.phone, email: p.email, role: p.contactRole }, 'main');
+      (p.contactIds || []).forEach(id => add(this.contact(id), 'contact'));
+      vals('contacts').filter(c => names.has(norm(c.company))).sort(by('createdAt')).forEach(c => add(c, 'contact'));
+      this.jobs().filter(j => j.projectId === p.id).sort(by('createdAt')).forEach(j => { add(this.contact(j.contactId), 'job'); if (j.contact) add({ name: j.contact, phone: j.phone, email: j.email }, 'job'); });
+      return out;
+    },
+    main(p) { return this.people(p)[0] || null; },
+    addresses(p) {
+      const out = [], seen = new Set(), add = (a, meta) => { const k = norm(a); if (!k || seen.has(k)) return; seen.add(k); out.push({ label: a, meta }); };
+      if (p) {
+        add(p.address, p.name);
+        this.jobs().filter(j => j.projectId === p.id).sort(by('createdAt')).forEach(j => add(j.address, j.name));
+        this.people(p).forEach(c => add(c.address, c.name));
+        return out;
+      }
+      vals('jobs').sort(by('createdAt')).forEach(j => add(j.address, j.name));
+      vals('contacts').forEach(c => add(c.address, c.name));
+      vals('quotes').forEach(q => { add(q.customer && q.customer.address, q.customer && q.customer.name); add(q.site && q.site.address, q.site && q.site.name); });
+      vals('sched').forEach(e => add(e.location, e.title || e.job));
+      vals('tasks').forEach(t => add(t.location, t.title));
+      return out;
+    },
+    /* every person the system knows, merged by name */
+    allPeople() {
+      const m = new Map(), add = (c, src) => {
+        if (!c || !c.name) return; const k = norm(c.name), o = m.get(k);
+        if (o) { for (const f of ['role', 'phone', 'email', 'company', 'address']) if (!o[f] && c[f]) o[f] = c[f]; return; }
+        m.set(k, { name: String(c.name).trim(), role: c.role || '', phone: c.phone || c.phone2 || '', email: c.email || '', company: c.company || '', address: c.address || '', src });
+      };
+      vals('contacts').sort(by('createdAt')).forEach(c => add(c, 'contact'));
+      vals('jobs').forEach(j => j.contact && add({ name: j.contact, phone: j.phone, email: j.email, company: j.client || (j.type === 'project' ? j.name : '') }, 'job'));
+      vals('quotes').forEach(q => q.customer && add(q.customer, 'quote'));
+      return [...m.values()];
+    },
+    companies() {
+      const m = new Map(), add = (name, o) => { const k = norm(name); if (!k || m.has(k)) return; m.set(k, { label: String(name).trim(), ...o }); };
+      this.profiles().sort(by('createdAt')).forEach(p => add(p.name, { meta: [p.address].filter(Boolean).join(''), badge: 'Profile', profile: p }));
+      this.profiles().forEach(p => p.client && norm(p.client) !== norm(p.name) && add(p.client, { meta: 'Customer profile: ' + p.name, badge: 'Profile', profile: p }));
+      vals('jobs').forEach(j => j.client && add(j.client, { meta: j.address || '' }));
+      vals('contacts').forEach(c => c.company && add(c.company, { meta: c.name ? 'Contact: ' + c.name : '' }));
+      vals('quotes').forEach(q => q.customer && q.customer.company && add(q.customer.company, { meta: q.customer.name || '' }));
+      return [...m.values()];
+    },
+  };
+
+  /* customer details for a quote / invoice made from a job: the job's own, then its profile's */
+  const customerFor = (job) => {
+    const p = D.profileOf(job), mc = (job && job.contactId && D.contact(job.contactId)) || (job && job.contact ? { name: job.contact, phone: job.phone, email: job.email } : null) || D.main(p) || {};
+    const client = (job && job.client) || (p && (p.client || p.name)) || '';
+    const name = mc.name || client;
+    return { name, company: mc.name && client && norm(client) !== norm(mc.name) ? client : '', email: (job && job.email) || mc.email || '', phone: (job && job.phone) || mc.phone || '', address: (job && job.address) || (p && p.address) || mc.address || '' };
+  };
+  /* a new job opened from a profile starts with the profile's info (all can be changed) */
+  const prefill = (kind, t) => {
+    t = t || {};
+    if (kind !== 'job' || !t.projectId) return t;
+    const p = D.get(t.projectId); if (!p) return t;
+    const mc = D.main(p) || {};
+    return { ...t, client: t.client || p.client || p.name, address: t.address || p.address || '', contact: t.contact || mc.name || '', contactRole: t.contactRole || mc.role || '', phone: t.phone || mc.phone || '', email: t.email || mc.email || '' };
+  };
+
+  /* ---------------- matching ---------------- */
+  const score = (q, label, extra) => {
+    if (!q) return 0;
+    const n = norm(label);
+    if (n.startsWith(q)) return 0;
+    if (n.split(/[\s\-\/,.()&]+/).some(w => w && w.startsWith(q))) return 1;
+    if (q.length >= 2 && n.includes(q)) return 2;
+    const dq = digits(q); if (dq.length >= 3 && digits(label).includes(dq)) return 1;
+    return -1;
+  };
+  const hl = (label, q) => {
+    if (!q) return escH(label);
+    const n = String(label).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    let i = n.startsWith(q) ? 0 : -1;
+    if (i < 0) { const re = new RegExp('(^|[\\s\\-/,.(&])' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); const m = re.exec(n); if (m) i = m.index + m[1].length; }
+    if (i < 0) i = n.indexOf(q);
+    if (i < 0 || n.length !== String(label).length) return escH(label);
+    return escH(label.slice(0, i)) + '<mark>' + escH(label.slice(i, i + q.length)) + '</mark>' + escH(label.slice(i + q.length));
+  };
+  const initials = n => String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+
+  /* ---------------- what each kind of box suggests ---------------- */
+  /* returns { items:[{label, meta, badge, icon, data}], scope:'Profile name' | '' } */
+  const SOURCES = {
+    person(g) { const p = g.profile(); if (p) return { scope: p.name, items: D.people(p).map(c => ({ label: c.name, meta: [c.role, c.phone || c.email].filter(Boolean).join(' · '), icon: 'av', data: c, badge: c.src === 'main' ? 'Primary' : '' })) };
+      return { items: D.allPeople().map(c => ({ label: c.name, meta: [c.role, c.company, c.phone].filter(Boolean).join(' · '), icon: 'av', data: c })) }; },
+    company() { return { items: D.companies().map(c => ({ label: c.label, meta: c.meta, badge: c.badge, icon: c.profile ? 'profile' : 'building', data: c })) }; },
+    profile() { return { items: D.profiles().map(p => ({ label: p.name, meta: [p.client && norm(p.client) !== norm(p.name) ? p.client : '', p.address].filter(Boolean).join(' · '), icon: 'profile', data: { profile: p } })) }; },
+    jobname(g) { const p = g.profile(); const list = p ? D.jobs().filter(j => j.projectId === p.id) : D.jobs(); return { scope: p ? p.name : '', items: list.map(j => ({ label: j.name, meta: [!p && D.profileOf(j) ? D.profileOf(j).name : j.client, j.address].filter(Boolean).join(' · '), icon: 'job', data: { job: j } })) }; },
+    job() { return { items: vals('jobs').sort(by('order')).map(j => ({ label: j.name, meta: [j.type === 'project' ? 'Customer profile' : (D.profileOf(j) || {}).name || j.client, j.address].filter(Boolean).join(' · '), icon: j.type === 'project' ? 'profile' : 'job', data: { job: j } })) }; },
+    address(g) { const p = g.profile(); return { scope: p ? p.name : '', items: D.addresses(p).map(a => ({ label: a.label, meta: a.meta || '', icon: 'pin', data: a })) }; },
+    phone(g) { const p = g.profile(), list = p ? D.people(p) : D.allPeople(), out = [], seen = new Set();
+      for (const c of list) for (const ph of [c.phone]) { const k = digits(ph); if (k && !seen.has(k)) { seen.add(k); out.push({ label: ph, meta: c.name, icon: 'phone', data: c }); } }
+      return { scope: p ? p.name : '', items: out }; },
+    email(g) { const p = g.profile(), list = p ? D.people(p) : D.allPeople(), out = [], seen = new Set();
+      for (const c of list) { const k = norm(c.email); if (k && !seen.has(k)) { seen.add(k); out.push({ label: c.email, meta: c.name, icon: 'mail', data: c }); } }
+      return { scope: p ? p.name : '', items: out }; },
+    role(g) { const p = g.profile(), list = p ? D.people(p) : D.allPeople(), out = [], seen = new Set();
+      for (const c of list) { const k = norm(c.role); if (k && !seen.has(k)) { seen.add(k); out.push({ label: c.role, meta: p ? c.name : '', icon: 'tag', data: c }); } }
+      return { scope: p ? p.name : '', items: out }; },
+    datalist(g, input) { const id = input.dataset.qfList, dl = id && input.ownerDocument.getElementById(id); if (!dl) return { items: [] };
+      return { items: [...dl.querySelectorAll('option')].map(o => ({ label: o.value, meta: o.textContent && o.textContent !== o.value ? o.textContent : '', icon: 'dot', data: {} })).filter(x => x.label) }; },
+  };
+  /* boxes that open with suggestions as soon as you tap them (when there's something sensible to show) */
+  const OPEN_ON_FOCUS = new Set(['datalist', 'job']);
+
+  /* ---------------- forms ---------------- */
+  /* each group: where it lives, which box is what, and how to tell which customer profile it's for */
+  const val = (root, sel) => { const e = sel && root.querySelector(sel); return e ? e.value.trim() : ''; };
+  const HUB_GROUPS = [
+    { /* New job / customer profile / contact panel */
+      root: '#subpanel',
+      kind: r => /contact/i.test(r.getAttribute('aria-label') || '') ? 'contact' : r.querySelector('#sp-project') ? 'job' : 'project',
+      fields: r => {
+        const k = HUB_GROUPS[0].kind(r);
+        if (k === 'contact') return { '#sp-name': { t: 'person', fill: { role: '#sp-role', company: '#sp-company', phone: '#sp-phone', email: '#sp-email', address: '#sp-address' }, noScope: true }, '#sp-company': { t: 'company' }, '#sp-role': { t: 'role' }, '#sp-phone': { t: 'phone' }, '#sp-email': { t: 'email' }, '#sp-address': { t: 'address' } };
+        return { '#sp-name': { t: k === 'job' ? 'jobname' : 'profile', noPick: k === 'project' }, '#sp-client': { t: 'company', profilePick: true }, '#sp-address': { t: 'address' }, '#sp-cname': { t: 'person', fill: { role: '#sp-crole', phone: '#sp-cphone', email: '#sp-cemail' } }, '#sp-crole': { t: 'role' }, '#sp-cphone': { t: 'phone' }, '#sp-cemail': { t: 'email' } };
+      },
+      profile: r => { const sel = r.querySelector('#sp-project'); if (sel && sel.value) return D.get(sel.value); return D.profileByName(val(r, '#sp-client')); },
+      profileSelect: '#sp-project',
+      apply: { company: '#sp-client', address: '#sp-address', person: '#sp-cname', role: '#sp-crole', phone: '#sp-cphone', email: '#sp-cemail' },
+    },
+    { /* Job / profile page */
+      root: '.detail-inner[data-kind="jobs"]',
+      fields: () => ({ '#j-client': { t: 'company' }, '#j-contact': { t: 'person', fill: { phone: '#j-phone', email: '#j-email' } }, '#j-phone': { t: 'phone' }, '#j-email': { t: 'email' }, '#j-address': { t: 'address' } }),
+      profile: r => { const pj = r.querySelector('#j-project'); if (pj && pj.value.trim()) return D.profileByName(pj.value); const t = D.jobByName(val(r, '#d-title')); return t && t.type === 'project' ? t : D.profileOf(t) || D.profileByName(val(r, '#j-client')); },
+    },
+    { /* quick New job / profile dialog */
+      root: '.modal, .dialog, [role="dialog"]', match: r => !!r.querySelector('#nj-client'),
+      fields: r => { const prof = !!r.querySelector('#nj-type [data-v="project"][aria-pressed="true"]'); return { '#nj-name': { t: prof ? 'profile' : 'jobname', noPick: true }, '#nj-client': { t: 'company', profilePick: true }, '#nj-addr': { t: 'address' } }; },
+      profile: r => D.profileByName(val(r, '#nj-client')),
+      apply: { address: '#nj-addr' },
+    },
+    { /* quote / invoice builder */
+      root: '.qcard', match: r => !!r.querySelector('#qf-customer-name'),
+      fields: () => ({ '#qf-customer-name': { t: 'person', fill: { company: '#qf-customer-company', email: '#qf-customer-email', phone: '#qf-customer-phone' } }, '#qf-customer-company': { t: 'company' }, '#qf-customer-email': { t: 'email' }, '#qf-customer-phone': { t: 'phone' }, '#qf-customer-address': { t: 'address' }, '#qf-site-address': { t: 'address' } }),
+      profile: r => { const j = D.get(val(r, '#qf-job')); return D.profileOf(j) || D.profileByName(val(r, '#qf-customer-company')); },
+    },
+    { /* schedule entry */
+      root: '#detail', match: r => !!r.querySelector('#s-job'),
+      fields: () => ({ '#s-job': { t: 'job', fill: { address: '#s-loc' } }, '#s-loc': { t: 'address' } }),
+      profile: r => { const j = D.jobByName(val(r, '#s-job')); return D.profileOf(j); },
+    },
+  ];
+
+  /* ---------------- the dropdown ---------------- */
+  const ICONS = {
+    profile: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"/>',
+    building: '<path d="M3 21h18M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M10 7h1M13 7h1M10 11h1M13 11h1M10 15h1M13 15h1"/>',
+    job: '<path d="M4 7h16v12H4zM9 7V5h6v2"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+    mail: '<path d="M3 6h18v12H3zM3 7l9 6 9-6"/>',
+    tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.3"/>',
+    dot: '<circle cx="12" cy="12" r="3"/>',
+  };
+  const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.dot}</svg>`;
+  const CSS = `
+.qfs-pop{position:fixed;z-index:2147483000;min-width:220px;max-width:min(440px,calc(100vw - 16px));background:var(--surface,#132440);color:var(--ink,#e8eef8);border:1px solid var(--line-2,rgba(255,255,255,.14));border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.42),0 2px 8px rgba(0,0,0,.25);padding:5px;opacity:0;transform:translateY(-4px) scale(.985);transform-origin:top center;transition:opacity .14s ease,transform .16s cubic-bezier(.2,.8,.2,1);pointer-events:none;font-family:var(--f-body,system-ui,sans-serif);-webkit-tap-highlight-color:transparent}
+.qfs-pop.up{transform-origin:bottom center;transform:translateY(4px) scale(.985)}
+.qfs-pop.in{opacity:1;transform:none;pointer-events:auto}
+.qfs-scope{display:flex;align-items:center;gap:6px;padding:6px 9px 5px;font:700 10.5px/1.2 var(--f-body,system-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#8394b0)}
+.qfs-scope b{color:var(--accent,#2aafcf);letter-spacing:0;text-transform:none;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qfs-scope svg{width:13px;height:13px;flex:none;color:var(--accent,#2aafcf)}
+.qfs-list{max-height:calc(4 * 50px + 2px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;border-radius:10px}
+.qfs-list::-webkit-scrollbar{width:6px}.qfs-list::-webkit-scrollbar-thumb{background:var(--line-2,rgba(255,255,255,.2));border-radius:3px}
+.qfs-o{display:flex;align-items:center;gap:10px;width:100%;min-height:50px;padding:6px 9px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;transition:background .12s}
+.qfs-o:hover{background:var(--hover,rgba(255,255,255,.05))}
+.qfs-o.on{background:var(--accent-soft,rgba(42,175,207,.16))}
+.qfs-av{width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--accent,#2aafcf) 18%,transparent);color:var(--accent,#2aafcf);font:700 12px/1 var(--f-body,system-ui);letter-spacing:.02em}
+.qfs-av.sq{border-radius:9px;background:var(--surface-2,rgba(255,255,255,.05));border:1px solid var(--line,rgba(255,255,255,.08))}
+.qfs-av svg{width:16px;height:16px}
+.qfs-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+.qfs-t b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qfs-t b mark{background:none;color:var(--accent,#2aafcf);font-weight:800}
+.qfs-t small{font-size:12px;color:var(--muted,#8394b0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qfs-badge{flex:none;font-size:10.5px;font-weight:600;color:var(--accent,#2aafcf);border:1px solid color-mix(in srgb,var(--accent,#2aafcf) 45%,transparent);border-radius:99px;padding:1px 7px}
+.qfs-more{padding:5px 9px 3px;font-size:11px;color:var(--muted,#8394b0);text-align:center}
+.qfs-flash{animation:qfsFlash 1.1s ease}
+@keyframes qfsFlash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent,#2aafcf) 0%,transparent)}25%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#2aafcf) 45%,transparent);background-color:color-mix(in srgb,var(--accent,#2aafcf) 10%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.qfs-pop,.qfs-o{transition:none}.qfs-flash{animation:none}}`;
+
+  function attach(doc, groups, opts = {}) {
+    if (!doc || doc.__qfs) return; doc.__qfs = true;
+    const win = doc.defaultView;
+    const st = doc.createElement('style'); st.textContent = CSS + (opts.css || ''); doc.head.appendChild(st);
+    const pop = doc.createElement('div'); pop.className = 'qfs-pop'; pop.setAttribute('role', 'listbox'); pop.hidden = true;
+    doc.body.appendChild(pop);
+    let cur = null;   // { input, group, root, spec, items, idx, q }
+    let hideT = 0;
+
+    const groupFor = input => {
+      if (!input || input.tagName !== 'INPUT' || input.closest('.cbx') || input.readOnly || input.disabled) return null;
+      if (/^(date|time|number|checkbox|radio|file|color|range|password|hidden)$/i.test(input.type)) return null;
+      for (const g of groups) {
+        const root = input.closest(g.root); if (!root || (g.match && !g.match(root))) continue;
+        const f = g.fields(root);
+        for (const sel in f) if (input.matches(sel)) return { g, root, spec: f[sel], fields: f };
+      }
+      if (input.dataset.qfList || input.getAttribute('list')) {
+        if (!input.dataset.qfList) { input.dataset.qfList = input.getAttribute('list'); input.removeAttribute('list'); }
+        return { g: { profile: () => null }, root: input.parentElement, spec: { t: 'datalist' }, fields: {} };
+      }
+      return null;
+    };
+    const ctxOf = m => ({ profile: () => (m.spec.noScope || !m.g.profile) ? null : m.g.profile(m.root) });
+
+    const place = () => {
+      if (!cur) return;
+      const r = cur.input.getBoundingClientRect(), vv = win.visualViewport, vh = vv ? vv.height + vv.offsetTop : win.innerHeight, vw = win.innerWidth;
+      const w = Math.min(Math.max(r.width, 280), 440, vw - 16), h = pop.offsetHeight || 230;
+      const below = vh - r.bottom - 8, above = r.top - 8, up = below < Math.min(h, 160) && above > below;
+      pop.style.width = w + 'px';
+      pop.style.left = Math.max(8, Math.min(r.left, vw - w - 8)) + 'px';
+      pop.style.top = up ? Math.max(8, r.top - h - 6) + 'px' : (r.bottom + 6) + 'px';
+      pop.classList.toggle('up', up);
+      if (r.bottom < 0 || r.top > vh) close();
+    };
+    const close = () => { if (!cur) return; cur.input.setAttribute('aria-expanded', 'false'); cur = null; pop.classList.remove('in'); clearTimeout(hideT); hideT = setTimeout(() => { if (!cur) pop.hidden = true; }, 160); };
+    const render = () => {
+      const m = cur; if (!m) return;
+      const src = (SOURCES[m.spec.t] || SOURCES.datalist)(ctxOf(m), m.input) || { items: [] };
+      const q = norm(m.input.value);
+      let items = src.items.map((it, i) => ({ ...it, s: score(q, it.label, it.meta), i })).filter(it => it.s >= 0);
+      items.sort((a, b) => a.s - b.s || a.i - b.i);
+      /* nothing to say: no letters typed and no profile to narrow it (except picker-style boxes) */
+      const showEmpty = !!src.scope || OPEN_ON_FOCUS.has(m.spec.t);
+      if ((!q && !showEmpty) || !items.length || (items.length === 1 && norm(items[0].label) === q)) { close(); return; }
+      items = items.slice(0, 60);
+      m.items = items; if (m.idx >= items.length) m.idx = -1;
+      const avatar = it => it.icon === 'av' ? `<span class="qfs-av">${escH(initials(it.label))}</span>` : `<span class="qfs-av sq">${svg(it.icon)}</span>`;
+      pop.innerHTML = (src.scope ? `<div class="qfs-scope">${svg('profile')}<span>From</span><b>${escH(src.scope)}</b></div>` : '')
+        + `<div class="qfs-list">${items.map((it, i) => `<button type="button" class="qfs-o${i === m.idx ? ' on' : ''}" role="option" data-i="${i}" tabindex="-1">${avatar(it)}<span class="qfs-t"><b>${hl(it.label, q)}</b>${it.meta ? `<small>${escH(it.meta)}</small>` : ''}</span>${it.badge ? `<span class="qfs-badge">${escH(it.badge)}</span>` : ''}</button>`).join('')}</div>`;
+      pop.hidden = false; m.input.setAttribute('aria-expanded', 'true');
+      place();
+      win.requestAnimationFrame(() => { if (cur === m) { pop.classList.add('in'); place(); } });
+    };
+    const open = input => {
+      const m = groupFor(input); if (!m) return;
+      if (!cur || cur.input !== input) cur = { ...m, input, idx: -1 };
+      input.setAttribute('autocomplete', 'off'); input.setAttribute('aria-autocomplete', 'list');
+      if (input.getAttribute('list')) { input.dataset.qfList = input.getAttribute('list'); input.removeAttribute('list'); }   // no second (browser) dropdown
+      render();
+    };
+
+    /* put a value in a box the way typing would, so the app saves it */
+    const setVal = (el, v, auto) => {
+      if (!el) return false;
+      if (el.value === v) { if (auto) el.dataset.qfAuto = v; return false; }
+      el.value = v;
+      if (auto) el.dataset.qfAuto = v; else delete el.dataset.qfAuto;
+      el.dispatchEvent(new win.Event('input', { bubbles: true }));
+      el.dispatchEvent(new win.Event('change', { bubbles: true }));
+      if (auto) { el.classList.remove('qfs-flash'); void el.offsetWidth; el.classList.add('qfs-flash'); setTimeout(() => el.classList.remove('qfs-flash'), 1200); }
+      return true;
+    };
+    /* only fill boxes that are empty, still hold what we filled, or hold something that came from the system
+       (so switching from one contact to another swaps their details, but never what you typed yourself) */
+    const known = (k, v) => {
+      const n = k === 'phone' ? digits(v) : norm(v); if (!n) return false;
+      const ppl = D.allPeople();
+      if (k === 'phone') return ppl.some(c => digits(c.phone) === n) || vals('jobs').some(j => digits(j.phone) === n);
+      if (k === 'email') return ppl.some(c => norm(c.email) === n);
+      if (k === 'role') return ppl.some(c => norm(c.role) === n);
+      if (k === 'person') return ppl.some(c => norm(c.name) === n);
+      if (k === 'company') return D.companies().some(c => norm(c.label) === n);
+      if (k === 'address') return D.addresses(null).some(a => norm(a.label) === n);
+      return false;
+    };
+    const canFill = (el, k) => el && !el.disabled && (!el.value.trim() || (el.dataset.qfAuto != null && el.value === el.dataset.qfAuto) || (k && known(k, el.value)));
+    const fillFrom = (root, map, data) => {
+      for (const k in map) { const el = root.querySelector(map[k]); const v = data[k]; if (v && canFill(el, k)) setVal(el, v, true); }
+    };
+    /* a profile (or a job in one) was chosen for this form: bring in what the system knows about it */
+    const applyProfile = (g, root, rec) => {
+      if (!g.apply) return;
+      const p = rec ? D.profileOf(rec) : null;
+      const mc = rec ? (D.contact(rec.contactId) || (rec.contact ? { name: rec.contact, phone: rec.phone, email: rec.email, role: rec.contactRole } : null) || D.main(p) || {}) : {};
+      const data = rec ? { company: rec.client || (p && (p.client || p.name)) || '', address: rec.address || (p && p.address) || '', person: mc.name || '', role: mc.role || '', phone: rec.phone || mc.phone || '', email: rec.email || mc.email || '' } : {};
+      for (const k in g.apply) {
+        const el = root.querySelector(g.apply[k]); if (!el) continue;
+        if (rec) { if (data[k] && canFill(el, k)) setVal(el, data[k], true); }
+        else if (el.dataset.qfAuto != null && el.value === el.dataset.qfAuto) setVal(el, '', false);   // profile cleared: take back only what we filled
+      }
+    };
+    const pick = i => {
+      const m = cur; if (!m || !m.items[i]) return;
+      const it = m.items[i], input = m.input, root = m.root;
+      setVal(input, it.label, false);
+      close();
+      const d = it.data || {};
+      if (m.spec.t === 'person' && m.spec.fill) fillFrom(root, m.spec.fill, d);
+      if (m.spec.t === 'job' && m.spec.fill && d.job) { const j = d.job, p = D.profileOf(j); fillFrom(root, m.spec.fill, { address: j.address || (p && p.address) || '' }); }
+      if ((m.spec.t === 'company' || m.spec.t === 'profile') && d.profile && !m.spec.noPick) {
+        const p = d.profile, sel = m.g.profileSelect && root.querySelector(m.g.profileSelect);
+        if (sel && [...sel.options].some(o => o.value === p.id) && (!sel.value || sel.value !== p.id)) { sel.value = p.id; sel.dispatchEvent(new win.Event('change', { bubbles: true })); }
+        else applyProfile(m.g, root, p);
+      }
+    };
+    const move = d => {
+      const m = cur; if (!m || !m.items || !m.items.length) return;
+      m.idx = (m.idx + d + m.items.length + (m.idx < 0 && d < 0 ? 1 : 0)) % m.items.length;
+      pop.querySelectorAll('.qfs-o').forEach(b => b.classList.toggle('on', +b.dataset.i === m.idx));
+      const on = pop.querySelector('.qfs-o.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+    };
+
+    doc.addEventListener('focusin', e => { const t = e.target; if (t && t.tagName === 'INPUT') { if (cur && cur.input !== t) close(); open(t); } }, true);
+    doc.addEventListener('input', e => { const t = e.target; if (!t || t.tagName !== 'INPUT' || !e.isTrusted) return; if (t.dataset.qfAuto != null && t.value !== t.dataset.qfAuto) delete t.dataset.qfAuto; if (doc.activeElement === t) { if (cur && cur.input === t) { cur.idx = -1; render(); } else open(t); } }, true);
+    doc.addEventListener('focusout', e => { if (cur && e.target === cur.input) setTimeout(() => { if (cur && doc.activeElement !== cur.input) close(); }, 130); }, true);
+    doc.addEventListener('keydown', e => {
+      if (!cur || e.target !== cur.input) { if (e.target && e.target.tagName === 'INPUT' && e.key === 'ArrowDown' && !cur) { open(e.target); } return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter' && cur.idx >= 0) { e.preventDefault(); e.stopImmediatePropagation(); pick(cur.idx); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(); }
+      else if (e.key === 'Tab') close();
+    }, true);
+    pop.addEventListener('pointerdown', e => e.preventDefault());   // keep the keyboard up and the box focused
+    pop.addEventListener('mousedown', e => e.preventDefault());
+    pop.addEventListener('click', e => { const b = e.target.closest('.qfs-o'); if (b) pick(+b.dataset.i); });
+    /* a profile picked from a dropdown <select> (job forms, the map tool) fills the rest */
+    doc.addEventListener('change', e => {
+      const t = e.target; if (!t || t.tagName !== 'SELECT') return;
+      for (const g of groups) {
+        if (!g.profileSelect || !t.matches || !t.matches(g.profileSelect)) continue;
+        const root = t.closest(g.root); if (!root || (g.match && !g.match(root))) continue;
+        applyProfile(g, root, t.value ? (g.recById ? g.recById(t.value) : D.get(t.value)) : null);
+      }
+    }, true);
+    win.addEventListener('resize', place);
+    if (win.visualViewport) { win.visualViewport.addEventListener('resize', place); win.visualViewport.addEventListener('scroll', place); }
+    doc.addEventListener('scroll', e => { if (cur && !pop.contains(e.target)) place(); }, true);
+    return { close, applyProfile, groups };
+  }
+
+  window.QFS = { D, customerFor, prefill, attach, norm, SOURCES };
+  const start = () => attach(document, HUB_GROUPS);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
 
 </script>
 </body>
