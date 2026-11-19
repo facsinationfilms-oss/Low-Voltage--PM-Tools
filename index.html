@@ -985,7 +985,7 @@ button.pc-ent:hover{background:color-mix(in srgb,var(--c) 16%,var(--surface))}
 :root:not([data-bs-theme="light"]) .btn.ghost:hover{background:var(--hover)}
 :root:not([data-bs-theme="light"]) .btn.primary{background:linear-gradient(180deg,#5C9BFF,var(--accent-strong));border-color:var(--accent-strong);color:#fff;box-shadow:0 4px 14px rgba(59,123,255,.28)}
 :root:not([data-bs-theme="light"]) .btn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
-:root:not([data-bs-theme="light"]) .btn.danger{background:#D9443C;border-color:#D9443C}
+:root:not([data-bs-theme="light"]) .btn.danger{background:#C9372F;border-color:#E2574F;color:#fff}
 :root:not([data-bs-theme="light"]) .seg{background:var(--sunken);border-color:var(--line-2)}
 :root:not([data-bs-theme="light"]) .seg button{border-right-color:var(--line-2)}
 :root:not([data-bs-theme="light"]) .seg button[aria-pressed="true"],:root:not([data-bs-theme="light"]) .pop-row button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-line);border-color:var(--accent-line)}
@@ -2303,7 +2303,8 @@ body.sub-open .detail{position:relative;z-index:31}
 .cl-add>span{display:inline-flex;color:var(--muted)}.cl-add>span svg{width:16px;height:16px}
 .cl-add input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;padding:6px 0;outline:none}
 .cl-tools{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.btn.danger{color:var(--danger)}
+.btn.danger{color:#fff;font-weight:700;letter-spacing:.2px;text-shadow:0 1px 1px rgba(0,0,0,.28)}
+.btn.danger:hover{filter:brightness(1.08)}
 .vp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .vp-sec{padding:12px 14px}
 .vp-h{display:flex;flex-direction:column;margin-bottom:10px}.vp-h small{font-size:12px;color:var(--muted)}
