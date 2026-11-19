@@ -2742,6 +2742,7 @@ const Reg = {
     for (const t of Library.types) this.types.set(t.id, { ...t, custom: true });
   },
   type(id) {
+    if (id === '_mount') return MOUNT_PSEUDO;
     return this.types.get(id) || { id, system: '_unknown', name: 'Unknown device', prefix: 'DEV', glyph: 'txt:?', desc: 'This device type is missing from the library.', missing: true, fields: [] };
   },
   system(id) {
@@ -2753,6 +2754,19 @@ const Reg = {
   systemList() { return [...this.systems.values()]; },
   typesFor(sysId) { return [...this.types.values()].filter(t => t.system === sysId); },
 };
+
+/* ---------- Mounts & back boxes (a note on a device of what it needs; the quote person fills in the real part) ---------- */
+const MOUNT_PSEUDO = { id: '_mount', system: 'video', name: 'Mount', prefix: 'MNT', glyph: 'tb:Tool', color: '#475569', fields: [], tags: ['mount', 'back box', 'bracket', 'gooseneck', 'wedge', 'junction box'], desc: 'Drop onto a device to note the mount or back box it needs.', mountItem: true };
+const MOUNT_SYSTEMS = ['video', 'intercom', 'alarm'];
+const MOUNT_TYPES = {
+  video: ['Wall arm (L / upside-down L)', 'Pendant (ceiling drop)', 'Gooseneck', 'Wedge', 'Pole mount', 'Corner mount', 'Ceiling / recessed', 'Angle bracket', 'Flush wall mount'],
+  intercom: ['Angle mount', 'Surface mount', 'Flush / recessed mount', 'Pedestal / pole mount', 'Gooseneck'],
+  _: ['Bracket', 'Surface mount', 'Flush mount', 'Angle mount'],
+};
+const MOUNT_BOXES = ['Junction box (standard)', 'Weatherproof back box', 'Back box with conduit entry', 'Flush / recessed back box', 'Surface back box'];
+const MOUNT_SURFACES = ['Drywall', 'Concrete', 'Brick', 'Block / CMU', 'Sheet metal', 'Wood', 'Stucco', 'Ceiling tile', 'Pole'];
+function mountTypeList(devType) { return MOUNT_TYPES[(Reg.type(devType) || {}).system] || MOUNT_TYPES._; }
+function mountNeeds(m) { return !!m && !(m.type || m.typeOther); }
 
 /* ---------- Glyphs ---------- */
 function glyphInner(glyph) {
@@ -4318,6 +4332,7 @@ const Editor = {
     MapView.placeType = typeId;
     $$('.pal-item').forEach(e => e.classList.toggle('armed', e.dataset.type === typeId));
     $$('#toolrail .tool').forEach(b => b.classList.toggle('on', typeId === 'pano360' && b.dataset.tool === 'pano'));
+    if (typeId === '_mount') this.hint(Device.touch ? 'Tap a device to add a <b>Mount</b> to it.' : 'Click a device to add a <b>Mount</b> to it · <kbd>Esc</kbd> to cancel', true); else
     this.hint(Device.touch ? `Tap the map to place <b>${esc(t.name)}</b>.`
       : `Click the map to place <b>${esc(t.name)}</b> · hold <kbd>Shift</kbd> while clicking to keep placing more · <kbd>Esc</kbd> to cancel`, true);
     Touch.afterArm();
@@ -4359,13 +4374,14 @@ const Editor = {
     const favs = new Set(Settings.data.favorites || []);
     const collapsed = Settings.data.paletteCollapsed || {};
     const counts = {};
-    if (this.plan) for (const d of this.plan.devices) counts[d.type] = (counts[d.type] || 0) + 1;
+    if (this.plan) for (const d of this.plan.devices) { counts[d.type] = (counts[d.type] || 0) + 1; if (d.mount) counts._mount = (counts._mount || 0) + 1; }
     const match = t => !q || [t.name, t.desc, t.prefix, Reg.system(t.system).name, ...(t.tags || [])].join(' ').toLowerCase().includes(q);
     const groups = [];
     const favTypes = [...favs].map(id => Reg.types.get(id)).filter(t => t && match(t));
     if (favTypes.length) groups.push({ id: '_fav', name: 'Favorites', color: '#f59e0b', types: favTypes, icon: 'Star' });
     for (const s of Reg.systemList()) {
       const types = Reg.typesFor(s.id).filter(t => !(t.builtin && hidden.has(t.id)) && match(t));
+      if (MOUNT_SYSTEMS.includes(s.id) && match(MOUNT_PSEUDO)) types.push(MOUNT_PSEUDO);
       if (types.length) groups.push({ id: s.id, name: s.name, color: s.color, types });
     }
     const list = $('#pal-list');
@@ -4406,6 +4422,7 @@ const Editor = {
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         const id = el.dataset.type;
+        if (id === '_mount') { showMenu(null, [{ label: 'Add a mount to a device', icon: 'MapPin', onClick: () => this.armType(id) }], { x: e.clientX, y: e.clientY }); return; }
         const t = Reg.type(id);
         const isFav = (Settings.data.favorites || []).includes(id);
         showMenu(null, [
@@ -4752,7 +4769,28 @@ const Editor = {
     if (palette) { this.renderPalette(); this.renderTabs(); }
   },
 
+  /* a Mount dropped on a device: it becomes part of that device (no new Icon, no stack) */
+  placeMount(x, y) {
+    const plan = this.plan;
+    let best = null, bd = Infinity;
+    for (const d of MapView.visibleDevices()) {
+      const r = devSize(plan, d) * 0.65, dd = Math.hypot(d.x - x, d.y - y);
+      if (dd <= r && dd < bd) { best = d; bd = dd; }
+    }
+    if (!best) { toast('Drop the Mount right onto a device', { kind: 'warn' }); return null; }
+    const first = !best.mount;
+    if (first) { best.mount = { type: '', box: '', surface: '', notes: '' }; best.updatedAt = Date.now(); }
+    MapView.sel = new Set([best.id]);
+    MapView.renderAll();
+    this.changed({ palette: true });
+    Side.showDevice(best.id);
+    setTimeout(() => { const el = Side.el && Side.el.querySelector('[data-sec="mount"]'); if (el) { el.classList.add('open'); el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } }, 80);
+    toast(first ? `Mount added to ${best.label || Reg.type(best.type).name} — choose what it needs in the side panel` : `${best.label || Reg.type(best.type).name} already has a mount — opened it`);
+    return best;
+  },
+
   placeDevice(typeId, x, y) {
+    if (typeId === '_mount') return this.placeMount(x, y);
     const t = Reg.type(typeId);
     const plan = this.plan;
     x = clamp(x, 0, plan.bg.w); y = clamp(y, 0, plan.bg.h);
@@ -6085,6 +6123,11 @@ const MapView = {
   },
 
   /* the little round status mark at a device's corner */
+  mountBadge(s, m) {
+    const need = mountNeeds(m), br = s * 0.24;
+    return `<g class="mnt-badge" transform="translate(${-s * 0.47} ${-s * 0.47})" pointer-events="none"><title>${need ? 'Mount: choose what it needs' : m.type === 'x' ? 'Mount' : 'Mount: ' + esc(m.typeOther || m.type)}${m.box ? ' + ' + esc(m.box) : ''}</title><circle r="${br}" fill="${need ? '#f59e0b' : '#334155'}" stroke="#fff" stroke-width="${s * 0.05}"/><path d="M -0.3 0.34 L -0.3 -0.3 L 0.34 -0.3" transform="scale(${br * 1.15})" fill="none" stroke="#fff" stroke-width="0.26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${br * 0.34}" cy="${br * 0.3}" r="${br * 0.26}" fill="#fff"/></g>`;
+  },
+
   statusBadge(status, s) {
     const st = STATUSES.find(x => x.id === status);
     if (!st) return '';
@@ -6117,7 +6160,8 @@ const MapView = {
     const st = STATUSES.find(x => x.id === d.status);
     const badge = Settings.data.showStatus && d.status && d.status !== 'planned' ? this.statusBadge(d.status, s) : '';
     const nph = (d.photos || []).length;
-    const photo = nph ? `<g transform="translate(${-s * 0.4} ${-s * 0.4})"><circle r="${s * 0.19}" fill="#0f172a" stroke="#fff" stroke-width="${s * 0.04}"/><text font-size="${s * 0.22}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="Arial">${nph}</text></g>` : '';
+    const mnt = d.mount ? this.mountBadge(s, d.mount) : '';
+    const photo = nph ? `<g transform="translate(${(d.mount ? 1 : -1) * s * 0.4} ${-s * 0.4})"><circle r="${s * 0.19}" fill="#0f172a" stroke="#fff" stroke-width="${s * 0.04}"/><text font-size="${s * 0.22}" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="central" font-family="Arial">${nph}</text></g>` : '';
     let label = '';
     /* suppress regular label when device is in a stack with individual names enabled — the name is rendered by Stack.extraSvg instead */
     const _stkId = Stack.stkOf(plan, d);
@@ -6137,7 +6181,7 @@ const MapView = {
       <title>${esc(d.label || '')} · ${esc(t.name)}${d.fields.location ? ' · ' + esc(d.fields.location) : ''}</title>
       <circle class="dev-hit" r="${s * 0.62}"/>
       <use href="#sym-${cssId(t.id)}" x="${-s / 2}" y="${-s / 2}" width="${s}" height="${s}"/>
-      ${badge}${photo}${label}
+      ${badge}${photo}${mnt}${label}
     </g>`;
   },
 
@@ -6898,9 +6942,9 @@ const MapView = {
         }
         break;
       case 'place':
-        Editor.placeDevice(this.placeType, d.p[0], d.p[1]);
+        const _placed = Editor.placeDevice(this.placeType, d.p[0], d.p[1]);
         this.hover = e.pointerType === 'touch' ? null : d.p;
-        if (!(e.shiftKey || this.shiftDown || Touch.keep)) { this.hover = null; Editor.setTool('select'); }
+        if (!(e.shiftKey || this.shiftDown || Touch.keep) && !(this.placeType === '_mount' && !_placed)) { this.hover = null; Editor.setTool('select'); }
         this.renderTemp();
         break;
       case 'text': {
@@ -7702,7 +7746,7 @@ const Stack = {
       <circle class="dev-hit" r="${s * 0.62}"/>
       <g class="stk-pie">${pie}</g>
       <circle r="${R}" fill="none" stroke="#fff" stroke-width="${ring}"/>
-      ${num}${badge}${lbl}
+      ${num}${badge}${members.some(m => m.mount) ? MapView.mountBadge(s, { type: members.every(m => !m.mount || !mountNeeds(m.mount)) ? 'x' : '' }) : ''}${lbl}
     </g>`;
   },
 
@@ -8120,6 +8164,20 @@ const Side = {
     return `<label class="fld" for="${id}"><span>${esc(label)}</span>${input}</label>`;
   },
 
+  mountHtml(d) {
+    const m = d.mount || {};
+    const opt = (list, val) => { const l = [...list]; if (val && val !== 'Other' && !l.includes(val)) l.push(val); return `<option value=""></option>${l.map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}<option value="Other" ${val === 'Other' ? 'selected' : ''}>Other…</option>`; };
+    const tl = mountTypeList(d.type);
+    return `<p class="tiny muted" style="margin-top:0">Just a note of what this install needs. Whoever makes the quote adds the make, model and price.</p>
+      <label class="fld"><span>Mount type</span><select class="inp" data-mf="type">${opt(tl, m.type)}</select></label>
+      ${m.type === 'Other' ? `<label class="fld"><span>Describe the mount</span><input class="inp" data-mf="typeOther" value="${esc(m.typeOther || '')}" placeholder="e.g. corner adapter + pole"></label>` : ''}
+      <label class="fld"><span>Back box</span><select class="inp" data-mf="box">${opt(['None needed', ...MOUNT_BOXES], m.box)}</select></label>
+      ${m.box === 'Other' ? `<label class="fld"><span>Describe the back box</span><input class="inp" data-mf="boxOther" value="${esc(m.boxOther || '')}"></label>` : ''}
+      <label class="fld"><span>Mounted on</span><select class="inp" data-mf="surface">${opt(MOUNT_SURFACES, m.surface)}</select></label>
+      <label class="fld"><span>Notes for the quote</span><textarea class="inp" rows="2" data-mf="notes" placeholder="e.g. conduit comes in from the left, needs to face down">${esc(m.notes || '')}</textarea></label>
+      <button class="btn sm danger-ghost" id="sd-mount-del">${ic('Trash')}<span>Remove mount</span></button>`;
+  },
+
   orderedDevices() {
     return [...Editor.plan.devices].sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { numeric: true }));
   },
@@ -8228,6 +8286,8 @@ const Side = {
 
         ${isPano ? '' : this.section(isCam || d.cone || t.cov ? 'cam' : 'cov', isCam ? 'Camera view' : 'Coverage area', cam, 'View360', isCam || !!d.cone || !!t.cov)}
 
+        ${d.mount && !isPano ? this.section('mount', 'Mount & back box', this.mountHtml(d), 'Tool', true) : ''}
+
         ${isPano ? '' : this.section('cable', 'Cabling', (() => {
           const ref = d.fields._wireRef;
           const run = ref ? Editor.findItem(ref.runId) : null;
@@ -8262,6 +8322,13 @@ const Side = {
     $('#sd-prev').onclick = () => this.step(-1);
     $('#sd-next').onclick = () => this.step(1);
     $('#sd-locate').onclick = () => MapView.centerOn(d.x, d.y, MapView.fitK() * 2.5);
+    $$('[data-mf]', this.el).forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', e => {
+      if (!d.mount) return;
+      d.mount[el.dataset.mf] = el.value; d.updatedAt = Date.now();
+      touch({ map: true });
+      if (el.tagName === 'SELECT') this.renderDevice(true);
+    }));
+    if ($('#sd-mount-del')) $('#sd-mount-del').onclick = () => { delete d.mount; d.updatedAt = Date.now(); touch({ map: true, palette: true }); this.renderDevice(true); toast('Mount removed'); };
     $('#sd-dup').onclick = () => { Editor.duplicateSelection(); const id = [...MapView.sel][0]; if (id) this.showDevice(id); };
     $('#sd-del').onclick = () => Editor.deleteSelection();
     if ($('#sd-stk-back')) $('#sd-stk-back').onclick = () => this.showStack(d.stk);
@@ -14830,7 +14897,7 @@ if (HUB) {
         return {
           id: pl.id, name: pl.name || 'Plan', scaled: !!ppf,
           devices: pl.devices.map(d => { const t = HubField.typeOf(p, d.type); const s = HubField.sysOf(p, t.system);
-            return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0 }; }),
+            return { id: d.id, label: d.label || '', type: t.id, typeName: t.name || 'Device', system: t.system, sysName: s.name || '', status: d.status || 'planned', cableType: d.fields?.cableType || '', cableLength: +d.fields?.cableLength || 0, manufacturer: d.fields?.manufacturer || '', model: d.fields?.model || '', description: d.fields?.description || '', msrp: +d.fields?.msrp || 0, mount: d.mount ? { type: d.mount.type || '', typeOther: d.mount.typeOther || '', box: d.mount.box || '', boxOther: d.mount.boxOther || '', surface: d.mount.surface || '', notes: d.mount.notes || '' } : null }; }),
           cables: pl.markups.filter(m => m.kind === 'cable' && m.points && m.points.length > 1).map(m => {
             /* splitFrom: add parent run's shared-path distance */
             let splitFt = 0;
