@@ -3282,7 +3282,7 @@ html.qf-opening-on,html.qf-opening-on body{overflow:hidden}
 </script>
 <script>
 /* Where "contact support" links go. To switch to a different address (for example Support@quafield.com once that alias exists) change this one line. */
-var QF_SUPPORT="Barry@quafield.com";
+var QF_SUPPORT="Support@quafield.com";
 function qfSupportLink(txt){return'<a class="qf-support" href="mailto:'+QF_SUPPORT+'?subject='+encodeURIComponent("QuaField Office Hub support")+'">'+(txt||QF_SUPPORT)+"</a>"}
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a.qf-support");if(!a)return;var b="Hi QuaField support,\n\nWhat I need help with:\n\n\n\n---\nMy company / name:\nPage: "+location.pathname+"\nDevice: "+navigator.userAgent.slice(0,140);a.href="mailto:"+QF_SUPPORT+"?subject="+encodeURIComponent("QuaField Office Hub support")+"&body="+encodeURIComponent(b)},true);
 
