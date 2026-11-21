@@ -14908,7 +14908,7 @@ const Txt = {
       </div>`;
   },
   panel(el, m) {
-    const body = el.querySelector('.side-body'), sc = body ? body.scrollTop : 0;
+    const sc = (sideScroller(el) || {}).scrollTop || 0;
     const act = document.activeElement && el.contains(document.activeElement) ? document.activeElement : null;
     const actId = act && (act.id || ''), selS = act && act.selectionStart, selE = act && act.selectionEnd;
     el.innerHTML = this.panelHtml(m);
@@ -14916,7 +14916,7 @@ const Txt = {
     $('#sd-close', el).onclick = () => { MapView.sel.clear(); MapView.renderSelState(); Side.close(); };
     $('#mk-dup', el).onclick = () => { Editor.duplicateSelection(); const id = [...MapView.sel][0]; if (id) Side.showMarkup(id); };
     $('#mk-del', el).onclick = () => Editor.deleteSelection();
-    const nb = el.querySelector('.side-body'); if (nb) nb.scrollTop = sc;
+    const nb = sideScroller(el); if (nb) nb.scrollTop = sc;
     if (actId) { const n = $('#' + actId, el); if (n) { n.focus({ preventScroll: true }); try { if (selS != null) n.setSelectionRange(selS, selE); } catch (e) {} } }
   },
   cur() { if (Side.mode !== 'markup') return null; const m = Editor.findItem(Side.id); return m && m.kind === 'text' ? m : null; },
@@ -15543,6 +15543,32 @@ const HubField = {
 };
 
 /* ---- 99-main.js ---- */
+/* ===== Details panel: changing a control inside it redraws the panel; keep it where it was.
+   Only a different item (or a different sub-view) starts at the top. Runs last so it wraps every override above. ===== */
+{
+  let depth = 0;
+  for (const n of ['renderMarkup', 'renderDevice', 'renderStack', 'renderLayout', 'renderDot', 'renderConduit']) {
+    const orig = Side[n]; if (typeof orig !== 'function') continue;
+    Side[n] = function (...a) {
+      const k = this.mode + ':' + this.id + ':' + (this.cond || '') + ':' + (this.dot == null ? '' : this.dot);
+      const outer = depth === 0, same = outer && Side._rk === k;
+      const sc = same ? sideScroller(this.el) : null, top = sc ? sc.scrollTop : 0;
+      depth++;
+      let r; try { r = orig.apply(this, a); } finally { depth--; }
+      if (outer) {
+        Side._rk = this.mode + ':' + this.id + ':' + (this.cond || '') + ':' + (this.dot == null ? '' : this.dot);
+        if (same && top > 0) {
+          const fix = () => { const s2 = sideScroller(this.el); if (s2 && Math.abs(s2.scrollTop - top) > 1) s2.scrollTop = top; };
+          fix(); requestAnimationFrame(fix);
+        }
+      }
+      return r;
+    };
+  }
+  const cl = Side.close;
+  Side.close = function (...a) { Side._rk = ''; return cl.apply(this, a); };
+}
+
 /* ===== Startup and keyboard ===== */
 
 document.addEventListener('keydown', (e) => {
