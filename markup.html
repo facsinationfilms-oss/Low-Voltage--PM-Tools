@@ -374,6 +374,32 @@ body[data-view="editor"] { overflow: clip; }
 .mk-hit { fill: none; stroke: transparent; pointer-events: stroke; }
 .mk-hit.filled { fill: transparent; pointer-events: all; }
 .mk-lbl { font-family: var(--font); font-weight: 700; paint-order: stroke; stroke: #fff; stroke-linejoin: round; pointer-events: none; }
+
+.stage{position:relative}
+.tx-inline{position:absolute;z-index:30;margin:0;padding:0;border:0;outline:2px solid var(--accent);outline-offset:3px;background:rgba(255,255,255,.55);resize:none;overflow:hidden;white-space:pre;border-radius:2px;caret-color:currentColor}
+.tx-panel{display:flex;flex-direction:column;gap:12px}
+.tx-panel>*{flex-shrink:0}
+.tx-panel #mk-text{min-height:64px}
+.tx-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tx-fmt button{min-width:30px;justify-content:center;padding:0 8px}
+.tx-fmt button .ic,.tx-fmt button svg{width:16px;height:16px}
+.tx-font{flex:1;min-width:120px}
+.tx-step{display:inline-flex;align-items:center;gap:4px}
+.tx-step button{width:32px;height:32px;border:1px solid var(--line);background:var(--bg-2);border-radius:8px;color:var(--text);display:inline-flex;align-items:center;justify-content:center}
+.tx-step input{width:56px;text-align:center;height:32px;padding:0 4px}
+.tx-quick{display:flex;width:100%}.tx-quick button{flex:1;justify-content:center;padding:0 4px}
+.tx-pres{display:flex;flex-wrap:wrap;gap:8px}
+.tx-pre-w{display:inline-flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);position:relative}
+.tx-pre{min-width:48px;height:34px;border-radius:8px;border:2px solid transparent;font-size:15px;box-shadow:0 0 0 1px var(--line)}
+.tx-pre-w i{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--bg-2);border:1px solid var(--line);color:var(--text);font-style:normal;font-size:12px;line-height:14px;text-align:center;cursor:pointer}
+.tx-boxseg{display:flex;width:100%}.tx-boxseg button{flex:1;justify-content:center;padding:0 4px}
+.tx-nums{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.tx-nums label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;color:var(--muted)}
+.tx-nums input{width:80px}
+.tx-copy .btn{flex:1}
+.tx-savebox{display:flex;gap:8px}.tx-savebox[hidden]{display:none}.tx-savebox input{flex:1}
+.handle.tail{fill:#a855f7}
+.handle.size{fill:#22c55e}
 .mk-text { font-family: var(--font); pointer-events: none; }
 .mk-text.halo { paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
 .cone { pointer-events: none; }
@@ -6395,7 +6421,8 @@ const MapView = {
       } else {
         const bb = this.markBBox(it);
         const pad = 6 / k;
-        html += `<rect x="${bb.x - pad}" y="${bb.y - pad}" width="${bb.w + pad * 2}" height="${bb.h + pad * 2}" class="sel-box" stroke-width="${sw}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
+        if (it.kind === 'text') html += Txt.selSvg(it, hr, sw, k, !!single && !it.locked && Txt.editingId !== it.id);
+        else html += `<rect x="${bb.x - pad}" y="${bb.y - pad}" width="${bb.w + pad * 2}" height="${bb.h + pad * 2}" class="sel-box" stroke-width="${sw}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
         if (single && !it.locked && it.kind === 'cable') { const g = this.cableLabelGeo(it); if (g) html += this.labelHandles(g, hr, sw, k, g.mid); }
         if (single && !it.locked && it.kind === 'lsym') html += Lsym.handles(it, this.plan, hr, sw, k);
         if (single && !it.locked && it.kind !== 'text' && it.kind !== 'lsym') {
@@ -6948,14 +6975,9 @@ const MapView = {
         this.renderTemp();
         break;
       case 'text': {
-        const u = planUnit(this.plan);
-        const m = { id: uid('m'), kind: 'text', points: [d.p], text: 'Note', color: this.markColor('text'), size: 18 * u, box: true };
-        this.plan.markups.push(m);
-        this.sel = new Set([m.id]);
-        this.renderAll();
-        Editor.changed();
+        const m = Txt.create(d.p);
         Editor.setTool('select');
-        Side.showMarkup(m.id, { focusText: true });
+        Txt.begin(m);
         break;
       }
       case 'draw': {
@@ -7059,7 +7081,12 @@ const MapView = {
     if (!e._tap && Date.now() - (this._dblAt || 0) < 700) return;
     if (this.tool === 'cable' && this.poly) { this.finishPoly(true); return; }
     if (this.tool === 'wall') { LayoutUI.finishChain(); return; }
-    const hit = this.hitInfo(e);
+    let hit = this.hitInfo(e);
+    /* the map keeps hold of the pointer while you click, so a double-click can report the map itself: look at what is under the point instead */
+    if (!hit.id && !hit.handle && e.target === this.svg) {
+      const under = document.elementFromPoint(e.clientX, e.clientY), mk = under && under.closest && under.closest('[data-mk]');
+      if (mk && Editor.findItem(mk.dataset.mk) && Editor.findItem(mk.dataset.mk).kind === 'text') hit = { id: mk.dataset.mk };
+    }
     if (this.tool === 'select') {
       let run = hit.id && Editor.findItem(hit.id); if (!run || run.kind !== 'cable') { const one = this.sel.size === 1 ? Editor.findItem([...this.sel][0]) : null; run = one && one.kind === 'cable' ? one : null; }
       if (run && run.points && run.points.length >= 2) {
@@ -7088,7 +7115,7 @@ const MapView = {
     }
     if (this.tool === 'select' && hit.id && !Editor.isDevice(hit.id)) {
       const m = Editor.findItem(hit.id);
-      if (m && m.kind === 'text') Side.showMarkup(m.id, { focusText: true });
+      if (m && m.kind === 'text') Txt.begin(m);
     }
   },
 
@@ -7339,9 +7366,7 @@ const MapView = {
       ...(lastT ? [{ label: 'Place ' + lastT.name + ' here', icon: 'MapPin', onClick: () => Editor.placeDevice(lastT.id, p[0], p[1]) }] : []),
       { label: 'Paste here', icon: 'Copy', disabled: !Editor.clipboard, onClick: () => Editor.paste(p) },
       { label: 'Add text note here', icon: 'Typography', onClick: () => {
-        const u = planUnit(this.plan);
-        const m = { id: uid('m'), kind: 'text', points: [p], text: 'Note', color: this.markColor('text'), size: 18 * u, box: true };
-        this.plan.markups.push(m); this.sel = new Set([m.id]); this.renderAll(); Editor.changed(); Side.showMarkup(m.id, { focusText: true });
+        Txt.begin(Txt.create(p));
       } },
       '-',
       ...(Device.touch ? [{ label: 'Select several (drag a box)', icon: 'Marquee2', onClick: () => { this.boxNext = true; Editor.hint('Drag a box around the things you want to select.'); } }] : []),
@@ -14555,6 +14580,456 @@ const Lsym = {
   };
 }
 
+/* ---- 18-text.js: the Text tool. Fonts, styles, dots around the text, typing right on the map ---- */
+const Txt = {
+  FONTS: [
+    ['sans', 'Clean', "system-ui,'Segoe UI',Roboto,Arial,sans-serif"],
+    ['serif', 'Serif', "Georgia,'Times New Roman',serif"],
+    ['mono', 'Mono', "ui-monospace,'SF Mono',Consolas,'Courier New',monospace"],
+    ['hand', 'Handwritten', "'Segoe Print','Bradley Hand','Marker Felt','Comic Sans MS','Chalkboard SE',cursive"],
+    ['cond', 'Narrow', "'Arial Narrow','Roboto Condensed','Liberation Sans Narrow','Helvetica Neue',Arial,sans-serif"],
+  ],
+  PRESETS: [
+    { id: 'note', name: 'Note', s: { color: '#92400e', size: 18, bold: true, box: true, boxStyle: 'round', boxFill: '#fffbe6', boxLine: '#f59e0b' } },
+    { id: 'label', name: 'Label', s: { color: '#111827', size: 14, bold: true, box: true, boxStyle: 'pill', boxFill: '#ffffff', boxLine: '#111827', align: 'center' } },
+    { id: 'warn', name: 'Warning', s: { color: '#ffffff', size: 18, bold: true, box: true, boxStyle: 'round', boxFill: '#dc2626', boxLine: '#991b1b' } },
+    { id: 'call', name: 'Callout', s: { color: '#111827', size: 16, bold: false, box: true, boxStyle: 'round', boxFill: '#fef08a', boxLine: '#ca8a04', tail: true } },
+    { id: 'title', name: 'Title', s: { color: '#111827', size: 40, bold: true, box: false, halo: true } },
+    { id: 'plain', name: 'Plain', s: { color: '#111827', size: 18, bold: false, box: false, halo: true } },
+  ],
+  STYLE_KEYS: ['color', 'size', 'bold', 'italic', 'underline', 'strike', 'font', 'align', 'caps', 'ls', 'lh', 'hl', 'box', 'boxStyle', 'boxFill', 'boxOp', 'boxLine', 'boxW', 'pad', 'halo', 'haloC', 'shadow', 'op'],
+  SIZES: [['S', 12], ['M', 18], ['L', 28], ['XL', 40], ['Title', 64]],
+  editingId: null,
+
+  font(m) { return this.FONTS.find(f => f[0] === m.font) || this.FONTS[0]; },
+
+  /* ---------- measuring: one place that says how big the text and its box are ---------- */
+  ctx() { return this._c || (this._c = document.createElement('canvas').getContext('2d')); },
+  layout(m, plan) {
+    const u = planUnit(plan || Editor.plan), fs = m.size || 18 * u;
+    const f = this.font(m), bold = m.bold !== false, ls = (m.ls || 0) * fs;
+    const g = this.ctx(); g.font = `${m.italic ? 'italic ' : ''}${bold ? 700 : 500} ${fs}px ${f[2]}`;
+    const meas = s => g.measureText(s).width + ls * [...s].length;
+    const fixed = m.w > 0 ? m.w : 0;
+    const lines = [];
+    for (const para of String(m.text || '').split('\n')) {
+      const t = m.caps ? para.toUpperCase() : para;
+      if (!fixed) { lines.push(t); continue; }
+      let cur = '';
+      for (const word of t.split(' ')) {
+        const tryL = cur ? cur + ' ' + word : word;
+        if (meas(tryL) <= fixed || !cur) {
+          if (meas(tryL) > fixed && !cur) {          /* one long word: break it by letters */
+            let piece = '';
+            for (const ch of word) { if (meas(piece + ch) > fixed && piece) { lines.push(piece); piece = ch; } else piece += ch; }
+            cur = piece;
+          } else cur = tryL;
+        } else { lines.push(cur); cur = word; }
+      }
+      lines.push(cur);
+    }
+    const lw = lines.map(meas);
+    const cw = fixed || Math.max(fs * 0.5, ...lw);
+    const lh = fs * (m.lh || 1.25), pad = fs * (m.pad == null ? 0.45 : m.pad);
+    const [x, y] = m.points[0];
+    const H = fs + (lines.length - 1) * lh + pad * 2, W = cw + pad * 2;
+    return { u, fs, f, bold, lines, lw, cw, lh, pad, x, y, W, H, bx: x - pad, by: y - pad, cx: x - pad + W / 2, cy: y - pad + H / 2 };
+  },
+  rotPt(L, rot, ox, oy) { const r = (rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return [L.cx + ox * c - oy * s, L.cy + ox * s + oy * c]; },
+  unrot(L, rot, p) { const r = -(rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), dx = p[0] - L.cx, dy = p[1] - L.cy; return [dx * c - dy * s, dx * s + dy * c]; },
+  bbox(m) {
+    const L = this.layout(m), hw = L.W / 2, hh = L.H / 2;
+    const P = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(q => this.rotPt(L, m.rot, q[0], q[1]));
+    const xs = P.map(q => q[0]), ys = P.map(q => q[1]), x = Math.min(...xs), y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+  },
+
+  /* ---------- drawing ---------- */
+  svg(m, preview, selected) {
+    const L = this.layout(m), { fs, lh, lines, lw, cw, pad, x, y, W, H, bx, by, cx, cy } = L, u = L.u;
+    const c = m.color || '#dc2626', bs = m.boxStyle || 'round', parts = [];
+    const fill = m.boxFill || '#fffbe6', fo = m.boxOp == null ? 1 : m.boxOp, line = m.boxLine || c;
+    const lwid = Math.max(1.2 * u, fs * 0.07) * (m.boxW == null ? 1 : m.boxW);
+    const rx = bs === 'rect' ? fs * 0.06 : bs === 'pill' ? Math.min(H / 2, W / 2) : fs * 0.25;
+    if (m.box) {
+      if (m.tail) {
+        const dx = m.tail[0], dy = m.tail[1], ax = Math.abs(dx) || 1e-6, ay = Math.abs(dy) || 1e-6, kx = (W / 2) / ax, ky = (H / 2) / ay, kk = Math.min(kx, ky);
+        if (kk < 1) {
+          const T = [cx + dx, cy + dy], bw = Math.min(fs * 0.6, Math.min(W, H) * 0.3);
+          let b1, b2;
+          if (kx < ky) { const ey = clamp(cy + dy * kk, by + bw + rx * 0.5, by + H - bw - rx * 0.5), ex = cx + Math.sign(dx) * W / 2; b1 = [ex, ey - bw]; b2 = [ex, ey + bw]; }
+          else { const ex = clamp(cx + dx * kk, bx + bw + rx * 0.5, bx + W - bw - rx * 0.5), ey = cy + Math.sign(dy) * H / 2; b1 = [ex - bw, ey]; b2 = [ex + bw, ey]; }
+          parts.push(`<polygon points="${b1} ${T} ${b2}" fill="${fill}" fill-opacity="${fo}" stroke="none"/>`
+            + `<path d="M ${b1} L ${T} L ${b2}" fill="none" stroke="${line}" stroke-width="${lwid}" stroke-linejoin="round" stroke-linecap="round"/>`);
+        }
+      }
+      parts.push(`<rect x="${bx}" y="${by}" width="${W}" height="${H}" rx="${rx}" fill="${fill}" fill-opacity="${fo}" stroke="${line}" stroke-width="${lwid}"/>`);
+    }
+    if (this.editingId !== m.id) {
+      const al = m.align || 'left';
+      const ax = al === 'center' ? x + cw / 2 : al === 'right' ? x + cw : x, anchor = al === 'center' ? 'middle' : al === 'right' ? 'end' : 'start';
+      if (m.hl) lines.forEach((ln, i) => {
+        if (!ln) return;
+        const w = lw[i] + fs * 0.24, sx = (al === 'center' ? x + (cw - lw[i]) / 2 : al === 'right' ? x + cw - lw[i] : x) - fs * 0.12;
+        parts.push(`<rect x="${sx}" y="${y + i * lh - fs * 0.06}" width="${w}" height="${fs * 1.12}" rx="${fs * 0.12}" fill="${m.hl}"/>`);
+      });
+      const halo = m.halo == null ? !m.box : m.halo;
+      const deco = [m.underline ? 'underline' : '', m.strike ? 'line-through' : ''].filter(Boolean).join(' ');
+      const base = `font-size="${fs}" font-weight="${L.bold ? 700 : 500}"${m.italic ? ' font-style="italic"' : ''}${m.ls ? ` letter-spacing="${m.ls * fs}"` : ''}${m.font === 'cond' ? ' font-stretch="condensed"' : ''}${deco ? ` text-decoration="${deco}"` : ''} text-anchor="${anchor}" style="font-family:${L.f[2]};pointer-events:none"`;
+      const tsp = (dx, dy) => lines.map((ln, i) => `<tspan x="${ax + dx}" dy="${i === 0 ? fs * 0.82 + dy : lh}">${esc(m.caps ? ln.toUpperCase() : ln) || ' '}</tspan>`).join('');
+      if (m.shadow) parts.push(`<text x="${ax}" y="${y}" ${base} fill="#000" fill-opacity="0.38" stroke="#000" stroke-opacity="0.2" stroke-width="${fs * 0.05}">${tsp(fs * 0.05, fs * 0.07)}</text>`);
+      parts.push(`<text x="${ax}" y="${y}" ${base} fill="${c}"${halo ? ` stroke="${m.haloC || '#ffffff'}" stroke-width="${fs * 0.22}" stroke-linejoin="round" paint-order="stroke"` : ''}>${tsp(0, 0)}</text>`);
+    }
+    if (!preview) parts.push(`<rect class="mk-hit filled" x="${bx}" y="${by}" width="${W}" height="${H}"/>`);
+    const rot = m.rot ? ` transform="rotate(${m.rot} ${cx} ${cy})"` : '';
+    const op = m.op != null && m.op < 1 ? ` opacity="${m.op}"` : '';
+    return `<g class="mk ${selected ? 'sel' : ''}" data-mk="${m.id}"><g${rot}${op}>${parts.join('')}</g></g>`;
+  },
+
+  /* the dashed box and the dots around the text */
+  selSvg(m, hr, sw, k, handles) {
+    const L = this.layout(m), pad = 6 / k, hw = L.W / 2 + pad, hh = L.H / 2 + pad, G = (ox, oy) => this.rotPt(L, m.rot, ox, oy);
+    let h = `<rect class="sel-box" x="${L.bx - pad}" y="${L.by - pad}" width="${L.W + pad * 2}" height="${L.H + pad * 2}" transform="rotate(${m.rot || 0} ${L.cx} ${L.cy})" stroke-width="${sw}" stroke-dasharray="${5 / k} ${3 / k}" fill="none"/>`;
+    if (!handles) return h;
+    const mv = G(-hw - hr * 1.7, 0), rt = G(0, -hh - hr * 2.7), tp = G(0, -hh), sz = G(hw, hh), wd = G(hw, 0);
+    h += `<line class="sel-guide" x1="${tp[0]}" y1="${tp[1]}" x2="${rt[0]}" y2="${rt[1]}" stroke-width="${sw}"/>`;
+    if (m.tail) {
+      const T = G(m.tail[0], m.tail[1]), r2 = hr * 1.05;
+      h += `<polygon data-h="txt-tail" points="${T[0]},${T[1] - r2 * 1.3} ${T[0] + r2 * 1.3},${T[1]} ${T[0]},${T[1] + r2 * 1.3} ${T[0] - r2 * 1.3},${T[1]}" class="handle round tail" stroke-width="${sw}"><title>Drag to aim the pointer</title></polygon>`;
+    }
+    h += `<circle data-h="txt-move" cx="${mv[0]}" cy="${mv[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the text</title></circle>`
+      + `<circle data-h="txt-rot" cx="${rt[0]}" cy="${rt[1]}" r="${hr * 0.9}" class="handle round rot" stroke-width="${sw}"><title>Drag to turn the text (hold Shift to snap)</title></circle>`
+      + `<circle data-h="txt-size" cx="${sz[0]}" cy="${sz[1]}" r="${hr * 0.9}" class="handle round size" stroke-width="${sw}"><title>Drag to make the text bigger or smaller</title></circle>`
+      + `<rect data-h="txt-w" x="${wd[0] - hr * 0.8}" y="${wd[1] - hr * 0.8}" width="${hr * 1.6}" height="${hr * 1.6}" rx="${hr * 0.3}" transform="rotate(${m.rot || 0} ${wd[0]} ${wd[1]})" class="handle" stroke-width="${sw}"><title>Drag to set the width. The text wraps inside it</title></rect>`;
+    return h;
+  },
+
+  /* dragging one of the dots */
+  drag(d, it, p, shift) {
+    const h = d.h, u = planUnit(Editor.plan);
+    if (!d.t0) {
+      const L = this.layout(it);
+      d.t0 = { L, p: p.slice(), pts: it.points[0].slice(), size: it.size || 18 * u, w: it.w || 0, tail: it.tail ? it.tail.slice() : null, rot: it.rot || 0 };
+    }
+    const t = d.t0, L = t.L, r1 = x => Math.round(x * 10) / 10;
+    if (h === 'txt-move') {
+      it.points[0] = [r1(t.pts[0] + p[0] - t.p[0]), r1(t.pts[1] + p[1] - t.p[1])];
+    } else if (h === 'txt-rot') {
+      let deg = Math.atan2(p[1] - L.cy, p[0] - L.cx) * 180 / Math.PI + 90;
+      if (shift) deg = Math.round(deg / 15) * 15;
+      deg = Math.round(((deg + 180) % 360 + 360) % 360 - 180);
+      if (Math.abs(deg) < 2) delete it.rot; else it.rot = deg;
+    } else if (h === 'txt-size') {
+      const d0 = Math.hypot(t.p[0] - L.cx, t.p[1] - L.cy) || 1, d1 = Math.hypot(p[0] - L.cx, p[1] - L.cy);
+      const ratio = clamp(d1 / d0, 0.1, 20), ns = clamp(Math.round(t.size * ratio * 10) / 10, 3 * u, 400 * u), rr = ns / t.size;
+      it.size = ns; if (t.w) it.w = r1(t.w * rr); if (t.tail) it.tail = [r1(t.tail[0] * rr), r1(t.tail[1] * rr)];
+      const L2 = this.layout(it);
+      it.points[0] = [r1(L.cx - L2.W / 2 + L2.pad), r1(L.cy - L2.H / 2 + L2.pad)];
+    } else if (h === 'txt-w') {
+      const lp = this.unrot(L, t.rot, p), fs = L.fs, minW = fs * 2;
+      const TL = this.rotPt(L, t.rot, -L.W / 2, -L.H / 2);
+      it.w = r1(Math.max(minW, lp[0] + L.W / 2 - L.pad * 2));
+      const L2 = this.layout(it), c2 = (() => { const r = t.rot * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), ox = L2.W / 2, oy = L2.H / 2; return [TL[0] + ox * c - oy * s, TL[1] + ox * s + oy * c]; })();
+      it.points[0] = [r1(c2[0] - L2.W / 2 + L2.pad), r1(c2[1] - L2.H / 2 + L2.pad)];
+    } else if (h === 'txt-tail') {
+      const lp = this.unrot(L, t.rot, p);
+      it.tail = [r1(lp[0]), r1(lp[1])];
+    }
+    MapView.renderMarks(); MapView.renderSel();
+    Txt.liveText(it);
+  },
+
+  /* ---------- making a new text (uses what you picked last) ---------- */
+  create(p) {
+    const u = planUnit(Editor.plan);
+    const m = { id: uid('m'), kind: 'text', points: [p], text: 'Note', color: MapView.markColor('text'), size: 18 * u, box: true };
+    Object.assign(m, this.lastStyle(u));
+    Editor.plan.markups.push(m);
+    if (m.tail === true) { delete m.tail; this.addTail(m); }
+    MapView.sel = new Set([m.id]); MapView.renderAll(); Editor.changed();
+    return m;
+  },
+  lastStyle(u) {
+    const s = Settings.data.txtLast; if (!s) return {};
+    const o = {}; for (const k of this.STYLE_KEYS) if (s[k] !== undefined) o[k] = s[k];
+    if (o.size) o.size = o.size * u;
+    return o;
+  },
+  styleOf(m) {
+    const u = planUnit(Editor.plan), s = {};
+    for (const k of this.STYLE_KEYS) if (m[k] !== undefined) s[k] = m[k];
+    s.size = Math.round((m.size || 18 * u) / u * 10) / 10;
+    return s;
+  },
+  remember(m) { try { Settings.set('txtLast', this.styleOf(m)); } catch (e) {} },
+  applyStyle(m, s) {
+    const u = planUnit(Editor.plan);
+    for (const k of this.STYLE_KEYS) delete m[k];
+    for (const k of this.STYLE_KEYS) if (s[k] !== undefined) m[k] = s[k];
+    if (s.size) m.size = s.size * u; else delete m.size;
+    const wantTail = s.tail === true;
+    if (wantTail) { delete m.tail; this.addTail(m); } else if (s.tail === false) delete m.tail;
+  },
+  addTail(m) { const L = this.layout(m); m.tail = [0, Math.round((L.H / 2 + L.fs * 1.4) * 10) / 10]; },
+  userPresets() { return Array.isArray(Settings.data.txtPresets) ? Settings.data.txtPresets : []; },
+
+  /* open the panel and let the person type: right on the map with a mouse, in the panel on a phone */
+  begin(m) {
+    if (Device.touch) { Side.showMarkup(m.id, { focusText: true }); return; }
+    Side.showMarkup(m.id);
+    setTimeout(() => this.edit(m.id), 30);
+  },
+  /* ---------- typing right on the map ---------- */
+  edit(id) {
+    const m = Editor.findItem(id); if (!m || m.kind !== 'text' || m.locked) return;
+    this.endEdit(true);
+    const host = MapView.svg.parentElement, k = MapView.k;
+    const ta = document.createElement('textarea'); ta.className = 'tx-inline'; ta.value = m.text || ''; ta.spellcheck = false;
+    const place = () => {
+      const L = this.layout(m), r = MapView.svg.getBoundingClientRect(), pr = host.getBoundingClientRect();
+      const left = r.left - pr.left + MapView.tx + L.x * k, top = r.top - pr.top + MapView.ty + L.y * k;
+      Object.assign(ta.style, {
+        left: left + 'px', top: top + 'px', width: Math.max(60, L.cw * k + L.fs * k * 0.6) + 'px', height: Math.max(L.fs * k * 1.3, (L.H - L.pad * 2) * k + 4) + 'px',
+        fontSize: L.fs * k + 'px', fontFamily: L.f[2], fontWeight: L.bold ? 700 : 500, fontStyle: m.italic ? 'italic' : 'normal', color: m.color || '#dc2626', textAlign: m.align || 'left',
+        lineHeight: L.lh / L.fs, letterSpacing: (m.ls || 0) * L.fs * k + 'px', textTransform: m.caps ? 'uppercase' : 'none',
+        textDecoration: [m.underline ? 'underline' : '', m.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',
+        transformOrigin: `${(L.cx - L.x) * k}px ${(L.cy - L.y) * k}px`, transform: m.rot ? `rotate(${m.rot}deg)` : 'none',
+      });
+    };
+    this.editingId = id; this._ed = { ta, m, place };
+    host.appendChild(ta); place(); MapView.renderMarks();
+    const stop = e => e.stopPropagation();
+    ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel', 'contextmenu'].forEach(ev => ta.addEventListener(ev, stop));
+    ta.addEventListener('input', () => { m.text = ta.value; place(); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'soon' }); });
+    ta.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); this.endEdit(); return; }
+      if ((e.ctrlKey || e.metaKey) && 'biu'.includes(e.key.toLowerCase())) {
+        e.preventDefault(); const kk = { b: 'bold', i: 'italic', u: 'underline' }[e.key.toLowerCase()];
+        m[kk] = kk === 'bold' ? m.bold === false : !m[kk]; this.remember(m); place(); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'soon' });
+      }
+    });
+    ta.addEventListener('blur', () => setTimeout(() => this.endEdit(), 0));
+    ta.focus(); ta.select();
+  },
+  endEdit(quiet) {
+    const e = this._ed; if (!e) return;
+    this._ed = null; this.editingId = null;
+    try { e.ta.remove(); } catch (x) {}
+    if (quiet) return;
+    MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'now' });
+    if (Side.mode === 'markup' && Side.id === e.m.id) Side.renderMarkup();
+  },
+
+  /* ---------- the side panel ---------- */
+  AL: {
+    left: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>',
+    center: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>',
+    right: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>',
+  },
+  swatches(key, cur, opts = {}) {
+    const list = opts.none ? [['', 'None']] : [];
+    return `<div class="swatches" data-sw="${key}">${opts.none ? `<button class="sw-auto ${!cur ? 'on' : ''}" data-tx="color" data-k="${key}" data-c="" title="None">None</button>` : ''}`
+      + MARK_COLORS.map(c => `<button style="--c:${c}" data-tx="color" data-k="${key}" data-c="${c}" class="${cur && cur.toLowerCase() === c ? 'on' : ''}" title="${c}"></button>`).join('')
+      + `<label class="swatch-custom" title="Custom color"><input type="color" data-tin="${key}" value="${/^#[0-9a-f]{6}$/i.test(cur || '') ? cur : '#ffffff'}"></label></div>`;
+  },
+  range(label, key, min, max, step, val, fmt) {
+    return `<div class="slider-row"><span>${label}</span><input type="range" data-tin="${key}" min="${min}" max="${max}" step="${step}" value="${val}"><em data-for="${key}">${fmt(val)}</em></div>`;
+  },
+  panelHtml(m) {
+    const u = planUnit(Editor.plan), L = this.layout(m);
+    const sz = Math.round((m.size || 18 * u) / u * 10) / 10, bold = m.bold !== false, al = m.align || 'left', c = m.color || '#dc2626';
+    const halo = m.halo == null ? !m.box : m.halo, bs = !m.box ? 'none' : (m.boxStyle || 'round');
+    const tg = (k, label, on, title) => `<button type="button" data-tx="tg" data-k="${k}" class="${on ? 'on' : ''}" title="${title}">${label}</button>`;
+    const pre = [...this.PRESETS.map(p => ({ ...p, user: false })), ...this.userPresets().map(p => ({ ...p, user: true }))];
+    const preBtn = p => {
+      const s = p.s, st = `color:${s.color || '#111'};${s.box ? `background:${s.boxFill || '#fffbe6'};border-color:${s.boxLine || s.color || '#111'};` : 'background:#e5e7eb;border-color:transparent;'}font-weight:${s.bold === false ? 500 : 800}`;
+      return `<span class="tx-pre-w"><button type="button" class="tx-pre" data-tx="preset" data-id="${p.id}" style="${st}" title="${esc(p.name)}">Aa</button><span>${esc(p.name)}</span>${p.user ? `<i data-tx="preset-del" data-id="${p.id}" title="Delete this style">×</i>` : ''}</span>`;
+    };
+    const stepper = `<div class="tx-step"><button type="button" data-tx="step" data-d="-1" title="Smaller">${ic('Minus')}</button><input type="number" id="tx-size" data-tin="size" min="3" max="400" step="1" value="${sz}"><button type="button" data-tx="step" data-d="1" title="Bigger">${ic('Plus')}</button></div>`;
+    const quick = this.SIZES.map(([n, v]) => `<button type="button" data-tx="qsize" data-v="${v}" class="${Math.abs(sz - v) < 0.5 ? 'on' : ''}">${n}</button>`).join('');
+    const boxSeg = [['none', 'None'], ['rect', 'Square'], ['round', 'Rounded'], ['pill', 'Pill']].map(([v, l]) => `<button type="button" data-tx="boxstyle" data-v="${v}" class="${bs === v ? 'on' : ''}">${l}</button>`).join('');
+    return `
+      <div class="side-head">
+        <div class="sd-ico"><span class="tico mk-ico" style="width:44px;height:44px;--c:${c}">${ic('Typography')}</span></div>
+        <div class="sd-title"><div class="sd-label static">Text</div><div class="sd-type">${esc(this.font(m)[1])} · ${sz} · ${bs === 'none' ? 'no box' : bs + ' box'}</div></div>
+        <button class="icon-btn" id="sd-close" title="Close (Esc)">${ic('X')}</button>
+      </div>
+      <div class="side-body tx-panel">
+        <textarea class="inp" id="mk-text" rows="3" placeholder="Type your note">${esc(m.text || '')}</textarea>
+        <div class="tx-row">
+          <div class="seg sm tx-fmt">${tg('bold', '<b>B</b>', bold, 'Bold (Ctrl+B)')}${tg('italic', '<i>I</i>', !!m.italic, 'Italic (Ctrl+I)')}${tg('underline', '<u>U</u>', !!m.underline, 'Underline (Ctrl+U)')}${tg('strike', '<s>S</s>', !!m.strike, 'Strikethrough')}</div>
+          <div class="seg sm tx-fmt">${['left', 'center', 'right'].map(a => `<button type="button" data-tx="align" data-v="${a}" class="${al === a ? 'on' : ''}" title="Align ${a}">${this.AL[a]}</button>`).join('')}</div>
+          <div class="seg sm tx-fmt">${tg('caps', 'AA', !!m.caps, 'ALL CAPS')}</div>
+        </div>
+        <div class="tx-row">
+          <select class="inp sm tx-font" data-tin="font" style="font-family:${this.font(m)[2]}">${this.FONTS.map(f => `<option value="${f[0]}" style="font-family:${f[2]}" ${this.font(m)[0] === f[0] ? 'selected' : ''}>${f[1]}</option>`).join('')}</select>
+          ${stepper}
+        </div>
+        <div class="seg sm tx-quick">${quick}</div>
+        <div class="fld"><span>Text color</span>${this.swatches('color', c)}</div>
+        <div class="fld"><span>Styles</span><div class="tx-pres">${pre.map(preBtn).join('')}</div></div>
+        ${Side.section('tx-box', 'Box & callout', `
+          <div class="seg sm tx-boxseg">${boxSeg}</div>
+          ${m.box ? `<div class="fld"><span>Fill</span>${this.swatches('boxFill', m.boxFill || '#fffbe6')}</div>
+          <div class="fld"><span>Outline</span>${this.swatches('boxLine', m.boxLine || c)}</div>
+          ${this.range('Fill', 'boxOp', 0, 100, 5, Math.round((m.boxOp == null ? 1 : m.boxOp) * 100), v => v + '%')}
+          ${this.range('Outline', 'boxW', 0, 400, 25, Math.round((m.boxW == null ? 1 : m.boxW) * 100), v => (v / 100).toFixed(2).replace(/0$/, '') + '×')}
+          ${this.range('Padding', 'pad', 10, 150, 5, Math.round((m.pad == null ? 0.45 : m.pad) * 100), v => (v / 100).toFixed(2).replace(/0$/, '') + '×')}
+          <label class="chk-row"><input type="checkbox" class="chk" data-tx="tail" ${m.tail ? 'checked' : ''}><span>Pointer tail (drag its diamond on the map to aim it)</span></label>` : '<p class="tiny muted">Pick a box shape to put the text in a callout.</p>'}`, 'Square')}
+        ${Side.section('tx-fx', 'Look & spacing', `
+          <div class="fld"><span>Highlight</span>${this.swatches('hl', m.hl || '', { none: true })}</div>
+          <label class="chk-row"><input type="checkbox" class="chk" data-tx="tgc" data-k="halo" ${halo ? 'checked' : ''}><span>Outline around the letters (stays readable on busy plans)</span></label>
+          ${halo ? `<div class="fld"><span>Outline color</span>${this.swatches('haloC', m.haloC || '#ffffff')}</div>` : ''}
+          <label class="chk-row"><input type="checkbox" class="chk" data-tx="tgc" data-k="shadow" ${m.shadow ? 'checked' : ''}><span>Shadow</span></label>
+          ${this.range('Opacity', 'op', 10, 100, 5, Math.round((m.op == null ? 1 : m.op) * 100), v => v + '%')}
+          ${this.range('Letters', 'ls', -5, 40, 1, Math.round((m.ls || 0) * 100), v => (v / 100).toFixed(2).replace(/0$/, '').replace(/\.$/, '') + ' em')}
+          ${this.range('Lines', 'lh', 90, 250, 5, Math.round((m.lh || 1.25) * 100), v => (v / 100).toFixed(2).replace(/0$/, '') + '×')}`, 'Palette')}
+        ${Side.section('tx-pos', 'Size & turn', `
+          <div class="tx-nums">
+            <label><span>Turn</span><input type="number" id="tx-rot" class="inp sm" data-tin="rot" min="-180" max="180" step="1" value="${Math.round(m.rot || 0)}"><em>°</em></label>
+            <button type="button" class="btn sm" data-tx="rot0">${ic('RotateClockwise')}<span>Straight</span></button>
+          </div>
+          <div class="tx-nums">
+            <label><span>Width</span><input type="number" id="tx-w" class="inp sm" data-tin="w" min="1" step="1" placeholder="Auto" value="${m.w ? Math.round(m.w / u) : ''}"></label>
+            <button type="button" class="btn sm" data-tx="wauto">${ic('ArrowsHorizontal')}<span>Auto width</span></button>
+          </div>
+          <p class="tiny muted">On the map: <b>blue dot</b> moves, <b>orange dot</b> turns, <b>green dot</b> resizes, the <b>square</b> sets the width so the text wraps. Double-click the text to type on the map.</p>`, 'Ruler')}
+        <div class="tx-row tx-copy">
+          <button type="button" class="btn sm" data-tx="copy">${ic('Copy')}<span>Copy style</span></button>
+          <button type="button" class="btn sm" data-tx="paste" ${this.clip ? '' : 'disabled'}><span>Paste style</span></button>
+          <button type="button" class="btn sm" data-tx="savepre">${ic('Star')}<span>Save style</span></button>
+        </div>
+        <div class="tx-savebox" id="tx-savebox" hidden><input class="inp sm" id="tx-prename" placeholder="Name this style" maxlength="20"><button type="button" class="btn sm primary" data-tx="saveok">Save</button></div>
+        <div class="mk-actions">
+          <button class="btn sm" id="mk-dup">${ic('Copy')}<span>Duplicate</span></button>
+          <button class="btn sm danger-ghost" id="mk-del">${ic('Trash')}<span>Delete</span></button>
+        </div>
+      </div>`;
+  },
+  panel(el, m) {
+    const body = el.querySelector('.side-body'), sc = body ? body.scrollTop : 0;
+    const act = document.activeElement && el.contains(document.activeElement) ? document.activeElement : null;
+    const actId = act && (act.id || ''), selS = act && act.selectionStart, selE = act && act.selectionEnd;
+    el.innerHTML = this.panelHtml(m);
+    Side.wireSections();
+    $('#sd-close', el).onclick = () => { MapView.sel.clear(); MapView.renderSelState(); Side.close(); };
+    $('#mk-dup', el).onclick = () => { Editor.duplicateSelection(); const id = [...MapView.sel][0]; if (id) Side.showMarkup(id); };
+    $('#mk-del', el).onclick = () => Editor.deleteSelection();
+    const nb = el.querySelector('.side-body'); if (nb) nb.scrollTop = sc;
+    if (actId) { const n = $('#' + actId, el); if (n) { n.focus({ preventScroll: true }); try { if (selS != null) n.setSelectionRange(selS, selE); } catch (e) {} } }
+  },
+  cur() { if (Side.mode !== 'markup') return null; const m = Editor.findItem(Side.id); return m && m.kind === 'text' ? m : null; },
+  set(m, patch, o = {}) {
+    for (const k in patch) { if (patch[k] === undefined || patch[k] === null) delete m[k]; else m[k] = patch[k]; }
+    this.remember(m);
+    MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: o.now ? 'now' : 'soon' });
+    if (!o.live) Side.renderMarkup();
+    else { const i = $('.mk-ico', Side.el); if (i) i.style.setProperty('--c', m.color || '#dc2626'); }
+  },
+  onClick(e) {
+    const m = Txt.cur(); if (!m) return;
+    const b = e.target.closest('[data-tx]'); if (!b) return;
+    const a = b.dataset.tx, u = planUnit(Editor.plan), k = b.dataset.k;
+    if (a === 'tg') { if (k === 'bold') Txt.set(m, { bold: m.bold === false ? undefined : false }, { now: true }); else Txt.set(m, { [k]: m[k] ? undefined : true }, { now: true }); }
+    else if (a === 'align') Txt.set(m, { align: b.dataset.v === 'left' ? undefined : b.dataset.v }, { now: true });
+    else if (a === 'step') { const cur = (m.size || 18 * u) / u, st = cur >= 40 ? 4 : cur >= 20 ? 2 : 1; Txt.keepCenter(m, () => { m.size = clamp(Math.round(cur + st * +b.dataset.d), 3, 400) * u; }); }
+    else if (a === 'qsize') Txt.keepCenter(m, () => { m.size = +b.dataset.v * u; });
+    else if (a === 'color') { const v = b.dataset.c || undefined; Txt.set(m, { [k]: v }, { now: true }); }
+    else if (a === 'preset') {
+      const p = [...Txt.PRESETS, ...Txt.userPresets()].find(x => x.id === b.dataset.id); if (!p) return;
+      Txt.keepCenter(m, () => Txt.applyStyle(m, p.s));
+    }
+    else if (a === 'preset-del') { Settings.set('txtPresets', Txt.userPresets().filter(x => x.id !== b.dataset.id)); Side.renderMarkup(); }
+    else if (a === 'boxstyle') {
+      if (b.dataset.v === 'none') Txt.set(m, { box: false, tail: undefined }, { now: true });
+      else Txt.set(m, { box: true, boxStyle: b.dataset.v === 'round' ? undefined : b.dataset.v }, { now: true });
+    }
+    else if (a === 'tail') { if (m.tail) Txt.set(m, { tail: undefined }, { now: true }); else { Txt.addTail(m); Txt.set(m, {}, { now: true }); } }
+    else if (a === 'tgc') { const cur = k === 'halo' ? (m.halo == null ? !m.box : m.halo) : !!m[k]; Txt.set(m, { [k]: !cur }, { now: true }); }
+    else if (a === 'rot0') Txt.set(m, { rot: undefined }, { now: true });
+    else if (a === 'wauto') Txt.keepTopLeft(m, () => { delete m.w; });
+    else if (a === 'copy') { Txt.clip = Txt.styleOf(m); if (m.tail) Txt.clip.tail = true; try { Settings.set('txtClip', Txt.clip); } catch (x) {} toast('Style copied. Select another text and tap Paste style', { kind: 'ok' }); Side.renderMarkup(); }
+    else if (a === 'paste') { const s = Txt.clip; if (s) Txt.keepCenter(m, () => Txt.applyStyle(m, s)); }
+    else if (a === 'savepre') { const bx = $('#tx-savebox', Side.el); if (bx) { bx.hidden = !bx.hidden; if (!bx.hidden) $('#tx-prename', Side.el).focus(); } }
+    else if (a === 'saveok') {
+      const inp = $('#tx-prename', Side.el), name = (inp.value || '').trim(); if (!name) { inp.focus(); return; }
+      const s = Txt.styleOf(m); if (m.tail) s.tail = true;
+      Settings.set('txtPresets', [...Txt.userPresets(), { id: 'u' + Date.now().toString(36), name, s }]);
+      toast('Style saved', { kind: 'ok' }); Side.renderMarkup();
+    }
+  },
+  /* run a change that alters the size of the text, and keep its middle where it was */
+  keepCenter(m, fn) {
+    const L0 = this.layout(m); fn();
+    const L1 = this.layout(m), r1 = x => Math.round(x * 10) / 10;
+    m.points[0] = [r1(L0.cx - L1.W / 2 + L1.pad), r1(L0.cy - L1.H / 2 + L1.pad)];
+    this.remember(m); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'now' }); Side.renderMarkup();
+  },
+  keepTopLeft(m, fn) {
+    const L0 = this.layout(m), TL = this.rotPt(L0, m.rot, -L0.W / 2, -L0.H / 2); fn();
+    const L1 = this.layout(m), r = (m.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), ox = L1.W / 2, oy = L1.H / 2, r1 = x => Math.round(x * 10) / 10;
+    const C = [TL[0] + ox * c - oy * s, TL[1] + ox * s + oy * c];
+    m.points[0] = [r1(C[0] - L1.W / 2 + L1.pad), r1(C[1] - L1.H / 2 + L1.pad)];
+    this.remember(m); MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'now' }); Side.renderMarkup();
+  },
+  onInput(e) {
+    const m = Txt.cur(); if (!m) return;
+    const t = e.target, u = planUnit(Editor.plan);
+    if (t.id === 'mk-text') { m.text = t.value; MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit: 'soon' }); return; }
+    const k = t.dataset && t.dataset.tin; if (!k) return;
+    const v = t.type === 'range' || t.type === 'number' ? +t.value : t.value;
+    const lab = $(`em[data-for="${k}"]`, Side.el);
+    if (k === 'op') { Txt.set(m, { op: v >= 100 ? undefined : v / 100 }, { live: true }); if (lab) lab.textContent = v + '%'; }
+    else if (k === 'boxOp') { Txt.set(m, { boxOp: v >= 100 ? undefined : v / 100 }, { live: true }); if (lab) lab.textContent = v + '%'; }
+    else if (k === 'boxW') { Txt.set(m, { boxW: v === 100 ? undefined : v / 100 }, { live: true }); if (lab) lab.textContent = (v / 100).toFixed(2).replace(/0$/, '') + '×'; }
+    else if (k === 'pad') { Txt.keepCenter(m, () => { if (v === 45) delete m.pad; else m.pad = v / 100; }); }
+    else if (k === 'ls') { Txt.keepCenter(m, () => { if (!v) delete m.ls; else m.ls = v / 100; }); }
+    else if (k === 'lh') { Txt.keepCenter(m, () => { if (v === 125) delete m.lh; else m.lh = v / 100; }); }
+    else if (k === 'size') { if (!(v >= 3)) return; Txt.keepCenter(m, () => { m.size = clamp(v, 3, 400) * u; }); }
+    else if (k === 'rot') { if (t.value === '') return; const d = Math.round(((v + 180) % 360 + 360) % 360 - 180); Txt.set(m, { rot: d ? d : undefined }, { live: true }); }
+    else if (k === 'w') { if (t.value === '' || !(v > 0)) return; Txt.keepTopLeft(m, () => { m.w = v * u; }); }
+    else if (k === 'font') { Txt.keepCenter(m, () => { m.font = v === 'sans' ? undefined : v; if (v === 'sans') delete m.font; }); }
+    else if (['color', 'hl', 'boxFill', 'boxLine', 'haloC'].includes(k)) { Txt.set(m, { [k]: v }, { live: true }); const sw = $(`[data-sw="${k}"]`, Side.el); if (sw) $$('button', sw).forEach(x => x.classList.remove('on')); }
+  },
+  /* the numbers on the panel follow the dots while you drag them */
+  liveText(it) {
+    const el = Side.el; if (!el || Side.mode !== 'markup' || Side.id !== it.id) return;
+    const u = planUnit(Editor.plan), set = (id, v) => { const n = $('#' + id, el); if (n && document.activeElement !== n) n.value = v; };
+    set('tx-size', Math.round((it.size || 18 * u) / u * 10) / 10); set('tx-rot', Math.round(it.rot || 0)); set('tx-w', it.w ? Math.round(it.w / u) : '');
+  },
+  init() {
+    if (this._ready) return; this._ready = true;
+    this.clip = Settings.data.txtClip || null;
+    Side.el.addEventListener('click', e => this.onClick(e));
+    Side.el.addEventListener('input', e => this.onInput(e));
+    Side.el.addEventListener('change', e => { if (e.target.matches && e.target.matches('select[data-tin]')) this.onInput(e); });
+  },
+};
+
+{
+  /* hook the new text tool into the editor */
+  const ms = MapView.markSvg;
+  MapView.markSvg = function (m, ...a) { return m && m.kind === 'text' ? Txt.svg(m, a[0], this.sel && this.sel.has(m.id)) : ms.call(this, m, ...a); };
+  const mb = MapView.markBBox;
+  MapView.markBBox = function (m, ...a) { return m && m.kind === 'text' ? Txt.bbox(m) : mb.call(this, m, ...a); };
+  const dh2 = MapView.dragHandle;
+  MapView.dragHandle = function (d, p, shift) {
+    if (d && typeof d.h === 'string' && d.h.startsWith('txt-')) { const it = Editor.findItem(d.id); if (it && it.kind === 'text') { Txt.drag(d, it, p, shift); return; } }
+    return dh2.call(this, d, p, shift);
+  };
+  const rm2 = Side.renderMarkup;
+  Side.renderMarkup = function (...a) {
+    const m = Editor.findItem(this.id);
+    if (m && m.kind === 'text') {
+      Txt.init(); Txt.panel(this.el, m);
+      try { Lock.inject(this.el, m.id, LOCK_GEO.markup + ',#tx-size,#tx-rot,#tx-w,[data-tx="step"],[data-tx="qsize"],[data-tx="rot0"],[data-tx="wauto"]'); } catch (e) { console.error(e); }
+      return;
+    }
+    return rm2.apply(this, a);
+  };
+}
+
 /* ---- details panel: every section collapses (the device panel's own accordions already do) ---- */
 const SideSections = {
   busy: false,
@@ -14583,7 +15058,7 @@ const SideSections = {
       const lay = [...el.children].find(c => c.classList && c.classList.contains('lay-row'));
       if (lay) this.wrap(el, [lay], 'Layer');
       const body = [...el.children].find(c => c.classList && c.classList.contains('side-body'));
-      if (body && !body.classList.contains('dot-body') && !body.classList.contains('cd-body')) {
+      if (body && !body.classList.contains('dot-body') && !body.classList.contains('cd-body') && !body.classList.contains('tx-panel')) {
         const SKIP = c => c.classList.contains('psec') || c.classList.contains('cd-add') || c.classList.contains('cd-card') || c.classList.contains('cd-p') || c.classList.contains('mk-actions') || c.classList.contains('sd-meta') || c.classList.contains('multi-types') || c.tagName === 'SCRIPT';
         const kids = [...body.children]; let run = [];
         const flush = () => {
