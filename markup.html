@@ -13702,7 +13702,8 @@ const PBar = {
     if (favs.length) out.push({ id: '_fav', name: 'Favorites', n: favs.length, tile: `<span class="pb-gi" style="--c:#f59e0b">${ic('Star')}</span>` });
     for (const s of Reg.systemList()) {
       const types = Reg.typesFor(s.id).filter(t => !(t.builtin && hidden.has(t.id)));
-      if (types.length) out.push({ id: s.id, name: s.short || s.name, full: s.name, n: types.length, tile: `<span class="pb-gi dev" style="--c:${s.color}">${typeIconHtml(types[0], 34)}</span>` });
+      const nn = types.length + (MOUNT_SYSTEMS.includes(s.id) ? 1 : 0);
+      if (types.length) out.push({ id: s.id, name: s.short || s.name, full: s.name, n: nn, tile: `<span class="pb-gi dev" style="--c:${s.color}">${typeIconHtml(types[0], 34)}</span>` });
     }
     return out;
   },
@@ -13720,12 +13721,15 @@ const PBar = {
     }
     const hidden = new Set(Settings.data.hiddenBuiltins || []);
     const types = gid === '_fav' ? (Settings.data.favorites || []).map(id => Reg.types.get(id)).filter(Boolean) : Reg.typesFor(gid).filter(t => !(t.builtin && hidden.has(t.id)));
-    return types.map(t => ({ k: 'dev', id: t.id, name: t.name, tile: `<span class="pb-gi dev">${typeIconHtml(t, 34)}</span>` }));
+    const list = types.map(t => ({ k: 'dev', id: t.id, name: t.name, tile: `<span class="pb-gi dev">${typeIconHtml(t, 34)}</span>` }));
+    if (MOUNT_SYSTEMS.includes(gid)) list.push({ k: 'dev', id: '_mount', name: 'Mount', sub: 'Drop on a device', tile: `<span class="pb-gi dev">${typeIconHtml(MOUNT_PSEUDO, 34)}</span>` });
+    return list;
   },
   found() {
     const q = this.q.trim().toLowerCase(); if (!q) return [];
     const out = [];
     for (const t of Reg.types.values()) if ([t.name, t.desc, t.prefix, Reg.system(t.system).name, ...(t.tags || [])].join(' ').toLowerCase().includes(q)) out.push({ k: 'dev', id: t.id, name: t.name, tile: `<span class="pb-gi dev">${typeIconHtml(t, 34)}</span>` });
+    if ([MOUNT_PSEUDO.name, MOUNT_PSEUDO.desc, ...(MOUNT_PSEUDO.tags || [])].join(' ').toLowerCase().includes(q)) out.push({ k: 'dev', id: '_mount', name: 'Mount', tile: `<span class="pb-gi dev">${typeIconHtml(MOUNT_PSEUDO, 34)}</span>` });
     if (this.layoutPlan()) for (const c of LAYOUT_ITEMS) if ([c.name, c.desc, c.id].join(' ').toLowerCase().includes(q)) out.push({ k: 'lay', id: c.id, name: c.name, tile: `<span class="pb-gi lay">${layoutTileSvg(c, 34)}</span>` });
     return out.slice(0, 60);
   },
@@ -13848,7 +13852,8 @@ const PBar = {
     const p = MapView.toPlan(d.x, d.y);
     if (d.k === 'dev') {
       const dev = Editor.placeDevice(d.id, p[0], p[1]);
-      Editor.hint(`<b>${esc(Reg.type(d.id).name)}</b> placed. Drag another, or tap it on the map to change it.`, true);
+      if (d.id === '_mount') Editor.hint(dev ? 'Mount added. Drag another onto a device, or tap a device to change it.' : 'Drop the <b>Mount</b> right onto a device — drag again', true);
+      else Editor.hint(`<b>${esc(Reg.type(d.id).name)}</b> placed. Drag another, or tap it on the map to change it.`, true);
       if (dev) this.flash(dev.id);
     } else {
       if (!this.layoutPlan()) { toast('Layout items go on a layout plan', { kind: 'warn' }); return; }
