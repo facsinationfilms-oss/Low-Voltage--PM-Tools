@@ -2341,6 +2341,20 @@ const Dots = {
       ['issue', 'What is the issue', 'select', ['No ceiling access', 'Insulation', 'Needs a lift / ladder', 'Tight space', 'Asbestos concern', 'Needs permission', 'Other']] ] },
   ],
   kind(id) { return this.KINDS.find(k => k.id === id) || this.KINDS[0]; },
+  /* a penetration's "Wall type" follows what it goes through: a wall, a floor or a ceiling */
+  SURF: {
+    wall: { label: 'Wall type', ck: 'wall', opts: ['Drywall', 'Plaster', 'Block / CMU', 'Brick', 'Poured concrete', 'Wood studs', 'Metal studs', 'Other'] },
+    floor: { label: 'Floor type', ck: 'floor', opts: ['Poured concrete slab', 'Concrete over metal deck', 'Wood joists / subfloor', 'Plywood subfloor', 'Raised access floor', 'Other'] },
+    ceil: { label: 'Ceiling type', ck: 'ceil', opts: ['Drop ceiling (tiles)', 'Drywall', 'Plaster', 'Concrete slab', 'Exposed deck', 'Wood joists', 'Other'] },
+  },
+  surf(thru) { return /floor/i.test(thru || '') ? 'floor' : /ceiling/i.test(thru || '') ? 'ceil' : 'wall'; },
+  /* the fields to show for a dot (the penetration's surface field is renamed and re-listed) */
+  fieldsFor(dd) {
+    const kd = this.kind(dd.kind || '');
+    if (kd.id !== 'pen') return kd.fields;
+    const sf = this.SURF[this.surf(dd.f && dd.f.thru)];
+    return kd.fields.map(f => f[0] === 'wall' ? ['wall', sf.label, 'select', sf.opts, sf.ck] : f);
+  },
   get(m, i) { return (m.dots && m.dots[i]) || null; },
   ensure(m, i) { m.dots = m.dots || []; while (m.dots.length < m.points.length) m.dots.push(null); return m.dots[i] || (m.dots[i] = {}); },
   insert(m, i) { m.dots = m.dots || []; while (m.dots.length < m.points.length) m.dots.push(null); m.dots.splice(i, 0, null); },
@@ -2353,7 +2367,7 @@ const Dots = {
   /* ---- "Show on Map": a Text note linked to a dot, listing the details that are switched on ---- */
   lines(dd) {
     const kd = this.kind(dd.kind || ''), sh = dd.show || {}, out = [];
-    for (const [k, label, type] of kd.fields) {
+    for (const [k, label, type] of this.fieldsFor(dd)) {
       if (!sh[k]) continue;
       let v = dd.f && dd.f[k];
       if (v === undefined || v === null || v === '') v = 'not set'; else if (type === 'number' && /\(ft\)/i.test(label)) v += ' ft';
@@ -8830,7 +8844,7 @@ const Side = {
                 <button type="button" role="radio" aria-checked="${on}" class="dot-opt ${on ? 'on' : ''}" data-k="${k.id}"><span class="dot-circ"></span><span class="dot-t"><b>${esc(k.name)}</b><small>${esc(k.hint)}</small></span></button>
                 ${hasF ? `<button type="button" class="dot-tog" id="dt-tog" aria-controls="dt-fields" aria-expanded="${startOpen}" title="${startOpen ? 'Hide' : 'Show'} the details">${ic('ChevronDown')}</button>` : ''}
               </div>
-              ${hasF ? `<div class="dot-fw"><div class="dot-fields" id="dt-fields"><div class="dot-fi">${kd.fields.map(fld).join('')}</div></div></div>` : ''}
+              ${hasF ? `<div class="dot-fw"><div class="dot-fields" id="dt-fields"><div class="dot-fi">${Dots.fieldsFor(dd).map(fld).join('')}</div></div></div>` : ''}
             </div>`;
           }).join('')}</div></div>
         <div class="fld"><div class="fld-h"><label for="dt-note">Notes for this dot</label>${sw('note', 'the notes')}</div><textarea class="inp" id="dt-note" rows="3" placeholder="Anything the installer should know here">${esc(dd.note || '')}</textarea></div>
@@ -8871,7 +8885,16 @@ const Side = {
       }
     }
     $$('#dt-fields select[data-ck]', this.el).forEach(el => OtherOpt.attach(el, el.dataset.ck));
-    $$('#dt-fields [data-k]', this.el).forEach(el => { const h = () => { if (el.value === OtherOpt.SENT) return; const d = Dots.ensure(m, i); d.f = d.f || {}; if (el.value === '' ) delete d.f[el.dataset.k]; else d.f[el.dataset.k] = el.tagName === 'INPUT' && el.type === 'number' ? +el.value : el.value; if (d.cid) Dots.syncCallout(m, i); save(el.tagName === 'SELECT' ? 'now' : 'soon'); }; el.oninput = h; el.onchange = h; });
+    $$('#dt-fields [data-k]', this.el).forEach(el => { const h = () => {
+        if (el.value === OtherOpt.SENT) return; const d = Dots.ensure(m, i); d.f = d.f || {};
+        const surfBefore = Dots.surf(d.f.thru);
+        if (el.value === '' ) delete d.f[el.dataset.k]; else d.f[el.dataset.k] = el.tagName === 'INPUT' && el.type === 'number' ? +el.value : el.value;
+        const redraw = d.kind === 'pen' && el.dataset.k === 'thru' && Dots.surf(d.f.thru) !== surfBefore;
+        if (redraw) delete d.f.wall;   /* a wall's type means nothing for a floor: start the new one blank */
+        if (d.cid) Dots.syncCallout(m, i);
+        save(el.tagName === 'SELECT' ? 'now' : 'soon');
+        if (redraw) this.renderDot(m);
+      }; el.oninput = h; el.onchange = h; });
     $('#dt-note').oninput = e => { const d = Dots.ensure(m, i); const v = e.target.value; if (v.trim()) d.note = v; else delete d.note; if (d.cid) Dots.syncCallout(m, i); if (!d.kind && !d.note && !d.cid) m.dots[i] = null; save(); };
     /* "Show on Map" switches: the first one makes a callout beside the dot, the rest add lines to it, the last one off removes it */
     $$('[data-show]', this.el).forEach(inp => inp.onchange = () => {
