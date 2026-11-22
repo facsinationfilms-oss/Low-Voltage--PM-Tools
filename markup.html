@@ -3219,7 +3219,7 @@ const App = {
     if (added) toast(`Added ${plural(added, 'custom device type')} from this project to your library`);
     this.updateTitle();
     if (HUB) {
-      Hub.notify('opened', project.id);
+      Hub.notify('opened', project.id); Acc.refresh();
       // a new project for a job goes up to the cloud straight away so the job shows it
       if (fresh && project.hub?.jobId) this.save({ silent: true });
     }
@@ -3470,7 +3470,7 @@ const App = {
     } catch (e) { console.warn(e); }
     Editor.close();
     this.project = null; this.handle = null; this.fileName = null; this.dirty = false;
-    if (HUB) Hub.notify('closed', p.id);
+    if (HUB) { Hub.notify('closed', p.id); Acc.refresh(); }
     this.setView('home');
     this.updateTitle();
     Home.render();
@@ -4818,6 +4818,8 @@ const Editor = {
     LayoutUI.afterChange();
     const s = this.snap();
     if (s === this.lastSnap) return;
+    // view-only / limited access: undo anything this person isn't allowed to change
+    if (HUB && this.lastSnap && typeof Acc !== 'undefined') { const need = Acc.missing(this.lastSnap, s); if (need.length) { Acc.deny(need); return; } }
     this.undo.push({ planId: this.plan.id, json: this.lastSnap });
     if (this.undo.length > 150) this.undo.shift();
     this.redo = [];
@@ -15398,6 +15400,89 @@ const Hub = {
     return !lay ? 'markup' : lay === p.plans.length ? 'layout' : 'mixed';
   },
 };
+
+/* ===== Map access (who may change this map) =====
+   The Office Hub tells us what this person may do (Hub.notify('access')). Every change goes through Editor.commit():
+   if it needs a permission they don't have, it is undone and they are offered "Request access". */
+const ACC_LABEL = { 'dev.add': 'Add devices', 'dev.move': 'Move devices', 'dev.edit': 'Edit device details', 'dev.delete': 'Delete devices',
+  'mk.add': 'Add drawings & cables', 'mk.move': 'Move drawings & cables', 'mk.edit': 'Edit drawings & cables', 'mk.delete': 'Delete drawings & cables', 'setup': 'Layout, scale & pages' };
+const Acc = {
+  info: null, last: 0,
+  refresh() {
+    if (!HUB || !App.project) { this.info = null; this.ribbon(); return; }
+    let a = null; try { a = Hub.notify('access', App.project.id) || null; } catch (e) {}
+    this.info = a; this.ribbon();
+  },
+  has(k) { const a = this.info; return !HUB || !a || a.all || (a.keys || []).includes(k); },
+  none() { const a = this.info; return !!(HUB && a && !a.all && !(a.keys || []).length); },
+  missing(oj, nj) {
+    if (!HUB) return [];
+    this.refresh();
+    const a = this.info; if (!a || a.all) return [];
+    let o, n; try { o = JSON.parse(oj); n = JSON.parse(nj); } catch (e) { return []; }
+    const need = new Set(), J = JSON.stringify;
+    const by = arr => { const m = new Map(); (arr || []).forEach((x, i) => m.set(x && x.id != null ? x.id : '#' + i, x)); return m; };
+    const diff = (oa, na, pre, pos) => {
+      const om = by(oa), nm = by(na); let moved = false;
+      for (const [id, x] of nm) {
+        const y = om.get(id);
+        if (!y) { need.add(pre + '.add'); continue; }
+        if (J(x) === J(y)) continue;
+        let mv = false, ed = false;
+        for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) { if (J(x[k]) === J(y[k])) continue; if (pos.includes(k)) mv = true; else ed = true; }
+        if (mv) { need.add(pre + '.move'); moved = true; }
+        if (ed) need.add(pre + '.edit');
+      }
+      for (const id of om.keys()) if (!nm.has(id)) need.add(pre + '.delete');
+      return moved;
+    };
+    const dm = diff(o.devices, n.devices, 'dev', ['x', 'y']);
+    diff(o.markups, n.markups, 'mk', ['points', 'x', 'y']);
+    if (dm) need.delete('mk.move');                      // cables that follow a moved device
+    if (J(o.stacks || {}) !== J(n.stacks || {})) need.add('dev.edit');
+    for (const k of ['scale', 'iconScale', 'labelScale', 'coverOpacity', 'layout', 'bgw', 'bgh']) if (J(o[k]) !== J(n[k])) need.add('setup');
+    return [...need].filter(k => !this.has(k));
+  },
+  deny(need, soft) {
+    if (!soft) { try { Editor.restore(Editor.lastSnap); } catch (e) { console.warn(e); } }
+    if (Date.now() - this.last < 1500) return; this.last = Date.now();
+    const names = need.map(k => ACC_LABEL[k] || k);
+    toast('This map is protected — you can’t ' + (names.length > 2 ? names.slice(0, 2).join(' or ').toLowerCase() + '…' : names.join(' or ').toLowerCase()), { action: 'Request access', ms: 8000, onAction: () => Hub.notify('requestAccess', App.project && App.project.id, need) });
+  },
+  ribbon() {
+    let el = document.getElementById('acc-ribbon');
+    const a = this.info, ro = !!(HUB && App.project && a && !a.all);
+    document.body.classList.toggle('map-ro', !!(ro && !(a.keys || []).length));
+    if (!ro) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'acc-ribbon'; document.body.appendChild(el); }
+    const keys = a.keys || [];
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' +
+      '<span class="acc-t">' + (keys.length ? '<b>Limited editing</b> · you can: ' + esc(keys.map(k => ACC_LABEL[k] || k).join(', ')) : '<b>View only</b> · you can look around, not change this map') + '</span>' +
+      '<button type="button" class="acc-btn">' + (keys.length ? 'Request more' : 'Request edit access') + '</button>';
+    el.querySelector('.acc-btn').onclick = () => Hub.notify('requestAccess', App.project.id, []);
+  },
+};
+for (const n of ['addPlansFromFiles', 'addLayoutPlan', 'deletePlan', 'renamePlan', 'replaceBg', 'rotatePlan']) {
+  const f = Editor[n]; if (typeof f !== 'function') continue;
+  Editor[n] = function (...a) { if (HUB) { Acc.refresh(); if (!Acc.has('setup')) { Acc.deny(['setup'], true); return; } } return f.apply(this, a); };
+}
+for (const n of ['doUndo', 'doRedo']) {
+  const f = Editor[n];
+  Editor[n] = function (...a) {
+    if (HUB) { const st = n === 'doUndo' ? this.undo : this.redo, t = st[st.length - 1]; if (t) { const need = Acc.missing(this.snap(), t.json); if (need.length) { Acc.deny(need, true); return; } } }
+    return f.apply(this, a);
+  };
+}
+const __accCss = document.createElement('style');
+__accCss.textContent = `#acc-ribbon{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;max-width:min(94vw,680px);padding:7px 7px 7px 14px;border-radius:999px;background:#1b2231;color:#f3f5fa;border:1px solid #F39A1E;box-shadow:0 8px 26px rgba(0,0,0,.38);font:500 13px/1.3 system-ui,sans-serif}
+#acc-ribbon svg{flex:none;color:#F39A1E}#acc-ribbon .acc-t{min-width:0}#acc-ribbon .acc-btn{flex:none;border:0;border-radius:999px;background:#F39A1E;color:#1b1203;font:700 12.5px/1 system-ui,sans-serif;padding:9px 14px;cursor:pointer}
+body:not([data-view=editor]) #acc-ribbon{display:none}
+body.map-ro #palette,body.map-ro #pbar{opacity:.38;pointer-events:none;filter:grayscale(.7)}
+body.map-ro #ed-undo,body.map-ro #ed-redo{opacity:.35;pointer-events:none}
+@media(max-width:640px){#acc-ribbon{top:auto;bottom:76px;border-radius:16px;flex-wrap:wrap}}`;
+document.head.appendChild(__accCss);
+window.__Acc = Acc;
+
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => Suggest.init()); else setTimeout(() => Suggest.init(), 0);
 
 if (HUB) {
@@ -15411,6 +15496,7 @@ if (HUB) {
       Home.syncHubHeader();
     },
     setTheme(t) { if (t === 'light' || t === 'dark') setTheme(t); },
+    accessChanged() { Acc.refresh(); },
     setRole(r) { document.documentElement.classList.toggle('hub-tech', r === 'tech'); },
     async localInfo(id) {
       const d = await Drafts.get(id).catch(() => null);
