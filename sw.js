@@ -1,6 +1,6 @@
 /* QuaField Office Hub — offline support. The app and the markup tools are cached so they open with no signal;
    your data syncs when you're back online. New versions load the next time you're online. */
-const CACHE = 'bs-hub-macc3';
+const CACHE = 'bs-hub-alerts1';
 const FILES = ['./', './index.html', './markup.html', './quote.html', './view.html', './view.js', './view.css', './supabase.js', './pdf-lib.min.js', './zxing.min.js', './pdf.min.mjs', './pdf.worker.min.mjs', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
@@ -18,4 +18,18 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req)));
+});
+
+// Alerts: someone asked to edit a map
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) {}
+  e.waitUntil(self.registration.showNotification(d.title || 'QuaField', { body: d.body || '', tag: d.tag || 'qf', icon: './icon-192.png', badge: './icon-192.png', data: { url: d.url || './?go=requests' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './?go=requests';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) { if ('focus' in c) { c.postMessage({ go: 'requests' }); return c.focus(); } }
+    return self.clients.openWindow(url);
+  }));
 });
