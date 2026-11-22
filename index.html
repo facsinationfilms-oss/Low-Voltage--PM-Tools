@@ -4447,17 +4447,97 @@ TrashUI.openBackups=function(){
 window.__trashUI=TrashUI;const __rlCss=document.createElement("style");__rlCss.textContent=".mc-from{font-size:11px;opacity:.7;margin-top:2px}";document.head.appendChild(__rlCss);{const prev3=Ue;Ue=function(t,a,s){if(t==="dbl-go"){const d=a.dataset;y.schedDate=d.date;Bt("sched",d.id);return!0}if(t==="dbl-day"){const d=a.dataset;Ae("schedule",{schedView:"day",schedDate:d.date});return!0}return prev3(t,a,s)}}
 const __dblCss=document.createElement("style");__dblCss.textContent=".dbl-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dbl-row svg{flex:none}.dbl-go{background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;flex:1;min-width:0}.dbl-day{background:rgba(255,255,255,.08);border:1px solid currentColor;color:inherit;border-radius:8px;font-size:12px;padding:3px 9px;cursor:pointer}";document.head.appendChild(__dblCss);
 
-/* ===== Technicians: read-only customers/jobs, own schedule only ===== */
-const TechRO={
- mine(e){const m=Me.id();return!!m&&Array.isArray(e.people)&&e.people.includes(m)},
- blockedActs:new Set(["ct-new","ct-del","ct-edit","con-new","new-job","prof-add","prof-con-add","prof-con-rm","proj-add-job","prj-new","prj-list-new","jobs-status","sched-add","sched-new","slot-add","person-new","add-on-day","jv-new","quote-new","inv-new","pay-new","exp-new","map-new","map-attach","v-maps-add","v-map-remove","lay-add-day"]),
- roKinds:new Set(["jobs","sched","contacts","people"])
+/* ===== Team settings: per-person permissions (Jobber-style) ===== */
+const Perm={
+ cat:[],catLoaded:!1,mine:null,log:[],
+ fallback(k){const r=F.get();if(r==="admin")return!0;const c=this.cat.find(x=>x.key===k);if(c)return r==="manager"?c.mgr_default:c.tech_default;return r==="manager"&&k!=="inventory.delete"},
+ can(k){if(!F.team()||F.admin())return!0;if(this.mine&&k in this.mine)return!!this.mine[k];return this.fallback(k)},
+ defaultFor(role,c){return role==="admin"?!0:role==="manager"?c.mgr_default:c.tech_default},
+ async load(){
+  if(!F.team()||!window.BSCloud||!window.BSCloud.client)return;
+  const c=window.BSCloud.client,o=F.org();
+  try{
+   const [a,b]=await Promise.all([c.from("perm_catalog").select("*").order("sort"),c.rpc("my_perms",{o:o.org_id})]);
+   if(a.data){this.cat=a.data;this.catLoaded=!0}
+   if(b.data){this.mine=b.data}
+  }catch(e){console.warn("perm",e)}
+  this.apply();try{I()}catch{}
+ },
+ async loadLog(){try{const r=await window.BSCloud.client.from("perm_log").select("*").eq("org_id",F.org().org_id).order("at",{ascending:!1}).limit(12);this.log=r.data||[]}catch{}},
+ watch(){if(this._w||!F.team()||!window.BSCloud||!window.BSCloud.client||!window.BSCloud.user)return;this._w=!0;try{window.BSCloud.client.channel("hub-perm-"+Math.random().toString(36).slice(2,7)).on("postgres_changes",{event:"UPDATE",schema:"public",table:"members",filter:"user_id=eq."+window.BSCloud.user.id},()=>Perm.load()).subscribe()}catch{}},
+ apply(){const b=document.body,t=!F.team();b.classList.toggle("perm-no-sched",!t&&!this.can("schedule.edit"));b.classList.toggle("perm-no-cust",!t&&!this.can("customers.edit"));b.classList.toggle("perm-no-mapnew",!t&&!this.can("maps.create"))},
+ sees(){return this.can("schedule.view_all")||this.can("schedule.edit")},
+ mineVisit(e){const m=Me.id();return!!m&&Array.isArray(e.people)&&e.people.includes(m)},
+ actKey:{"ct-new":"customers.edit","ct-del":"customers.delete","ct-edit":"customers.edit","con-new":"customers.edit","new-job":"customers.edit","prof-add":"customers.edit","prof-con-add":"customers.edit","prof-con-rm":"customers.edit","proj-add-job":"customers.edit","prj-new":"customers.edit","prj-list-new":"customers.edit","jobs-status":"customers.edit","sched-add":"schedule.edit","sched-new":"schedule.edit","slot-add":"schedule.edit","person-new":"schedule.edit","add-on-day":"schedule.edit","jv-new":"schedule.edit","lay-add-day":"schedule.edit","map-new":"maps.create","map-attach":"maps.create","v-maps-add":"maps.create","v-map-remove":"maps.delete"},
+ kindKey:{jobs:"customers.edit",contacts:"customers.edit",sched:"schedule.edit"}
 };
-{const put=E.put;E.put=function(k,o){if(F.tech()){if(k==="jobs"||k==="contacts"||k==="people"&&!(o&&o.id===Me.id())||k==="sched"&&!(h.sched[o.id]&&TechRO.mine(h.sched[o.id])&&TechRO.mine(o))){setTimeout(()=>{x("Only a manager can change that"),I()},80);return}}return put.apply(this,arguments)}}
-{const prev=vt;vt=function(a,b){const r=prev(a,b);return F.tech()?r.filter(o=>TechRO.mine(o.e)):r}}
-{const prev=Ue;Ue=function(t,a,s){if(F.tech()){if(TechRO.blockedActs.has(t)||t==="ip-edit"&&y.item&&TechRO.roKinds.has(y.item.kind)){x("Only a manager can change that");return!0}}return prev(t,a,s)}}
-{const prev=ce.schedule;ce.schedule=function(){if(!F.tech())return prev.apply(this,arguments);y.schedView="list";y.schedPeople=[];const t=hi(),a=`<div class="cal-nav"><button class="icon-btn" data-act="sched-nav" data-dir="-1" aria-label="Previous">${f("left")}</button><button class="btn sm" data-act="sched-nav" data-dir="0">Today</button><button class="icon-btn" data-act="sched-nav" data-dir="1" aria-label="Next">${f("right")}</button><span class="cal-month">${p(Cc(t))}</span></div>`;const mine=vt(t[0],t[t.length-1]).length;return`<div class="content-inner wide sched sv-list tech-sched">${ke("My schedule",{sub:"Only your visits",tools:a})}${mine?Lu(t):`<div class="sched-empty"><div class="se-ill">${f("cal")}</div><h3>Nothing scheduled</h3><p>You have no visits this week. Your manager adds visits to your schedule.</p></div>`}</div>`}}
-window.__techRO=TechRO;const __techCss=document.createElement("style");__techCss.textContent=`body.role-tech :is([data-act="ct-new"],[data-act="con-new"],[data-act="new-job"],[data-act="prof-add"],[data-act="prof-con-add"],[data-act="prof-con-rm"],[data-act="proj-add-job"],[data-act="prj-new"],[data-act="prj-list-new"],[data-act="jobs-status"],[data-act="sched-add"],[data-act="sched-new"],[data-act="slot-add"],[data-act="person-new"],[data-act="add-on-day"],[data-act="jv-new"],[data-act="quote-new"],[data-act="inv-new"],[data-act="pay-new"],[data-act="exp-new"],[data-act="map-new"],[data-act="map-attach"],[data-act="v-maps-add"],[data-act="v-map-remove"],[data-act="ct-edit"],[data-act="ct-del"]),body.role-tech :is([data-act="ip-edit"],[data-act="ip-menu"]):is([data-kind="jobs"],[data-kind="sched"],[data-kind="contacts"],[data-kind="people"]),body.role-tech .sched-qa{display:none!important}`;document.head.appendChild(__techCss);
+{const put=E.put;E.put=function(k,o){if(F.team()&&!F.admin()){let bad=!1;if(k==="jobs"||k==="contacts")bad=!Perm.can("customers.edit");else if(k==="sched")bad=!Perm.can("schedule.edit")&&!(h.sched[o.id]&&Perm.mineVisit(h.sched[o.id])&&Perm.mineVisit(o));else if(k==="maps")bad=!h.maps[o.id]&&!Perm.can("maps.create");else if(k==="people")bad=F.tech()&&!(o&&o.id===Me.id());if(bad){setTimeout(()=>{x("You don’t have permission to change that"),I()},80);return}}return put.apply(this,arguments)}}
+{const del=E.del;E.del=function(k,id){if(F.team()&&!F.admin()){const need={jobs:"customers.delete",contacts:"customers.delete",maps:"maps.delete",sched:"schedule.edit",items:"inventory.delete",catalog:"inventory.delete",porders:"inventory.delete"}[k];if(need&&!Perm.can(need)){setTimeout(()=>{x("You don’t have permission to delete that"),I()},80);return}}return del.apply(this,arguments)}}
+{const prev=vt;vt=function(a,b){const r=prev(a,b);return F.team()&&!Perm.sees()?r.filter(o=>Perm.mineVisit(o.e)):r}}
+{const prev=Ue;Ue=function(t,a,s){if(F.team()&&!F.admin()){let k=Perm.actKey[t];if(!k&&t==="ip-edit"&&y.item)k=Perm.kindKey[y.item.kind];if(k&&!Perm.can(k)){x("You don’t have permission to do that. Ask an admin.");return!0}}return prev(t,a,s)}}
+{const prev=ce.schedule;ce.schedule=function(){if(!F.team()||Perm.sees())return prev.apply(this,arguments);y.schedView="list";y.schedPeople=[];const t=hi(),a=`<div class="cal-nav"><button class="icon-btn" data-act="sched-nav" data-dir="-1" aria-label="Previous">${f("left")}</button><button class="btn sm" data-act="sched-nav" data-dir="0">Today</button><button class="icon-btn" data-act="sched-nav" data-dir="1" aria-label="Next">${f("right")}</button><span class="cal-month">${p(Cc(t))}</span></div>`;const mine=vt(t[0],t[t.length-1]).length;return`<div class="content-inner wide sched sv-list tech-sched">${ke("My schedule",{sub:"Only your visits",tools:a})}${mine?Lu(t):`<div class="sched-empty"><div class="se-ill">${f("cal")}</div><h3>Nothing scheduled</h3><p>You have no visits this week. Your manager adds visits to your schedule.</p></div>`}</div>`}}
+const PermUI={
+ open:null,draft:null,
+ presets(role){return role==="manager"?[["Full manager",{}],["Cautious manager",{"customers.delete":!1,"maps.delete":!1}]]:[["Standard technician",{}],["Lead technician",{"schedule.view_all":!0}],["Scheduler",{"schedule.view_all":!0,"schedule.edit":!0}],["Office help",{"schedule.view_all":!0,"schedule.edit":!0,"customers.edit":!0,"maps.create":!0}]]},
+ eff(m){const o=m.perms||{},d=PermUI.draft&&PermUI.open===m.user_id?PermUI.draft:o,r={};for(const c of Perm.cat)r[c.key]=c.key in d?!!d[c.key]:Perm.defaultFor(m.role,c);return r},
+ row(m){
+  const mine=window.BSCloud.user.id,isOwner=m.user_id===F.org().org_id,adm=m.role==="admin",edit=F.admin()&&!adm&&!isOwner,open=PermUI.open===m.user_id,ov=Object.keys(m.perms||{}).filter(k=>Perm.cat.some(c=>c.key===k&&(!!m.perms[k])!==Perm.defaultFor(m.role,c))).length;
+  const head=`<button class="ps-head" data-act="ps-open" data-uid="${m.user_id}" aria-expanded="${open}"><span class="av" style="--c:var(--accent)">${p(ks(m.name||m.email||"?"))}</span><span class="ps-name"><b>${p(m.name||m.email)}</b><small>${F.name(m.role)}${m.user_id===mine?" · you":""}</small></span>${adm?'<span class="ps-badge">Full access</span>':ov?`<span class="ps-badge cust">${ov} custom</span>`:'<span class="ps-badge">Role defaults</span>'}<span class="ps-chev">${f(open?"up":"down")}</span></button>`;
+  if(!open)return`<div class="ps-card">${head}</div>`;
+  if(adm)return`<div class="ps-card open">${head}<div class="ps-body"><p class="s-p">${isOwner?"The owner":"Admins"} always have full access to everything. Only an admin can change another person’s access.</p></div></div>`;
+  const eff=PermUI.eff(m),groups=[...new Set(Perm.cat.map(c=>c.grp))],dirty=!!PermUI.draft;
+  const tg=groups.map(g=>`<div class="ps-grp"><h4>${p(g)}</h4>${Perm.cat.filter(c=>c.grp===g).map(c=>{const d=Perm.defaultFor(m.role,c),on=eff[c.key];return`<label class="ps-tog ${edit?"":"ro"}"><span class="ps-t"><b>${p(c.label)}</b>${c.descr?`<small>${p(c.descr)}</small>`:""}${on!==d?'<em class="ps-chg">Changed from '+F.name(m.role)+" default</em>":""}</span><input type="checkbox" role="switch" data-ps-key="${c.key}" ${on?"checked":""} ${edit?"":"disabled"}><i class="ps-sw"></i></label>`}).join("")}</div>`).join("");
+  const fixed=`<div class="ps-grp"><h4>Always managers and admins only</h4><p class="s-p">Quotes, invoices, payments, costs and pay rates are visible to managers and admins only. Team, billing and company settings are admin only.</p></div>`;
+  const pr=edit?`<div class="ps-presets"><span>Quick start:</span>${PermUI.presets(m.role).map(([n],i)=>`<button class="btn sm ghost" data-act="ps-preset" data-i="${i}">${p(n)}</button>`).join("")}</div>`:"";
+  const roleSel=edit?`<label class="ps-role">Role <select data-ps-role="${m.user_id}">${["tech","manager","admin"].map(v=>`<option value="${v}" ${m.role===v?"selected":""}>${F.name(v)}</option>`).join("")}</select></label>`:"";
+  const foot=edit?`<div class="ps-foot"><button class="btn sm ghost" data-act="ps-reset">Reset to ${F.name(m.role)} defaults</button><span class="spacer"></span><button class="btn sm primary" data-act="ps-save" ${dirty?"":"disabled"}>Save changes</button></div>`:`<p class="s-p">Only an admin can change what people are allowed to do.</p>`;
+  return`<div class="ps-card open">${head}<div class="ps-body">${roleSel}${pr}${tg}${fixed}${foot}</div></div>`;
+ },
+ matrix(){
+  const yes='<b class="ps-y">Yes</b>',no='<span class="ps-n">—</span>';
+  return`<table class="ps-mx"><thead><tr><th></th><th>Technician</th><th>Manager</th><th>Admin</th></tr></thead><tbody>${Perm.cat.map(c=>`<tr><td>${p(c.label)}</td><td>${c.tech_default?yes:no}</td><td>${c.mgr_default?yes:no}</td><td>${yes}</td></tr>`).join("")}<tr><td>Quotes, invoices, costs, pay rates</td><td>${no}</td><td>${yes}</td><td>${yes}</td></tr><tr><td>Team, billing, company settings</td><td>${no}</td><td>${no}</td><td>${yes}</td></tr></tbody></table>`
+ }
+};
+Na.push(["teamset","Team settings","key"]);{const e=qa;qa=function(){return y.view==="teamset"&&!y.item&&!Ye.tool?"settings":e()}}
+ce.teamset=()=>{
+ if(!F.team())return`<div class="content-inner">${ke("Team settings")}${ot("Team accounts aren’t switched on yet","")}</div>`;
+ if(!F.mgr())return`<div class="content-inner">${ke("Team settings")}${ot("Managers and admins only","Ask an admin if you need something changed.")}</div>`;
+ if(!Re.loaded){Re.load();return`<div class="content-inner">${ke("Team settings")}<div class="ip-card"><div class="ip-empty"><span class="spin"></span> Loading the team…</div></div></div>`}
+ if(!Perm.catLoaded){Perm.load();return`<div class="content-inner">${ke("Team settings")}<div class="ip-card"><div class="ip-empty"><span class="spin"></span> Loading…</div></div></div>`}
+ if(!Perm._logReq){Perm._logReq=!0;Perm.loadLog().then(()=>I())}
+ const people=Re.list.filter(m=>m.status==="active").sort((a,b)=>({admin:0,manager:1,tech:2})[a.role]-{admin:0,manager:1,tech:2}[b.role]||(a.name||"").localeCompare(b.name||""));
+ const nm=u=>{const m=Re.list.find(x=>x.user_id===u);return m?m.name||m.email:"Someone"};
+ const lbl=k=>{const c=Perm.cat.find(x=>x.key===k);return c?c.label:k};
+ const logs=Perm.log.length?Perm.log.map(l=>{const b=l.change.before||{},a=l.change.after||{},ks=[...new Set([...Object.keys(b),...Object.keys(a)])].filter(k=>b[k]!==a[k]);return`<div class="ps-log"><b>${p(l.actor_name||"An admin")}</b> changed <b>${p(l.target_name||nm(l.target))}</b>: ${ks.length?ks.map(k=>`${p(lbl(k))} → ${k in a?(a[k]?"allowed":"not allowed"):"role default"}`).join(", "):"reset to role defaults"}<small>${p(new Date(l.at).toLocaleString(void 0,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}</small></div>`}).join(""):'<p class="s-p">No changes yet.</p>';
+ return`<div class="content-inner teamset">${ke("Team settings",{sub:F.admin()?"Choose what each person can see and do":"What each person can see and do"})}
+ <section class="scard"><h2>${f("team")}People</h2><p class="s-p">${F.admin()?"Tap a person to change what they’re allowed to do. Admins always have full access.":"Only an admin can change what people are allowed to do."}</p><div class="ps-list">${people.map(PermUI.row).join("")}</div></section>
+ <section class="scard"><h2>${f("all")}What each role can do by default</h2><div class="ps-scroll">${PermUI.matrix()}</div></section>
+ <section class="scard"><h2>${f("clock")}Recent changes</h2>${logs}</section></div>`};
+{const prev=Ue;Ue=function(t,a,s){
+ if(t==="ps-open"){const u=a.dataset.uid;PermUI.open=PermUI.open===u?null:u;PermUI.draft=null;I();return!0}
+ if(t==="ps-preset"){const m=Re.list.find(x=>x.user_id===PermUI.open);if(!m)return!0;const p0=PermUI.presets(m.role)[+a.dataset.i];PermUI.draft={...p0[1]};I();return!0}
+ if(t==="ps-reset"){PermUI.draft={};I();return!0}
+ if(t==="ps-save"){PermUI.save();return!0}
+ return prev(t,a,s)}}
+PermUI.save=async function(){
+ const m=Re.list.find(x=>x.user_id===PermUI.open);if(!m||!PermUI.draft)return;
+ const o={};for(const c of Perm.cat){if(c.key in PermUI.draft&&PermUI.draft[c.key]!==Perm.defaultFor(m.role,c))o[c.key]=PermUI.draft[c.key]}
+ let r;try{r=await window.BSCloud.client.rpc("set_member_perms",{p_org:F.org().org_id,p_user:m.user_id,p_perms:o})}catch(e){r={error:e}}
+ if(r.error){x(r.error.message||"Couldn’t save");return}
+ m.perms=r.data||o;PermUI.draft=null;Perm._logReq=!1;x(`Saved — ${m.name||"their"} access updated`);I()};
+document.addEventListener("change",e=>{
+ const t=e.target;
+ if(t.matches&&t.matches("[data-ps-key]")){const m=Re.list.find(x=>x.user_id===PermUI.open);if(!m)return;const base={};PermUI.draft=PermUI.draft||{...Object.fromEntries(Object.entries(m.perms||{}))};PermUI.draft[t.dataset.psKey]=t.checked;I()}
+ if(t.matches&&t.matches("[data-ps-role]")){const u=t.dataset.psRole,v=t.value,m=Re.list.find(x=>x.user_id===u);if(!m||v===m.role)return;if(!confirm(`Change ${m.name||"this person"} to ${F.name(v)}? ${v==="admin"?"Admins have full access, including changing other people’s access.":"Their access changes right away."}`)){t.value=m.role;return}Re.set(u,{role:v}).then(()=>{PermUI.draft=null;I()})}
+});
+{const e=ce.settings;if(e){ce.settings=()=>{let t=e();return F.team()&&F.mgr()?t.replace("Open Team</button>",`Open Team</button> <button class="btn sm" data-act="nav" data-view="teamset">${f("key")}Team settings</button>`):t}}}
+setTimeout(()=>{Perm.apply();Perm.load();Perm.watch()},1200);
+window.__perm=Perm;window.__permUI=PermUI;window.__Re=Re;const __permCss=document.createElement("style");__permCss.textContent=`
+body.perm-no-sched :is([data-act="sched-add"],[data-act="sched-new"],[data-act="slot-add"],[data-act="person-new"],[data-act="add-on-day"],[data-act="jv-new"],.sched-qa),body.perm-no-sched :is([data-act="ip-edit"],[data-act="ip-menu"])[data-kind="sched"],
+body.perm-no-cust :is([data-act="ct-new"],[data-act="ct-edit"],[data-act="ct-del"],[data-act="con-new"],[data-act="new-job"],[data-act="prof-add"],[data-act="prof-con-add"],[data-act="prof-con-rm"],[data-act="proj-add-job"],[data-act="prj-new"],[data-act="prj-list-new"],[data-act="jobs-status"]),body.perm-no-cust :is([data-act="ip-edit"],[data-act="ip-menu"]):is([data-kind="jobs"],[data-kind="contacts"]),
+body.perm-no-mapnew :is([data-act="map-new"],[data-act="map-attach"],[data-act="v-maps-add"]){display:none!important}
+.ps-list{display:flex;flex-direction:column;gap:8px}.ps-card{border:1px solid var(--line,#2a3a55);border-radius:12px;overflow:hidden}.ps-head{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:10px 12px;cursor:pointer}.ps-name{flex:1;min-width:0;display:flex;flex-direction:column}.ps-name small{opacity:.7}.ps-badge{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08)}.ps-badge.cust{background:rgba(245,158,11,.2);color:#f59e0b}.ps-body{padding:4px 14px 14px;display:flex;flex-direction:column;gap:12px}.ps-grp h4{margin:6px 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}.ps-tog{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);cursor:pointer}.ps-tog.ro{cursor:default;opacity:.8}.ps-t{display:flex;flex-direction:column;gap:2px}.ps-t small{opacity:.7}.ps-chg{font-style:normal;font-size:11px;color:#f59e0b}.ps-tog input{position:absolute;opacity:0;pointer-events:none}.ps-sw{flex:none;width:42px;height:24px;border-radius:999px;background:rgba(255,255,255,.18);position:relative;transition:.15s}.ps-sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}.ps-tog input:checked~.ps-sw{background:var(--accent,#2f80ed)}.ps-tog input:checked~.ps-sw:after{left:21px}.ps-presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ps-foot{display:flex;align-items:center;gap:8px;position:sticky;bottom:0;padding-top:8px}.ps-role select{margin-left:8px}.ps-mx{width:100%;border-collapse:collapse;font-size:13px}.ps-mx th,.ps-mx td{padding:6px 8px;border-top:1px solid rgba(255,255,255,.08);text-align:center}.ps-mx td:first-child,.ps-mx th:first-child{text-align:left}.ps-y{color:#30a46c}.ps-n{opacity:.4}.ps-scroll{overflow:auto}.ps-log{padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px}.ps-log small{display:block;opacity:.6}`;document.head.appendChild(__permCss);
+
 const __trashCss=document.createElement("style");__trashCss.textContent=".trash-list{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow:auto}.trash-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line,#e5e7eb);border-radius:10px}.trash-row small{display:block;opacity:.7}";document.head.appendChild(__trashCss);
 
 window.__hub=(mntInit(),{Demo:Ro,HELP:Ir,HELP_QA:Tr,HELP_UI:vs,helpVideo:yp,Pins:cn,Recent:Ts,AW:Fi,awRows:hp,awStart:bp,PO:We,poDialog:Jn,poReceiveDialog:Mr,INV:R,Feat:Ie,Scan:bs,Code128:Ar,buildLabelsPdf:dp,S:h,UI:y,Store:E,Maps:Se,HUB:Ye,go:Ae,openItem:Bt,createJob:yo,createTask:(...e)=>Dt(...e),patch:(...e)=>N(...e),openDetail:(...e)=>et(...e),Groups:ge,seedJobs:Bc,jobByName:Ht,renderAll:()=>I(),newQuote:()=>{const e=Wl({title:""});return da(e.id),e.id},fmPdf:e=>Cs([...Object.values(h.quotes),...Object.values(h.invoices)].find(t=>t.number===e)),quoteCalc:ut,mntBuild:e=>{const t=hr(e,Po([e],{crew:2}),{jobId:"",mapId:""});return da(t.id),t.id}})})();
