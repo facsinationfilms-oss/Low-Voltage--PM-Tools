@@ -811,6 +811,32 @@ html.phone .run-fly.in { transform: none; }
 .lay-tile { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: #fff; box-shadow: inset 0 0 0 1px rgba(15,23,42,.12); flex: none; overflow: hidden; }
 .lay-tile svg { display: block; }
 .lay-tile.big { width: 44px; height: 44px; border-radius: 11px; }
+
+.fam-up { margin-left: auto; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--accent, #0891b2); background: rgba(8,145,178,.14); flex: none; transition: transform .18s ease, background .18s ease; }
+.fam-up .ic, .fam-up svg { width: 14px; height: 14px; }
+.lay-item.fam:hover .fam-up, .fam-open .fam-up { background: rgba(8,145,178,.26); }
+.fam-open .fam-up { transform: rotate(180deg); }
+.fam-up.sm { position: absolute; top: 3px; right: 3px; width: 17px; height: 17px; border-radius: 6px; }
+.fam-up.sm svg, .fam-up.sm .ic { width: 11px; height: 11px; }
+.pb-tile.fam { position: relative; }
+.fam-pop { position: fixed; z-index: 9999; display: flex; flex-direction: column-reverse; gap: 7px; padding: 0; pointer-events: none; }
+.fam-pop > * { pointer-events: auto; }
+.fam-opt { display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 12px 9px 9px; border-radius: 14px; border: 1px solid var(--line-2, rgba(148,163,184,.35)); background: var(--panel, #fff); color: inherit; text-align: left; font: inherit; cursor: pointer;
+  box-shadow: 0 10px 28px rgba(2,8,23,.34), 0 2px 6px rgba(2,8,23,.18); animation: famIn .2s cubic-bezier(.2,.9,.3,1.15) both; animation-delay: calc(var(--i) * 45ms); transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+.fam-opt:hover, .fam-opt:focus-visible { transform: translateY(-1px) scale(1.015); border-color: #0891b2; outline: none; background: color-mix(in srgb, #0891b2 9%, var(--panel, #fff)); }
+.fam-opt:active { transform: scale(.985); }
+.fam-opt.cur { border-color: #0891b2; box-shadow: 0 10px 28px rgba(2,8,23,.34), 0 0 0 1px #0891b2 inset; }
+.fam-opt .lay-tile { width: 46px; height: 46px; border-radius: 10px; }
+.fo-t { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.fo-t b { font-size: 14px; font-weight: 700; }
+.fo-t em { font-style: normal; font-size: 11.5px; color: var(--muted, #64748b); }
+.fo-dot { margin-left: auto; width: 9px; height: 9px; border-radius: 50%; background: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,.25); flex: none; }
+.fam-cap { order: 99; align-self: flex-start; margin: 0 0 1px 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 650; letter-spacing: .02em; color: #fff; background: rgba(2,8,23,.72); backdrop-filter: blur(6px); animation: famIn .2s ease both; animation-delay: 150ms; }
+.fam-pop.down { flex-direction: column; }
+.fam-pop.down .fam-cap { order: -1; margin: 0 0 1px 4px; }
+.fam-pop.out { opacity: 0; transform: translateY(6px); transition: opacity .13s ease, transform .13s ease; pointer-events: none; }
+@keyframes famIn { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fam-opt, .fam-cap { animation: none; } }
 .lay-item .pi-name { display: flex; flex-direction: column; }
 .lay-item .pi-name em { font-style: normal; font-size: 11px; color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -11742,6 +11768,11 @@ const ITEM_SYMBOLS = {
   },
 };
 
+function casementSash(hx, dir, len, fy, s) {
+  const a = 0.42, ex = hx + dir * len * Math.cos(a), ey = fy + s * len * Math.sin(a), cx = hx + dir * len;
+  return sL(hx, fy, ex, ey, { 'stroke-width': 1, stroke: LC }) +
+    sP(`M${cx} ${fy}A${len} ${len} 0 0 ${dir * s > 0 ? 1 : 0} ${ex} ${ey}`, { 'stroke-width': 0.6, stroke: LC2, 'stroke-dasharray': '2.6 2' });
+}
 /* Openings: (w = opening width, t = wall thickness, s = swing side ±1, h = hinge side ±1) */
 const OPENING_SYMBOLS = {
   'door-single'(w, t, s, h) {
@@ -11786,10 +11817,14 @@ const OPENING_SYMBOLS = {
   /* windows */
   'win-standard'(w, t) { return sL(-w / 2, -t / 2, w / 2, -t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, t / 2, w / 2, t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, -0.9, w / 2, -0.9, { 'stroke-width': 0.7 }) + sL(-w / 2, 0.9, w / 2, 0.9, { 'stroke-width': 0.7 }); },
   'win-slider'(w, t) { return sL(-w / 2, -t / 2, w / 2, -t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, t / 2, w / 2, t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, -1, w * 0.05, -1, { 'stroke-width': 1.1 }) + sL(-w * 0.05, 1, w / 2, 1, { 'stroke-width': 1.1 }); },
+  /* Casement (hand-crank) windows. A sash is hinged at a jamb and shown cranked open: a solid line out from the hinge,
+     with a dashed arc back to where it closes. dir = +1 hinge on the left, -1 hinge on the right. */
   'win-casement'(w, t, s) {
     const fy = s * t / 2;
-    return OPENING_SYMBOLS['win-picture'](w, t) + sP(`M${-w / 2} ${fy}L${-w / 2 + w * 0.35} ${fy + s * w * 0.35}M${w / 2} ${fy}L${w / 2 - w * 0.35} ${fy + s * w * 0.35}`, { 'stroke-width': 0.7, stroke: LC2, 'stroke-dasharray': '3 2' });
+    return OPENING_SYMBOLS['win-picture'](w, t) + casementSash(-w / 2, 1, w / 2, fy, s) + casementSash(w / 2, -1, w / 2, fy, s);
   },
+  'win-casement-l'(w, t, s) { return OPENING_SYMBOLS['win-picture'](w, t) + casementSash(-w / 2, 1, w, s * t / 2, s); },
+  'win-casement-r'(w, t, s) { return OPENING_SYMBOLS['win-picture'](w, t) + casementSash(w / 2, -1, w, s * t / 2, s); },
   'win-picture'(w, t) { return sL(-w / 2, -t / 2, w / 2, -t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, t / 2, w / 2, t / 2, { 'stroke-width': 0.8 }) + sL(-w / 2, 0, w / 2, 0, { 'stroke-width': 1.6 }); },
   'win-bay'(w, t, s) {
     const fy = s * t / 2, pr = s * w * 0.28;
@@ -11824,7 +11859,9 @@ const LAYOUT_ITEMS = [
   ['doors', 'door-opening', 'Cased opening', 'door', 36, 0, [30, 36, 48, 60, 72, 96], 'door-opening', 'Doorway with no door.'],
   ['windows', 'win-standard', 'Window (double hung)', 'window', 36, 0, [24, 30, 32, 36, 42, 48], 'win-standard', 'Standard window.'],
   ['windows', 'win-slider', 'Sliding window', 'window', 48, 0, [36, 48, 60, 72], 'win-slider', 'Horizontal slider.'],
-  ['windows', 'win-casement', 'Casement window', 'window', 24, 0, [18, 24, 30, 36], 'win-casement', 'Crank-out window.'],
+  ['windows', 'win-casement', 'Casement, double (hand crank)', 'window', 36, 0, [30, 36, 42, 48, 60, 72], 'win-casement', 'Hand-crank casement, two sashes that swing out.', undefined, 'casement'],
+  ['windows', 'win-casement-l', 'Casement, single · hinge left (hand crank)', 'window', 24, 0, [18, 20, 24, 28, 30, 36], 'win-casement-l', 'Hand-crank casement, one sash hinged on the left.', undefined, 'casement'],
+  ['windows', 'win-casement-r', 'Casement, single · hinge right (hand crank)', 'window', 24, 0, [18, 20, 24, 28, 30, 36], 'win-casement-r', 'Hand-crank casement, one sash hinged on the right.', undefined, 'casement'],
   ['windows', 'win-picture', 'Picture window', 'window', 60, 0, [36, 48, 60, 72, 96], 'win-picture', 'Fixed glass.'],
   ['windows', 'win-bay', 'Bay window', 'window', 72, 0, [60, 72, 96], 'win-bay', 'Projecting bay.'],
   ['windows', 'x-skylight', 'Skylight', 'item', 24, 48, null, 'x-skylight', 'Skylight above (dashed).'],
@@ -11871,9 +11908,61 @@ const LAYOUT_ITEMS = [
   ['structure', 'x-railing', 'Railing', 'item', 72, 4, null, 'x-railing', 'Guard rail or half wall.'],
   ['structure', 'x-box', 'Box / equipment', 'item', 36, 36, null, 'x-box', 'Any rectangular object. Give it a label.'],
   ['structure', 'x-north', 'North arrow', 'item', 30, 30, null, 'x-north', 'Shows which way is north.'],
-].map(([cat, id, name, kind, w, d, sizes, sym, desc, label]) => ({ cat, id, name, kind, w, d, sizes, sym, desc, label }));
+].map(([cat, id, name, kind, w, d, sizes, sym, desc, label, fam]) => ({ cat, id, name, kind, w, d, sizes, sym, desc, label, fam }));
 
 const LAYOUT_BY_ID = Object.fromEntries(LAYOUT_ITEMS.map(x => [x.id, x]));
+
+/* One button, several styles: tap it and the styles fan up from the button. */
+const FamPick = {
+  FAMS: { casement: { name: 'Casement window', sub: 'Hand crank', opts: {
+    'win-casement': ['Double', 'Two sashes'],
+    'win-casement-l': ['Single · hinge left', 'One sash'],
+    'win-casement-r': ['Single · hinge right', 'One sash'],
+  } } },
+  members(f) { return LAYOUT_ITEMS.filter(c => c.fam === f); },
+  name(f) { return (this.FAMS[f] || {}).name || f; },
+  sub(f) { return (this.FAMS[f] || {}).sub || ''; },
+  current(f) {
+    const id = ((Settings.data && Settings.data.famLast) || {})[f], c = LAYOUT_BY_ID[id];
+    return c && c.fam === f ? c : this.members(f)[0];
+  },
+  remember(f, id) { try { Settings.set('famLast', { ...((Settings.data && Settings.data.famLast) || {}), [f]: id }); } catch (e) {} },
+  /* list helper: collapse each family to its first member */
+  collapse(items) { const seen = new Set(); return items.filter(c => !c.fam || (!seen.has(c.fam) && seen.add(c.fam))); },
+  close() {
+    const e = this.el; if (!e) return;
+    this.el = null; e.classList.add('out'); setTimeout(() => e.remove(), 140);
+    document.removeEventListener('pointerdown', this.off, true); document.removeEventListener('keydown', this.key, true);
+    window.removeEventListener('resize', this.off);
+  },
+  open(anchor, f, onPick) {
+    this.close();
+    const cur = this.current(f), fam = this.FAMS[f] || { opts: {} }, r = anchor.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'fam-pop'; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', this.name(f) + ' styles');
+    el.innerHTML = this.members(f).map((c, i) => {
+      const o = fam.opts[c.id] || [c.name, ''];
+      return `<button type="button" class="fam-opt ${c.id === cur.id ? 'cur' : ''}" role="menuitem" data-id="${c.id}" style="--i:${i}"><span class="lay-tile">${layoutTileSvg(c, 40)}</span><span class="fo-t"><b>${esc(o[0])}</b><em>${esc(o[1])}${o[1] ? ' · ' : ''}${Layout.fmt(c.w)} wide</em></span>${c.id === cur.id ? '<i class="fo-dot" aria-hidden="true"></i>' : ''}</button>`;
+    }).join('') + `<div class="fam-cap">${esc(this.name(f))} · ${esc(this.sub(f))}</div>`;
+    document.body.appendChild(el);
+    const w = Math.min(Math.max(r.width, 250), window.innerWidth - 16);
+    el.style.width = w + 'px';
+    el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    const room = r.top - 12, need = el.offsetHeight;
+    if (need > room && window.innerHeight - r.bottom > room) { el.classList.add('down'); el.style.top = r.bottom + 8 + 'px'; }
+    else el.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    anchor.setAttribute('aria-expanded', 'true'); anchor.classList.add('fam-open');
+    this.el = el;
+    this.off = e => { if (e && e.type === 'pointerdown' && (el.contains(e.target) || anchor.contains(e.target))) return; anchor.classList.remove('fam-open'); anchor.removeAttribute('aria-expanded'); FamPick.close(); };
+    this.key = e => { if (e.key === 'Escape') { e.stopPropagation(); this.off(); } };
+    setTimeout(() => { document.addEventListener('pointerdown', this.off, true); document.addEventListener('keydown', this.key, true); window.addEventListener('resize', this.off); }, 0);
+    el.addEventListener('click', e => {
+      const b = e.target.closest('.fam-opt'); if (!b) return;
+      this.remember(f, b.dataset.id); this.off(); onPick(b.dataset.id);
+    });
+    const first = el.querySelector('.fam-opt.cur') || el.querySelector('.fam-opt'); if (first && !Device.touch) first.focus({ preventScroll: true });
+  },
+};
 
 const WALL_TYPES = [
   { id: 'exterior', name: 'Exterior', t: 6, fill: '#2b313b' },
@@ -12730,17 +12819,25 @@ const LayoutUI = {
         <div class="lb-wt"><span>New walls</span><div class="seg sm" id="lb-wt">${WALL_TYPES.map(t => `<button data-v="${t.id}" class="${wt === t.id ? 'on' : ''}" title="${t.t}&quot; thick"><i class="wt-sw" style="background:${t.fill}"></i>${esc(t.name)}</button>`).join('')}</div></div>
       </div>`;
     for (const cat of LAYOUT_CATS) {
-      const items = LAYOUT_ITEMS.filter(c => c.cat === cat.id && match(c));
+      const items = FamPick.collapse(LAYOUT_ITEMS.filter(c => c.cat === cat.id && match(c)));
       if (!items.length) continue;
       const gid = 'L-' + cat.id;
       const open = q ? true : PAL_OPEN.has(gid);
       html += `<div class="pal-group ${open ? 'open' : ''}" data-g="${gid}">
         <button class="pal-gh"><span class="gdot" style="--c:${cat.color}"></span><span class="gname">${esc(cat.name)}</span><span class="gcount">${items.length}</span>${ic('ChevronDown', 'chev')}</button>
-        <div class="pal-items">${items.map(c => `
-          <div class="pal-item lay-item ${MapView.placeLayout === c.id ? 'armed' : ''}" data-lay="${c.id}" draggable="true" title="${esc(c.name)} — ${esc(c.desc)}">
+        <div class="pal-items">${items.map(c0 => {
+          const fam = c0.fam, c = fam ? FamPick.current(fam) : c0;
+          const armed = fam ? FamPick.members(fam).some(m => m.id === MapView.placeLayout) : MapView.placeLayout === c.id;
+          return fam ? `
+          <div class="pal-item lay-item fam ${armed ? 'armed' : ''}" data-lay="${c.id}" data-fam="${fam}" draggable="true" tabindex="0" role="button" aria-haspopup="menu" title="${esc(FamPick.name(fam))} — tap to pick a style">
+            <span class="lay-tile">${layoutTileSvg(c, 30)}</span>
+            <span class="pi-name">${esc(FamPick.name(fam))}<em>${esc(FamPick.sub(fam))} · ${FamPick.members(fam).length} styles</em></span>
+            <span class="fam-up" aria-hidden="true">${ic('ChevronUp')}</span>
+          </div>` : `
+          <div class="pal-item lay-item ${armed ? 'armed' : ''}" data-lay="${c.id}" draggable="true" title="${esc(c.name)} — ${esc(c.desc)}">
             <span class="lay-tile">${layoutTileSvg(c, 30)}</span>
             <span class="pi-name">${esc(c.name)}<em>${c.kind === 'item' ? `${Layout.fmt(c.w)} × ${Layout.fmt(c.d)}` : Layout.fmt(c.w) + ' wide'}</em></span>
-          </div>`).join('')}</div></div>`;
+          </div>`; }).join('')}</div></div>`;
     }
     list.innerHTML = html;
     $$('.pal-gh', list).forEach(h => h.onclick = () => {
@@ -12755,7 +12852,16 @@ const LayoutUI = {
       MapView.renderTemp();
     });
     $$('.lay-item', list).forEach(el => {
-      el.onclick = () => this.arm(el.dataset.lay);
+      el.onclick = () => {
+        const f = el.dataset.fam;
+        if (!f) return this.arm(el.dataset.lay);
+        FamPick.open(el, f, id => {
+          el.dataset.lay = id; el.querySelector('.lay-tile').innerHTML = layoutTileSvg(LAYOUT_BY_ID[id], 30);
+          if (!(MapView.placeLayout === id && Editor.tool === 'lplace')) this.arm(id);
+          $$('.lay-item.fam', list).forEach(x => x.classList.add('armed'));
+        });
+      };
+      el.addEventListener('keydown', e => { if (el.dataset.fam && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); } });
       el.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/x-bs-layout', el.dataset.lay);
         MapView.dragName = (LAYOUT_BY_ID[el.dataset.lay] || {}).name || 'it';
@@ -12770,7 +12876,7 @@ const LayoutUI = {
     const c = LAYOUT_BY_ID[id];
     Editor.setTool('lplace');
     MapView.placeLayout = id;
-    $$('.lay-item').forEach(e => e.classList.toggle('armed', e.dataset.lay === id));
+    $$('.lay-item').forEach(e => e.classList.toggle('armed', e.dataset.lay === id || (!!e.dataset.fam && !!c.fam && c.fam === e.dataset.fam)));
     $$('#toolrail .tool').forEach(b => b.classList.remove('on'));
     const how = c.kind === 'item' ? 'It lines up against a wall when you get close.' : 'It snaps into the nearest wall.';
     Editor.hint(Device.touch ? `Tap to place <b>${esc(c.name)}</b>. ${how}`
@@ -13861,7 +13967,10 @@ const PBar = {
           ...WALL_TYPES.map(t => ({ k: 'wall', id: t.id, name: `${t.name} wall`, tile: `<span class="pb-gi wallt"><i style="background:${t.fill}"></i></span>`, on: Editor.tool === 'wall' && wt === t.id })),
         ];
       }
-      return LAYOUT_ITEMS.filter(c => c.cat === gid).map(c => ({ k: 'lay', id: c.id, name: c.name, sub: c.kind === 'item' ? `${Layout.fmt(c.w)} × ${Layout.fmt(c.d)}` : Layout.fmt(c.w) + ' wide', tile: `<span class="pb-gi lay">${layoutTileSvg(c, 34)}</span>` }));
+      return FamPick.collapse(LAYOUT_ITEMS.filter(c => c.cat === gid)).map(c0 => {
+        const fam = c0.fam, c = fam ? FamPick.current(fam) : c0;
+        return { k: 'lay', id: c.id, fam, name: fam ? FamPick.name(fam) : c.name, sub: fam ? `${FamPick.members(fam).length} styles` : c.kind === 'item' ? `${Layout.fmt(c.w)} × ${Layout.fmt(c.d)}` : Layout.fmt(c.w) + ' wide', tile: `<span class="pb-gi lay">${layoutTileSvg(c, 34)}</span>` };
+      });
     }
     const hidden = new Set(Settings.data.hiddenBuiltins || []);
     const types = gid === '_fav' ? (Settings.data.favorites || []).map(id => Reg.types.get(id)).filter(Boolean) : Reg.typesFor(gid).filter(t => !(t.builtin && hidden.has(t.id)));
@@ -13915,7 +14024,7 @@ const PBar = {
   },
   tileHtml(it) {
     const on = it.on || (this.pick && this.pick.k === it.k && this.pick.id === it.id);
-    return `<button class="pb-tile item ${on ? 'on' : ''}" data-pb="item" data-k="${it.k}" data-id="${esc(it.id)}" title="${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}">${it.tile}<span class="pb-n">${esc(it.name)}</span></button>`;
+    return `<button class="pb-tile item ${on ? 'on' : ''} ${it.fam ? 'fam' : ''}" data-pb="item" data-k="${it.k}" data-id="${esc(it.id)}" ${it.fam ? `data-fam="${it.fam}" aria-haspopup="menu"` : ''} title="${esc(it.name)}${it.sub ? ' · ' + esc(it.sub) : ''}">${it.tile}<span class="pb-n">${esc(it.name)}</span>${it.fam ? `<span class="fam-up sm" aria-hidden="true">${ic('ChevronUp')}</span>` : ''}</button>`;
   },
   click(e) {
     if (this.justDragged) { this.justDragged = false; return; }
@@ -13926,6 +14035,13 @@ const PBar = {
     if (a === 'lay' || a === 'dev') { this.path = [a]; return this.render(); }
     if (a === 'find') { this.path = [this.path[0] || 'dev', '_find']; this.q = ''; return this.render(); }
     if (a === 'grp') { this.path = [this.path[0], b.dataset.id]; return this.render(); }
+    if (a === 'item' && b.dataset.fam) {
+      return FamPick.open(b, b.dataset.fam, id => {
+        this.renderRow();
+        const nb = $(`.pb-tile.item[data-fam="${b.dataset.fam}"]`, this.el());
+        if (nb) this.tap('lay', id, nb);
+      });
+    }
     if (a === 'item') return this.tap(b.dataset.k, b.dataset.id, b);
   },
   /* a tap: tools start right away; icons get picked and wait to be dragged */
