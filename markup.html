@@ -1739,7 +1739,15 @@ const STATUSES = [
   { id: 'remove',    name: 'Remove',         color: '#ef4444' },
 ];
 
-const CABLE_TYPES = ['CAT6', 'CAT6A', 'CAT5e', 'Fiber', '22/2', '22/4', '22/6', '18/2', '18/4', '16/2 speaker', '14/2 speaker', 'RG59 / Siamese', 'Composite access cable', 'Wireless', 'Other'];
+/* Cable / wire types, grouped for the pickers. The names are what gets saved on runs and devices, so never rename one. */
+const CABLE_GROUPS = [["Network (copper)", ["CAT5e", "CAT5e solid", "CAT5e stranded (patch)", "CAT5e shielded (F/UTP)", "CAT5e outdoor (direct burial)", "CAT6", "CAT6 solid", "CAT6 stranded (patch)", "CAT6 shielded (F/UTP)", "CAT6 riser (CMR)", "CAT6 plenum (CMP)", "CAT6 outdoor (direct burial)", "CAT6A", "CAT6A solid", "CAT6A stranded (patch)", "CAT6A shielded (S/FTP)", "CAT6A plenum (CMP)", "CAT6A outdoor (direct burial)", "CAT8 shielded (S/FTP)"]], ["Fiber", ["Fiber", "Fiber OM3 multimode", "Fiber OM4 multimode", "Fiber OS2 single-mode", "Fiber armored / outdoor"]], ["Alarm / access / control (stranded)", ["22/2", "22/4", "22/6", "22/8", "18/2", "18/4", "18/6", "16/2", "16/4"]], ["Alarm / access / control (shielded)", ["22/2 shielded", "22/4 shielded", "22/6 shielded", "22/8 shielded", "18/2 shielded", "18/4 shielded", "18/6 shielded", "22/2 twisted pair shielded (RS-485)"]], ["Alarm / access / control (solid, plenum, outdoor)", ["22/2 solid", "22/4 solid", "18/2 solid", "22/4 plenum (CMP)", "22/6 plenum (CMP)", "18/2 plenum (CMP)", "18/4 plenum (CMP)", "22/4 outdoor (direct burial)", "18/2 outdoor (direct burial)"]], ["Fire alarm", ["FPL 18/2 solid", "FPL 16/2 solid", "FPL 14/2 solid", "FPL 18/2 shielded", "FPL 16/2 shielded", "FPLP 18/2 plenum", "FPLP 16/2 plenum", "FPLP 14/2 plenum"]], ["Audio / speaker", ["16/2 speaker", "14/2 speaker", "18/2 speaker", "12/2 speaker", "16/4 speaker", "14/4 speaker", "16/2 speaker plenum", "14/2 speaker plenum", "16/2 speaker direct burial", "22/2 shielded audio (mic / line)"]], ["Coax / video", ["RG59 / Siamese", "RG59 coax", "RG6 coax", "RG6 quad shield", "RG6 plenum", "RG6 direct burial", "RG11 coax"]], ["Composite / combo", ["Composite access cable", "Composite CAT6 + 18/2 (camera)", "Composite 22/4 + 18/2 (lock & reader)"]], ["Thermostat / HVAC control", ["18/2 thermostat", "18/5 thermostat", "18/8 thermostat"]], ["Wireless / other", ["Wireless"]]];
+const CABLE_TYPES = [].concat(...CABLE_GROUPS.map(g => g[1]), ['Other']);
+CABLE_TYPES.groups = CABLE_GROUPS;
+/* the grouped <option>s for a cable-type picker (cur = the value to show as selected) */
+function cableOptGroups(cur) {
+  const o = v => `<option value="${esc(v)}" ${cur === v ? 'selected' : ''}>${esc(v)}</option>`;
+  return CABLE_GROUPS.map(g => g[1].length === 1 && g[0].includes('other') ? g[1].map(o).join('') : `<optgroup label="${esc(g[0])}">${g[1].map(o).join('')}</optgroup>`).join('') + o('Other') + (cur && !CABLE_TYPES.includes(cur) ? o(cur) : '');
+}
 
 // Field definition: [key, label, type, options]
 // type: text | number | select | date | check | textarea
@@ -2462,7 +2470,8 @@ const OtherOpt = {
     for (const v of this.custom(ck)) if (!seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); mine.push(v); }
     if (cur && !seen.has(String(cur).toLowerCase())) mine.push(cur);
     const o = v => `<option value="${esc(v)}" ${cur === v ? 'selected' : ''}>${esc(v)}</option>`;
-    return `<option value="">${esc(blank)}</option>${plain.map(o).join('')}${mine.length ? `<optgroup label="${esc(this.hub() ? 'Your company’s choices' : 'Typed in')}">${mine.map(o).join('')}</optgroup>` : ''}<option value="${this.SENT}">Other — type it in…</option>`;
+    const body = base.groups ? base.groups.map(g => g[1].length === 1 && g[0].includes('other') ? g[1].map(o).join('') : `<optgroup label="${esc(g[0])}">${g[1].map(o).join('')}</optgroup>`).join('') : plain.map(o).join('');
+    return `<option value="">${esc(blank)}</option>${body}${mine.length ? `<optgroup label="${esc(this.hub() ? 'Your company’s choices' : 'Typed in')}">${mine.map(o).join('')}</optgroup>` : ''}<option value="${this.SENT}">Other — type it in…</option>`;
   },
   /* make a <select> built with options() show a fill-in box when "Other" is picked */
   attach(sel, ck) {
@@ -8419,7 +8428,9 @@ const Side = {
     if (type === 'select') {
       const list = [...(opts || [])];
       if (val && !list.includes(val)) list.push(val);
-      input = `<select class="inp" id="${id}" data-f="${key}"><option value=""></option>${list.map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      input = opts && opts.groups
+        ? `<select class="inp" id="${id}" data-f="${key}"><option value=""></option>${cableOptGroups(val)}</select>`
+        : `<select class="inp" id="${id}" data-f="${key}"><option value=""></option>${list.map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     } else if (type === 'textarea') {
       input = `<textarea class="inp" id="${id}" data-f="${key}" rows="3">${esc(val)}</textarea>`;
     } else {
@@ -14407,7 +14418,7 @@ const Overview = {
     const shown = !!this.shown[g.key];
     const names = g.items.map(x => x.d.label || g.type.prefix || 'Device');
     const id = 'ovg-' + cssId(g.key);
-    const cableOpts = ['', ...CABLE_TYPES].map(c => `<option value="${esc(c)}" ${f('cableType') === c ? 'selected' : ''}>${c || (f('cableType') === null ? '— mixed —' : '')}</option>`).join('');
+    const cableOpts = `<option value="">${f('cableType') === null ? '— mixed —' : ''}</option>` + cableOptGroups(f('cableType'));
     const sts = new Set(g.items.map(x => x.d.status || 'planned')); const stVal = sts.size === 1 ? [...sts][0] : null;
     return `<div class="ov-g ${g.model ? 'set' : 'todo'}" data-g="${esc(g.key)}" id="${id}">
       <div class="ov-g-h">
