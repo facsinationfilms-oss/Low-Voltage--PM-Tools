@@ -4904,6 +4904,7 @@ const Editor = {
 
   /* Called whenever plan content changes */
   changed({ commit = 'now', palette = false } = {}) {
+    try { RunTree.resync(this.plan); } catch (e) {}
     App.changed();
     if (commit === 'now') this.commit(); else if (commit === 'soon') this.commitSoon();
     if (palette) { this.renderPalette(); this.renderTabs(); }
@@ -5019,6 +5020,7 @@ const Editor = {
     }
     /* runs and the callouts linked to their dots stay linked to each other; a lone copy of either lets go */
     for (const [m0, m] of mkPairs) {
+      if (m.splitFrom) { if (mkMap[m.splitFrom.runId]) m.splitFrom = { ...m.splitFrom, runId: mkMap[m.splitFrom.runId] }; else delete m.splitFrom; }
       if (m.dots) for (const d of m.dots) if (d && d.cid) { if (mkMap[d.cid]) d.cid = mkMap[d.cid]; else { delete d.cid; delete d.show; } }
       if (m.pin) { if (mkMap[m.pin]) m.pin = mkMap[m.pin]; else { m.tail = Txt.pinTail(m0) || m.tail; delete m.pin; delete m.auto; delete m.wAuto; } }
     }
@@ -6217,7 +6219,9 @@ const MapView = {
     return { s, u, fs, off, rot, hw: lbl.length * fs * 0.31 + fs * 0.2, hh: fs * 0.6, base: [lead.x, lead.y], cx, cy, isIndiv: true, stkId, devId: d.id };
   },
   cableLabelText(m) {
-    const len = this.lengthLabel(polyLength(m.points));
+    /* a branched run (or one feeding several devices) has no single length: each device shows its own distance instead */
+    const many = RunTree.grouped(m) || (m.wires || []).filter(w => w.device).length > 1;
+    const len = many ? '' : this.lengthLabel(polyLength(m.points));
     return [m.label, len].filter(Boolean).join(' · ');
   },
   cableLabelGeo(m) {
@@ -6399,6 +6403,12 @@ const MapView = {
             }
             body += `<g transform="translate(${g.cx} ${g.cy}) rotate(${g.rot})"><text x="0" y="0" font-size="${g.fs}" fill="${c}" text-anchor="middle" dominant-baseline="central" class="mk-lbl"${LblStyle.attrs(m, 'run', g.fs, c)}>${esc(g.txt)}</text></g>`;
           }
+          if (!preview && m.wires) for (const wr of m.wires) {
+            const tg = RunTree.tagGeo(m, wr); if (!tg) continue;
+            const ln = (wr.dOff && (wr.dOff[0] || wr.dOff[1])) ? this.leaderLine(tg.from, tg, tg.fs * 1.4) : null;
+            if (ln) body += `<line x1="${ln[0]}" y1="${ln[1]}" x2="${ln[2]}" y2="${ln[3]}" stroke="${c}" stroke-width="${Math.max(1, 1.2 * u)}" stroke-linecap="round" opacity="0.85" pointer-events="none"/>`;
+            body += `<g transform="translate(${tg.cx} ${tg.cy}) rotate(${tg.rot})" pointer-events="none"><rect x="${-tg.hw}" y="${-tg.hh}" width="${tg.hw * 2}" height="${tg.hh * 2}" rx="${tg.hh * 0.45}" fill="#fff" fill-opacity="0.85" stroke="${c}" stroke-width="${Math.max(0.8, tg.fs * 0.06)}"/><text x="0" y="0" font-size="${tg.fs}" fill="${c}" text-anchor="middle" dominant-baseline="central" class="mk-lbl"${LblStyle.attrs(RunTree.root(m), 'run', tg.fs, c)}>${esc(tg.txt)}</text></g>`;
+          }
           body += `<circle cx="${P[0][0]}" cy="${P[0][1]}" r="${w * 1.1}" fill="${c}"/><circle cx="${P[P.length - 1][0]}" cy="${P[P.length - 1][1]}" r="${w * 1.1}" fill="${c}"/>`;
           if (m.dots && !preview) P.forEach((q, i) => { const dd = m.dots[i]; if (!dd || !dd.kind) return; const kd = Dots.kind(dd.kind); body += `<g pointer-events="none"><circle cx="${q[0]}" cy="${q[1]}" r="${w * 2.6}" fill="#fff" fill-opacity="0.55" stroke="${kd.color}" stroke-width="${w * 0.9}"/><circle cx="${q[0]}" cy="${q[1]}" r="${w * 0.9}" fill="${kd.color}"/></g>`; });
         }
@@ -6487,16 +6497,19 @@ const MapView = {
   },
 
   /* blue dot at the left end of a name = drag to move it; dot at the right end = drag to turn it */
-  labelHandles(g, hr, sw, k, tie) {
+  labelHandles(g, hr, sw, k, tie, ids) {
+    ids = ids || {}; const hd = ids.hid ? ` data-hid="${ids.hid}"` : '', what = ids.what || 'the name';
     const r = g.rot * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r), gap = hr * 1.5;
     const L = [g.cx - c * (g.hw + gap), g.cy - sn * (g.hw + gap)], R = [g.cx + c * (g.hw + gap), g.cy + sn * (g.hw + gap)];
     const zx = g.hw + hr * 0.9, zy = -(g.hh + hr * 0.9), Z = [g.cx + c * zx - sn * zy, g.cy + sn * zx + c * zy];   // top-right corner of the name, turned with it
     return `<rect class="sel-box" x="${g.cx - g.hw}" y="${g.cy - g.hh}" width="${g.hw * 2}" height="${g.hh * 2}" transform="rotate(${g.rot} ${g.cx} ${g.cy})" stroke-width="${sw}" stroke-dasharray="${3 / k} ${3 / k}" fill="none"/>`
-      + `<circle data-h="lbl" cx="${L[0]}" cy="${L[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move the name</title></circle>`
-      + `<circle data-h="lbl-rot" cx="${R[0]}" cy="${R[1]}" r="${hr * 0.85}" class="handle round rot" stroke-width="${sw}"><title>Drag to turn the name (hold Shift to snap)</title></circle>`
-      + `<circle data-h="lbl-size" cx="${Z[0]}" cy="${Z[1]}" r="${hr * 0.85}" class="handle round size" stroke-width="${sw}"><title>Drag to make the name bigger or smaller</title></circle>`;
+      + `<circle data-h="${ids.m || 'lbl'}"${hd} cx="${L[0]}" cy="${L[1]}" r="${hr}" class="handle round" stroke-width="${sw}"><title>Drag to move ${what}</title></circle>`
+      + `<circle data-h="${ids.r || 'lbl-rot'}"${hd} cx="${R[0]}" cy="${R[1]}" r="${hr * 0.85}" class="handle round rot" stroke-width="${sw}"><title>Drag to turn ${what} (hold Shift to snap)</title></circle>`
+      + `<circle data-h="${ids.z || 'lbl-size'}"${hd} cx="${Z[0]}" cy="${Z[1]}" r="${hr * 0.85}" class="handle round size" stroke-width="${sw}"><title>Drag to make ${what} bigger or smaller</title></circle>`;
   },
 
+  /* the one item whose dots/handles are live: the single selected item, or the focused part of a selected branched run */
+  one() { if (this.sel.size === 1) return [...this.sel][0]; const r = RunTree.selRoot(this.sel); return r ? (this.sel.has(this.runFocus) ? this.runFocus : r.id) : null; },
   renderSel() {
     const L = this.layers.sel;
     if (!this.plan) { L.innerHTML = ''; return; }
@@ -6504,7 +6517,7 @@ const MapView = {
     const hr = 6 * HS() / k;    // handle radius in plan units (bigger for fingers)
     const sw = 1.5 / k;
     let html = '';
-    const single = this.sel.size === 1 ? [...this.sel][0] : null;
+    const single = this.one();
     for (const id of this.sel) {
       if (id[0] === 'l') { html += LayoutUI.selSvg(id, !!single && !Lock.is(id)); continue; }
       const it = Editor.findItem(id);
@@ -6544,9 +6557,9 @@ const MapView = {
         const pad = 6 / k;
         if (it.kind === 'text') html += Txt.selSvg(it, hr, sw, k, !!single && !it.locked && Txt.editingId !== it.id);
         else html += `<rect x="${bb.x - pad}" y="${bb.y - pad}" width="${bb.w + pad * 2}" height="${bb.h + pad * 2}" class="sel-box" stroke-width="${sw}" stroke-dasharray="${5 / k} ${3 / k}"/>`;
-        if (single && !it.locked && it.kind === 'cable') { const g = this.cableLabelGeo(it); if (g) html += this.labelHandles(g, hr, sw, k, g.mid); }
+        if (single === id && !it.locked && it.kind === 'cable') { const g = this.cableLabelGeo(it); if (g) html += this.labelHandles(g, hr, sw, k, g.mid); }
         if (single && !it.locked && it.kind === 'lsym') html += Lsym.handles(it, this.plan, hr, sw, k);
-        if (single && !it.locked && it.kind !== 'text' && it.kind !== 'lsym') {
+        if (single && single === id && !it.locked && it.kind !== 'text' && it.kind !== 'lsym') {
           if (Shapes.is(it.kind)) {
             const [a, b] = it.points;
             const corners = [[a[0], a[1]], [b[0], a[1]], [b[0], b[1]], [a[0], b[1]]];
@@ -6579,6 +6592,12 @@ const MapView = {
         }
       }
     }
+    /* a branched run: the run's name stays reachable, and every device's distance tag can be moved */
+    { const so = single ? Editor.findItem(single) : null, root = RunTree.selRoot(this.sel) || (so && so.kind === 'cable' ? RunTree.root(so) : null);
+      if (root && !root.locked) {
+        if (single && single !== root.id && this.sel.has(root.id)) { const g = this.cableLabelGeo(root); if (g) html += this.labelHandles(g, hr, sw, k, g.mid, { hid: root.id }); }
+        if (root.showDist) for (const { m, w } of RunTree.wires(root)) { const g = RunTree.tagGeo(m, w); if (g) html += this.labelHandles(g, hr, sw, k, g.from, { m: 'dst:' + w.id, r: 'dst-rot:' + w.id, z: 'dst-size:' + w.id, what: 'the distance' }); }
+      } }
     /* stack label handles when the whole stack is selected */
     const _selStk = Stack.selected(this.plan, this.sel);
     if (_selStk) {
@@ -6711,6 +6730,7 @@ const MapView = {
     if (h) {
       const r = { handle: h.dataset.h };
       if (h.dataset.stkdid) r.stkdid = h.dataset.stkdid;
+      if (h.dataset.hid) r.hid = h.dataset.hid;
       return r;
     }
     const dv = t.closest && t.closest('[data-dev]');
@@ -6806,7 +6826,7 @@ const MapView = {
     if (tool === 'select') {
       if (!hit.handle) this.selVertex = null;
       if (hit.handle) {
-        const id = [...this.sel][0];
+        const id = hit.hid || this.one() || [...this.sel][0];
         const it = Editor.findItem(id);
         const lay = id && id[0] === 'l';
         if (hit.handle.startsWith('vertex:')) {            // remember which dot was grabbed so Delete / right-click can remove just that one
@@ -6834,7 +6854,8 @@ const MapView = {
           this.drag = { mode: 'pan', s: loc, tx: this.tx, ty: this.ty, moved: false, tapId: id };
           return;
         }
-        if (!wasSel) { this.sel = Stack.expand(this.plan, [id]); this.renderSelState(); }
+        if (!wasSel) { this.sel = Stack.expand(this.plan, [id]); this.runFocus = id; this.renderSelState(); }
+        else if (this.runFocus !== id && RunTree.inSel(id)) { this.runFocus = id; this.renderSel(); }
         else if (Editor.isDevice(id)) { const ex = Stack.expand(this.plan, this.sel); if (ex.size !== this.sel.size) { this.sel = ex; this.renderSelState(); } }
         this.drag = { mode: 'move', s: loc, start: p, clickId: id, wasSel, moved: false, orig: this.snapshotSel() };
         return;
@@ -7057,7 +7078,7 @@ const MapView = {
           if (msg) Stack.say(msg);
         } else {
           // simple click on an item: select it (a stack as a whole) and show details
-          this.sel = Stack.expand(this.plan, [d.clickId]);
+          this.sel = Stack.expand(this.plan, [d.clickId]); this.runFocus = d.clickId;
           this.renderSelState();
           this.openDetails(d.clickId, e.pointerType === 'touch');
         }
@@ -7209,18 +7230,18 @@ const MapView = {
       if (mk && Editor.findItem(mk.dataset.mk) && Editor.findItem(mk.dataset.mk).kind === 'text') hit = { id: mk.dataset.mk };
     }
     if (this.tool === 'select') {
-      let run = hit.id && Editor.findItem(hit.id); if (!run || run.kind !== 'cable') { const one = this.sel.size === 1 ? Editor.findItem([...this.sel][0]) : null; run = one && one.kind === 'cable' ? one : null; }
+      let run = hit.id && Editor.findItem(hit.id); if (!run || run.kind !== 'cable') { const oid = this.one(), one = oid ? Editor.findItem(oid) : null; run = one && one.kind === 'cable' ? one : null; }
       if (run && run.points && run.points.length >= 2) {
         const pp = this.toPlan(e.clientX, e.clientY), near = (Device.touch ? 30 : 18) / this.k;
         let bi = -1, bd = near; run.points.forEach((q, i) => { const dd = Math.hypot(q[0] - pp[0], q[1] - pp[1]); if (dd < bd) { bd = dd; bi = i; } });
-        if (bi >= 0) { clearTimeout(this._tapOpen); if (!this.sel.has(run.id) || this.sel.size !== 1) { this.sel = new Set([run.id]); this.renderSelState(); } Side.showMarkup(run.id, { dot: bi }); return; }
+        if (bi >= 0) { clearTimeout(this._tapOpen); if (!this.sel.has(run.id)) { this.sel = Stack.expand(this.plan, [run.id]); this.renderSelState(); } this.runFocus = run.id; Side.showMarkup(run.id, { dot: bi }); return; }
         if (!run.locked) {
           let bs = -1, best = near * 0.8, at = null;
           for (let i = 1; i < run.points.length; i++) { const r = Dots.segDist(pp, run.points[i - 1], run.points[i]); if (r.d < best) { best = r.d; bs = i; at = r.pt; } }
           if (bs > 0) {
             clearTimeout(this._tapOpen);
             run.points.splice(bs, 0, [Math.round(at[0] * 10) / 10, Math.round(at[1] * 10) / 10]); Dots.insert(run, bs);
-            this.sel = new Set([run.id]); this.renderAll(); Editor.changed(); Side.showMarkup(run.id, { dot: bs });
+            this.sel = Stack.expand(this.plan, [run.id]); this.runFocus = run.id; this.renderAll(); Editor.changed(); Side.showMarkup(run.id, { dot: bs });
             toast('Dot added to the run. Drag it to place it, and pick what happens here'); return;
           }
         }
@@ -7327,11 +7348,11 @@ const MapView = {
         /* sync auto-linked wires to their devices */
         for (const w of m.wires) if (w.device) Side.syncWireToDevice(m, w);
         this.plan.markups.push(m);
-        this.sel = new Set([m.id]);
+        this.sel = Stack.expand(this.plan, [m.id]); this.runFocus = m.id;
         this.renderAll();
         Editor.changed();
         Side.showMarkup(m.id);
-        if (poly.splitFrom) toast(`Branch run saved — splits from parent run`);
+        if (poly.splitFrom) toast(`Branch added to the run`);
         else if (autoWires.length) toast(`${plural(autoWires.length, 'device')} auto-linked to this run`);
       }
     }
@@ -7414,8 +7435,8 @@ const MapView = {
     if (this.placeType || this.placeLayout || LayoutUI.ghostRoom) { Editor.setTool('select'); return; }
     const hit = this.hitInfo(e);
     const p = this.toPlan(e.clientX, e.clientY);
-    if (hit.handle && hit.handle.startsWith('vertex:') && this.sel.size === 1) {
-      const id = [...this.sel][0], i = +hit.handle.split(':')[1], m = Editor.findItem(id);
+    if (hit.handle && hit.handle.startsWith('vertex:') && this.one()) {
+      const id = this.one(), i = +hit.handle.split(':')[1], m = Editor.findItem(id);
       if (m && m.points) {
         this.selVertex = { id, i }; this.renderSel();
         const min = /poly|area/i.test(m.kind || '') ? 3 : 2;
@@ -7423,7 +7444,7 @@ const MapView = {
           ...(m.kind === 'cable' ? [{ label: 'Dot details…', icon: 'Edit', onClick: () => Side.showMarkup(id, { dot: i }) }] : []),
           { label: m.points.length <= min ? `Delete this dot (needs ${min} dots)` : 'Delete this dot', icon: 'Trash', kbd: 'Del', danger: true, disabled: m.points.length <= min, onClick: () => this.removeVertex(id, i) },
           '-',
-          { label: m.kind === 'cable' ? 'Delete the whole run' : 'Delete the whole line', icon: 'Trash', danger: true, onClick: () => Editor.deleteSelection() },
+          { label: m.kind === 'cable' ? 'Delete the whole run' : 'Delete the whole line', icon: 'Trash', danger: true, onClick: () => { if (m.kind === 'cable') { MapView.sel = Stack.expand(this.plan, [id]); } Editor.deleteSelection(); } },
         ], { x: e.clientX, y: e.clientY });
         return;
       }
@@ -7529,7 +7550,28 @@ const MapView = {
     return [a[0] + L * Math.cos(s), a[1] + L * Math.sin(s)];
   },
 
+  dragDist(d, p, shift) {
+    const [kind, wid] = d.h.split(':'); let M = null, W = null;
+    for (const m of this.plan.markups) if (m.kind === 'cable') { const w = (m.wires || []).find(x => x.id === wid); if (w) { M = m; W = w; break; } }
+    if (!W) return;
+    const g = RunTree.tagGeo(M, W); if (!g) return;
+    if (kind === 'dst-size') {
+      if (!d.gs) d.gs = { p: p.slice(), s: W.dScale || 1, c: [g.cx, g.cy] };
+      const d0 = Math.hypot(d.gs.p[0] - d.gs.c[0], d.gs.p[1] - d.gs.c[1]) || 1, d1 = Math.hypot(p[0] - d.gs.c[0], p[1] - d.gs.c[1]);
+      const sc = Math.round(clamp(d.gs.s * d1 / d0, 0.3, 8) * 100) / 100;
+      if (Math.abs(sc - 1) < 0.04) delete W.dScale; else W.dScale = sc;
+    } else if (kind === 'dst') {
+      if (!d.grab) d.grab = [g.cx - p[0], g.cy - p[1]];
+      const o = [Math.round((p[0] + d.grab[0] - g.base[0]) * 10) / 10, Math.round((p[1] + d.grab[1] - g.base[1]) * 10) / 10];
+      if (Math.hypot(o[0], o[1]) < g.fs * 0.4) delete W.dOff; else W.dOff = o;
+    } else {
+      let deg = Math.atan2(p[1] - g.cy, p[0] - g.cx) * 180 / Math.PI; if (shift) deg = Math.round(deg / 15) * 15;
+      deg = Math.round(deg); if (Math.abs(deg) < 2) delete W.dRot; else W.dRot = deg;
+    }
+    this.renderMarks(); this.renderSel(); Editor.changed({ commit: 'soon' });
+  },
   dragHandle(d, p, shift) {
+    if (d.h && d.h.startsWith('dst')) { this.dragDist(d, p, shift); return; }
     const it = Editor.findItem(d.id);
     if (!it) return;
     const h = d.h;
@@ -7711,6 +7753,72 @@ const MapView = {
    split into a slice of colour for each kind of system inside (red alarm, green cameras, purple …).
    A "stack" of one device is just a device. */
 
+/* A run with branches is ONE run: the main line plus every branch that splits off it (each branch is its own
+   polyline underneath, tied to its parent by splitFrom). These helpers treat the whole tree as one. */
+const RunTree = {
+  root(m) { const P = Editor.plan.markups; let c = m, n = 0; while (c && c.splitFrom && n++ < 60) { const p = P.find(x => x.id === c.splitFrom.runId); if (!p) break; c = p; } return c; },
+  members(m) { const P = Editor.plan.markups, r = this.root(m), out = [r]; for (let i = 0; i < out.length; i++) for (const x of P) if (x.kind === 'cable' && x.splitFrom && x.splitFrom.runId === out[i].id && !out.includes(x)) out.push(x); return out; },
+  descendants(m) { return this.members(m).filter(x => x !== m && this.chain(x).includes(m)); },
+  chain(m) { const P = Editor.plan.markups, out = []; let c = m, n = 0; while (c && c.splitFrom && n++ < 60) { const p = P.find(x => x.id === c.splitFrom.runId); if (!p) break; out.push(p); c = p; } return out; },
+  grouped(m) { return !!(m && m.kind === 'cable' && this.members(m).length > 1); },
+  ids(m) { return this.members(m).map(x => x.id); },
+  /* the root run when the selection is exactly one whole branched run, else null */
+  selRoot(sel) {
+    if (!Editor.plan || !sel || sel.size < 2) return null;
+    let root = null;
+    for (const id of sel) { const it = Editor.findItem(id); if (!it || it.kind !== 'cable') return null; const r = this.root(it); if (root && root !== r) return null; root = r; }
+    if (!root) return null;
+    const mem = this.members(root);
+    return mem.length === sel.size && mem.every(x => sel.has(x.id)) ? root : null;
+  },
+  inSel(id) { const r = this.selRoot(MapView.sel); return !!r && this.ids(r).includes(id); },
+  /* colour, thickness and line style are shared by the whole run */
+  sync(root) { for (const x of this.members(root)) if (x !== root) { x.color = root.color; if (root.width) x.width = root.width; if (root.dash) x.dash = root.dash; else delete x.dash; } },
+  wires(root) { const out = []; for (const x of this.members(root)) for (const w of x.wires || []) out.push({ m: x, w }); return out; },
+  /* feet from the first dot of the whole run to this wire's device (no count, no extra) */
+  distFt(m, w) {
+    const s = Editor.plan.scale; if (!s || !s.pxPerFt) return null;
+    if (w.pointIndex != null) return Side.wireSegmentFt(m, w);
+    const d = w.device && Editor.findItem(w.device); if (!d || !Editor.isDevice(d.id)) return null;
+    const P = m.points; if (!P || P.length < 2) return null;
+    let best = null, acc = 0;
+    for (let i = 1; i < P.length; i++) {
+      const r = Dots.segDist([d.x, d.y], P[i - 1], P[i]);
+      if (!best || r.d < best.d) best = { d: r.d, i, at: acc + dist(P[i - 1], r.pt) };
+      acc += dist(P[i - 1], P[i]);
+    }
+    let dotFt = 0;
+    for (let i = 0; i < best.i && m.dots; i++) { const dd = m.dots[i]; if (dd && (dd.kind === 'updown' || dd.kind === 'slack')) dotFt += Math.max(0, +(dd.f && dd.f.len) || 0); }
+    return Side.splitBaseFt(m) + best.at / s.pxPerFt + dotFt;
+  },
+  total(root) { let tot = 0, n = 0; for (const { m, w } of this.wires(root)) { const ft = Side.wireFt(m, w); if (ft != null) { tot += ft; n += Math.max(1, w.count || 1); } } return { tot, n }; },
+  /* keep every linked device's footage + distance current when the run is reshaped */
+  resync(plan) {
+    if (!plan || !plan.scale) return;
+    for (const m of plan.markups) {
+      if (m.kind !== 'cable') continue;
+      for (const w of m.wires || []) {
+        if (!w.device) continue;
+        const d = Editor.findItem(w.device); if (!d || !Editor.isDevice(d.id)) continue;
+        d.fields = d.fields || {};
+        const ft = Side.wireFt(m, w), ds = this.distFt(m, w);
+        if (ft != null && d.fields.cableLength !== ft) d.fields.cableLength = ft;
+        if (ds != null) { const v = Math.round(ds * 10) / 10; if (d.fields.runDistance !== v) d.fields.runDistance = v; }
+      }
+    }
+  },
+  /* where a device's distance tag sits on the map (null when the tag is off) */
+  tagGeo(m, w) {
+    const root = this.root(m); if (!root || !root.showDist || !w.device) return null;
+    const d = Editor.findItem(w.device); if (!d || !Editor.isDevice(d.id) || Editor.devHidden(d)) return null;
+    const ft = this.distFt(m, w); if (ft == null) return null;
+    const u = planUnit(Editor.plan), fs = 11 * u * (root.distScale || 1) * (w.dScale || 1);
+    const txt = Math.round(ft).toLocaleString() + ' ft', r = devSize(Editor.plan, d) * 0.62, rot = w.dRot || 0, off = w.dOff || [0, 0];
+    const hw = txt.length * fs * 0.31 + fs * 0.2, base = [d.x + r + hw, d.y - r - fs * 0.5];
+    return { fs, u, off, rot, txt, base, cx: base[0] + off[0], cy: base[1] + off[1], hw, hh: fs * 0.6, from: [d.x, d.y], wid: w.id };
+  },
+};
+
 const Stack = {
   /* stack id -> its devices, for groups of 2 or more among the devices given */
   groups(devs) {
@@ -7729,6 +7837,7 @@ const Stack = {
     const stks = new Set();
     for (const d of plan.devices) if (out.has(d.id) && d.stk) stks.add(d.stk);
     if (stks.size) for (const d of plan.devices) if (d.stk && stks.has(d.stk)) out.add(d.id);
+    for (const id of [...out]) { const it = plan.markups.find(x => x.id === id); if (it && it.kind === 'cable' && it.splitFrom || (it && it.kind === 'cable' && plan.markups.some(x => x.splitFrom && x.splitFrom.runId === id))) RunTree.ids(it).forEach(x => out.add(x)); }
     return out;
   },
   /* the stack id when the selection is exactly one stack's devices, else null */
@@ -8242,8 +8351,9 @@ const Side = {
   refresh() {
     const plan = Editor.plan;
     const stkSel = plan ? Stack.selected(plan, MapView.sel) : null;
+    const runSel = plan ? RunTree.selRoot(MapView.sel) : null;
     if (!this.mode) {
-      if (MapView.sel.size > 1) { if (stkSel) this.showStack(stkSel); else this.showMulti(); }
+      if (MapView.sel.size > 1) { if (stkSel) this.showStack(stkSel); else if (runSel) this.showMarkup(MapView.sel.has(MapView.runFocus) ? MapView.runFocus : runSel.id); else this.showMulti(); }
       return;
     }
     if (this.mode === 'list') { this.renderList(); return; }
@@ -8252,6 +8362,7 @@ const Side = {
       if (stkSel) { this.showStack(stkSel); return; }
     }
     if (stkSel) { this.showStack(stkSel); return; }
+    if (runSel) { const fid = MapView.sel.has(MapView.runFocus) ? MapView.runFocus : runSel.id; if (this.mode !== 'markup' || this.id !== fid) this.showMarkup(fid); else this.renderMarkup(); return; }
     const sel = [...MapView.sel];
     if (sel.length > 1) { this.showMulti(); return; }
     if (sel.length === 1) {
@@ -8446,7 +8557,8 @@ const Side = {
           const run = ref ? Editor.findItem(ref.runId) : null;
           const wire = run && run.wires ? run.wires.find(ww => ww.id === ref.wireId) : null;
           const linked = !!(run && wire);
-          return (linked ? `<p class="tiny wire-linked-note"><span class="muted">Linked to wire run${run.label ? ' <b>' + esc(run.label) + '</b>' : ''}</span> <button type="button" class="btn sm" id="sd-goto-run" data-rid="${esc(run.id)}">${ic('Route')}<span>Go to run</span></button></p>` : '')
+          const dsFt = linked ? RunTree.distFt(run, wire) : null;
+          return (linked ? `<p class="tiny wire-linked-note"><span class="muted">Linked to wire run${RunTree.root(run).label ? ' <b>' + esc(RunTree.root(run).label) + '</b>' : ''}</span> <button type="button" class="btn sm" id="sd-goto-run" data-rid="${esc(run.id)}">${ic('Route')}<span>Go to run</span></button></p>${dsFt != null ? `<div class="wire-dist"><span>Distance from the start of the run</span><b>${Math.round(dsFt).toLocaleString()} ft</b></div>` : ''}` : '')
             + COMMON_FIELDS.cabling.map(f => this.fieldHtml(f, d.fields[f[0]])).join('');
         })(), 'Route', false)}
         ${isPano ? '' : this.section('install', 'Install', COMMON_FIELDS.install.map(f => this.fieldHtml(f, d.fields[f[0]])).join(''), 'ClipboardList', false)}
@@ -8804,7 +8916,8 @@ const Side = {
     if (dot != null) this.cond = null;
     this.id = id;
     this.fromList = false;
-    if (!MapView.sel.has(id) || MapView.sel.size !== 1) { MapView.sel = new Set([id]); MapView.renderSelState(); }
+    if (RunTree.inSel(id)) MapView.runFocus = id;
+    else if (!MapView.sel.has(id) || MapView.sel.size !== 1) { MapView.sel = Stack.expand(Editor.plan, [id]); MapView.runFocus = id; MapView.renderSelState(); }
     $('#ed-devices').classList.remove('on');
     this.renderMarkup();
     this.open();
@@ -8994,13 +9107,13 @@ const Side = {
     if (base == null) return null;
     return Math.round((base + (w.extraFt || 0)) * Math.max(1, w.count || 1));
   },
-  cableTotalText(m) {
-    const wires = m.wires || [];
+  cableTotalText(m0) {
+    const m = RunTree.root(m0), wires = RunTree.wires(m).map(x => x.w);
     const s = Editor.plan.scale;
     if (!s) { const types = wires.map(w => w.type).filter(Boolean); return `${types.length ? esc(types.join(', ')) + ' · ' : ''}Set the plan scale to measure this run.`; }
     let total = 0, n = 0;
-    for (const w of wires) { const ft = this.wireFt(m, w); if (ft != null) { total += ft; n += Math.max(1, w.count || 1); } }
-    const dv = Dots.feet(m);
+    for (const x of RunTree.wires(m)) { const ft = this.wireFt(x.m, x.w); if (ft != null) { total += ft; n += Math.max(1, x.w.count || 1); } }
+    const dv = RunTree.members(m).reduce((a, x) => a + Dots.feet(x), 0);
     return `<b>${total.toLocaleString()} ft</b> total${n > 1 ? ` (${n} cables)` : ''}${dv ? `<br><span class="muted">includes ${Math.round(dv * 10) / 10} ft going up/down or slack from the dots</span>` : ''}`;
   },
   wireCardHtml(m, w, idx) {
@@ -9011,12 +9124,12 @@ const Side = {
     const devs = plan.devices.filter(d => !claimed.has(d.id) && d.id !== w.device).sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true, sensitivity: 'base' }));
     const nm = d => (d.label || Reg.type(d.type).name) + ' · ' + Reg.type(d.type).name;
     const ft = this.wireFt(m, w);
-    const segFt = this.wireSegmentFt(m, w);
+    const segFt = w.device ? RunTree.distFt(m, w) : null;
     const ftTxt = ft != null ? `${ft.toLocaleString()} ft${(w.count || 1) > 1 ? ' (' + (w.count || 1) + ' × ' + Math.round(ft / Math.max(1, w.count || 1)).toLocaleString() + ')' : ''}` : '';
-    const segNote = segFt != null ? `<span class="wire-seg muted" title="Distance from start of run to this device's connection point">(${Math.round(segFt).toLocaleString()} ft from start)</span>` : '';
-    const splitNote = m.splitFrom ? (() => { const sFt = this.splitBaseFt(m); return sFt > 0 ? `<span class="wire-seg muted" title="This branch run includes ${Math.round(sFt)} ft of shared path from the parent run">incl. ${Math.round(sFt)} ft shared</span>` : ''; })() : '';
+    const segNote = segFt != null ? `<span class="wire-seg" title="Distance from the first dot of the run to this device">${Math.round(segFt).toLocaleString()} ft from the start</span>` : '';
+    const splitNote = '';
     const canDel = (m.wires || []).length > 1;
-    return `<div class="wire-card" data-wid="${esc(w.id)}">
+    return `<div class="wire-card" data-wid="${esc(w.id)}" data-mid="${esc(m.id)}">
       <div class="wire-head"><span class="wire-num">${idx + 1}</span><span class="wire-ft">${ftTxt ? esc(ftTxt) : ''}${segNote ? ' ' + segNote : ''}${splitNote ? ' ' + splitNote : ''}</span>${canDel ? `<button type="button" class="icon-btn wire-del" data-wid="${esc(w.id)}" title="Remove this wire">${ic('X')}</button>` : ''}</div>
       <div class="cab-grid">
         <label class="fld"><span>Cable type</span><select class="inp wc-type" data-wid="${esc(w.id)}">${OtherOpt.options(CABLE_TYPES, 'cable', w.type || '')}</select></label>
@@ -9043,12 +9156,13 @@ const Side = {
     d.fields.cableId = m.label || '';
     const ft = this.wireFt(m, w);
     if (ft != null) d.fields.cableLength = ft;
+    const ds = RunTree.distFt(m, w); if (ds != null) d.fields.runDistance = Math.round(ds * 10) / 10;
     d.fields._wireRef = { runId: m.id, wireId: w.id };
   },
   /* clear wire ref from a device */
   clearWireRef(deviceId) {
     const d = Editor.findItem(deviceId);
-    if (d && d.fields && d.fields._wireRef) { delete d.fields._wireRef; }
+    if (d && d.fields && d.fields._wireRef) { delete d.fields._wireRef; delete d.fields.runDistance; }
   },
   /* wire up all events on the wire cards */
   wireWire(m, touch) {
@@ -9058,20 +9172,20 @@ const Side = {
 
     /* per-card events */
     $$('.wire-card', this.el).forEach(card => {
-      const wid = card.dataset.wid, w = findW(wid);
+      const mm = (card.dataset.mid && Editor.findItem(card.dataset.mid)) || m, wid = card.dataset.wid, w = (mm.wires || []).find(x => x.id === wid);
       if (!w) return;
 
       /* cable type */
       const tsel = $('.wc-type', card);
-      if (tsel) { OtherOpt.attach(tsel, 'cable'); tsel.onchange = () => { if (tsel.value === OtherOpt.SENT) return; w.type = tsel.value || ''; this.syncWireToDevice(m, w); refresh(); touch('now'); }; }
+      if (tsel) { OtherOpt.attach(tsel, 'cable'); tsel.onchange = () => { if (tsel.value === OtherOpt.SENT) return; w.type = tsel.value || ''; this.syncWireToDevice(mm, w); refresh(); touch('now'); }; }
 
       /* count */
       const cnt = $('.wc-count', card);
-      if (cnt) cnt.oninput = () => { w.count = Math.max(1, Math.round(+cnt.value || 1)); this.syncWireToDevice(m, w); refresh(); touch(); };
+      if (cnt) cnt.oninput = () => { w.count = Math.max(1, Math.round(+cnt.value || 1)); this.syncWireToDevice(mm, w); refresh(); touch(); };
 
       /* extra ft */
       const ext = $('.wc-extra', card);
-      if (ext) ext.oninput = () => { w.extraFt = Math.max(0, +ext.value || 0); this.syncWireToDevice(m, w); refresh(); touch(); };
+      if (ext) ext.oninput = () => { w.extraFt = Math.max(0, +ext.value || 0); this.syncWireToDevice(mm, w); refresh(); touch(); };
 
       /* device select */
       const dev = $('.wc-dev', card);
@@ -9079,7 +9193,7 @@ const Side = {
         const old = w.device;
         if (old) this.clearWireRef(old);
         w.device = dev.value || null;
-        if (w.device) this.syncWireToDevice(m, w);
+        if (w.device) this.syncWireToDevice(mm, w);
         refresh(); touch('now');
         /* re-render to update "go" button and available devices across cards */
         self.renderMarkup();
@@ -9093,8 +9207,8 @@ const Side = {
       const del = $('.wire-del', card);
       if (del) del.onclick = () => {
         if (w.device) this.clearWireRef(w.device);
-        m.wires = (m.wires || []).filter(ww => ww.id !== wid);
-        if (!m.wires.length) m.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
+        mm.wires = (mm.wires || []).filter(ww => ww.id !== wid);
+        if (!mm.wires.length) mm.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
         refresh(); touch('now');
         self.renderMarkup();
       };
@@ -9103,8 +9217,9 @@ const Side = {
     /* add wire button */
     const addBtn = $('#mk-addwire');
     if (addBtn) addBtn.onclick = () => {
-      m.wires = m.wires || [];
-      m.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
+      const tm = (RunTree.members(m).find(x => x.id === Side.id)) || m;
+      tm.wires = tm.wires || [];
+      tm.wires.push({ id: uid('w'), type: '', count: 1, extraFt: 0, device: null });
       touch('now');
       self.renderMarkup();
     };
@@ -9230,27 +9345,30 @@ const Side = {
     if (el && ppf) el.textContent = 'Conduit · ' + fmtFeet(Conduit.ft(m, c, ppf), Settings.data.units);
   },
   renderMarkup() {
-    const m = Editor.findItem(this.id);
+    let m = Editor.findItem(this.id);
     if (!m) { this.close(); return; }
     if (m.kind === 'cable' && this.cond && Conduit.find(m, this.cond)) { this.renderConduit(m, Conduit.find(m, this.cond)); return; }
     this.cond = null;
     if (m.kind === 'cable' && this.dot != null && m.points[this.dot]) { this.renderDot(m); return; }
     this.dot = null;
+    const focus = m;
+    const rt = m.kind === 'cable' && RunTree.grouped(m) ? RunTree.members(m) : null;
+    if (rt) m = rt[0];                  // a branched run is ONE run: the panel is the run's, not one section's
     const u = planUnit(Editor.plan);
     const names = { text: 'Text note', arrow: 'Arrow', line: 'Line', cable: 'Cable run', rect: 'Box / area', ellipse: 'Circle / oval', shape: 'Shape', pen: 'Freehand', measure: 'Measurement' };
     const icons = { text: 'Typography', arrow: 'ArrowUpRight', line: 'Line', cable: 'Route', rect: 'Square', ellipse: 'Circle', shape: 'Triangle', pen: 'Scribble', measure: 'Ruler' };
     const hasStroke = m.kind !== 'text';
-    const lenPx = ['line', 'arrow', 'cable', 'measure', 'pen'].includes(m.kind) ? polyLength(m.points) : 0;
+    const lenPx = !rt && ['line', 'arrow', 'cable', 'measure', 'pen'].includes(m.kind) ? polyLength(m.points) : 0;
     const lenTxt = lenPx && Editor.plan.scale ? fmtFeet(lenPx / Editor.plan.scale.pxPerFt, Settings.data.units) : '';
     const active = document.activeElement && this.el.contains(document.activeElement) ? document.activeElement.id : null;
     this.el.innerHTML = `
       <div class="side-head">
         <div class="sd-ico"><span class="tico mk-ico" style="width:44px;height:44px;--c:${m.color}">${ic(icons[m.kind] || 'Edit')}</span></div>
-        <div class="sd-title"><div class="sd-label static">${esc(Shapes.is(m.kind) ? Shapes.of(m).name : (names[m.kind] || 'Markup'))}</div><div class="sd-type">${lenTxt ? 'Length ' + esc(lenTxt) : m.kind === 'cable' || m.kind === 'measure' ? '<span class="muted">Set the plan scale to see the length</span>' : 'Markup'}</div></div>
+        <div class="sd-title"><div class="sd-label static">${esc(Shapes.is(m.kind) ? Shapes.of(m).name : (names[m.kind] || 'Markup'))}</div><div class="sd-type">${rt ? 'One run · ' + rt.length + ' sections' : lenTxt ? 'Length ' + esc(lenTxt) : m.kind === 'cable' || m.kind === 'measure' ? '<span class="muted">Set the plan scale to see the length</span>' : 'Markup'}</div></div>
         <button class="icon-btn" id="sd-close" title="Close (Esc)">${ic('X')}</button>
       </div>
       <div class="side-body">
-        ${m.kind === 'cable' ? this.condRunHtml(m) : ''}
+        ${m.kind === 'cable' ? this.condRunHtml(focus) : ''}
         ${m.kind === 'text' ? `<label class="fld"><span>Text</span><textarea class="inp" id="mk-text" rows="4">${esc(m.text || '')}</textarea></label>` : ''}
         ${m.kind === 'cable' || Shapes.is(m.kind) ? `<label class="fld"><span>${m.kind === 'cable' ? 'Cable label (e.g. CAT6 to IDF)' : 'Label'}</span><input class="inp" id="mk-label" value="${esc(m.label || '')}"></label>` : ''}
         <div class="fld"><span>Color</span><div class="swatches" id="mk-colors">${MARK_COLORS.map(c => `<button style="--c:${c}" data-c="${c}" class="${c === m.color ? 'on' : ''}" title="${c}"></button>`).join('')}<label class="swatch-custom" title="Custom color"><input type="color" id="mk-color" value="${/^#[0-9a-f]{6}$/i.test(m.color) ? m.color : '#dc2626'}"></label></div></div>
@@ -9263,9 +9381,14 @@ const Side = {
           <div class="slider-row"><span>Fill</span><input type="range" id="mk-fill" min="0" max="1" step="0.02" value="${m.fill || 0}"><em id="mk-fill-v">${Math.round((m.fill || 0) * 100)}%</em></div>` : ''}
         ${m.kind === 'line' || m.kind === 'rect' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-barrier" ${m.barrier ? 'checked' : ''}><span>Blocks camera views &amp; sensor coverage (a wall)</span></label>` : ''}
         ${m.kind === 'arrow' ? `<label class="chk-row"><input type="checkbox" class="chk" id="mk-both" ${m.both ? 'checked' : ''}><span>Arrowheads on both ends</span></label>` : ''}
-        ${m.kind === 'cable' && m.splitFrom ? (() => { const pr = Editor.findItem(m.splitFrom.runId); const sFt = this.splitBaseFt(m); return `<p class="tiny muted" style="color:var(--amber-600,#d97706)">⑂ Branch run — splits from ${pr ? esc(pr.label || 'Run') : 'parent run'}${sFt > 0 ? ' (+' + Math.round(sFt) + ' ft shared path)' : ''}</p>`; })() : ''}
+        ${rt ? `<div class="run-parts"><div class="rp-t">${ic('GitBranch')}<b>One run, ${rt.length} sections</b></div>
+          <div class="rp-chips">${rt.map((x, j) => `<button type="button" class="rp-chip ${x.id === focus.id ? 'on' : ''}" data-mid="${esc(x.id)}">${j ? 'Branch ' + j : 'Main line'}</button>`).join('')}</div>
+          <p class="tiny muted">It's all one run. Pick a section to move its dots or add conduit to it.</p>
+          ${focus !== m ? `<button type="button" class="btn sm danger-ghost" id="rp-rm">${ic('Trash')}<span>Remove just this branch</span></button>` : ''}</div>` : ''}
         ${m.kind === 'cable' ? `<p class="tiny cab-total" id="mk-ctotal">${this.cableTotalText(m)}</p>
-          <div class="wire-cards" id="mk-wires">${(m.wires || []).map((w, i) => this.wireCardHtml(m, w, i)).join('')}</div>
+          ${RunTree.wires(m).some(x => x.w.device) ? `<div class="dist-box"><label class="chk-row"><input type="checkbox" class="chk" id="mk-showdist" ${m.showDist ? 'checked' : ''}><span>Show each device's distance from the start of the run</span></label>
+            ${m.showDist ? `<div class="slider-row"><span>Distance text size</span><input type="range" id="mk-dsize" min="0.5" max="3" step="0.1" value="${m.distScale || 1}"><em id="mk-dsize-v">${Math.round((m.distScale || 1) * 100)}%</em></div><p class="tiny muted">Drag the blue dots beside a distance on the map to move, turn or resize it. Style it with Name text style below.</p>` : ''}</div>` : ''}
+          <div class="wire-cards" id="mk-wires">${(rt || [m]).map((x, j) => (rt ? `<div class="wire-part">${j ? 'Branch ' + j : 'Main line'}</div>` : '') + (x.wires || []).map((w, i) => this.wireCardHtml(x, w, i)).join('')).join('')}</div>
           <button type="button" class="btn sm" id="mk-addwire">${ic('Plus')}<span>Add wire type</span></button>
           <p class="tiny muted">Drag the dots on the map to reshape the run. <b>Double-click a dot</b> for its details (up/down, penetration, pull box…), or double-click the line to add a dot. ${plural(m.points.length, 'point')}.</p>` : ''}
         ${m.kind === 'cable' && MapView.cableLabelGeo(m) ? this.lblControls(m, false) : ''}
@@ -9284,13 +9407,24 @@ const Side = {
     const touch = (commit = 'soon') => {
       Editor.lastMarkStyle = Editor.lastMarkStyle || {};
       Editor.lastMarkStyle[m.kind] = { color: m.color, widthU: m.width ? m.width / u : undefined };
+      if (m.kind === 'cable') RunTree.sync(m);
       MapView.renderMarks(); MapView.renderSel(); Editor.changed({ commit });
     };
     $('#sd-close').onclick = () => { MapView.sel.clear(); MapView.renderSelState(); this.close(); };
     const t = $('#mk-text'); if (t) t.oninput = () => { m.text = t.value; touch(); };
     const lb = $('#mk-label'); if (lb) lb.oninput = () => { m.label = lb.value; touch(); };
     /* wire cards wiring */
-    if (m.kind === 'cable') { this.wireWire(m, touch); this.wireCondRun(m); }
+    if (m.kind === 'cable') { this.wireWire(m, touch); this.wireCondRun(focus); }
+    $$('.rp-chip', this.el).forEach(b => b.onclick = () => { MapView.runFocus = b.dataset.mid; this.id = b.dataset.mid; this.cond = null; this.dot = null; MapView.renderSel(); this.renderMarkup(); });
+    const rm = $('#rp-rm'); if (rm) rm.onclick = () => {
+      const gone = new Set([focus.id, ...RunTree.descendants(focus).map(x => x.id)]);
+      for (const x of Editor.plan.markups) if (gone.has(x.id)) for (const w of x.wires || []) if (w.device) this.clearWireRef(w.device);
+      Editor.plan.markups = Editor.plan.markups.filter(x => !gone.has(x.id));
+      MapView.sel = Stack.expand(Editor.plan, [m.id]); MapView.runFocus = m.id; this.id = m.id;
+      MapView.renderAll(); Editor.changed({ commit: 'now' }); this.renderMarkup(); toast('Branch removed', { action: 'Undo', onAction: () => Editor.doUndo() });
+    };
+    const sd = $('#mk-showdist'); if (sd) sd.onchange = () => { if (sd.checked) m.showDist = true; else delete m.showDist; touch('now'); this.renderMarkup(); };
+    const ds = $('#mk-dsize'); if (ds) ds.oninput = () => { m.distScale = +ds.value; if (Math.abs(m.distScale - 1) < 0.05) delete m.distScale; $('#mk-dsize-v').textContent = Math.round(+ds.value * 100) + '%'; touch(); };
     $$('#mk-colors [data-c]', this.el).forEach(b => b.onclick = () => { m.color = b.dataset.c; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.toggle('on', x === b)); touch('now'); $('.mk-ico', this.el).style.setProperty('--c', m.color); });
     $('#mk-color').oninput = e => { m.color = e.target.value; $$('#mk-colors [data-c]', this.el).forEach(x => x.classList.remove('on')); touch(); };
     const w = $('#mk-width'); if (w) w.oninput = () => { m.width = +w.value * u; $('#mk-width-v').textContent = w.value; touch(); };
@@ -9309,6 +9443,7 @@ const Side = {
     }
     $('#mk-dup').onclick = () => { Editor.duplicateSelection(); const id = [...MapView.sel][0]; if (id) this.showMarkup(id); };
     $('#mk-del').onclick = () => Editor.deleteSelection();
+    if (rt) { const dl = $('#mk-del span'); if (dl) dl.textContent = 'Delete whole run'; }
   },
 
 
@@ -15311,7 +15446,7 @@ const SideSections = {
       if (lay) this.wrap(el, [lay], 'Layer');
       const body = [...el.children].find(c => c.classList && c.classList.contains('side-body'));
       if (body && !body.classList.contains('dot-body') && !body.classList.contains('cd-body') && !body.classList.contains('tx-panel')) {
-        const SKIP = c => c.classList.contains('psec') || c.classList.contains('cd-add') || c.classList.contains('cd-card') || c.classList.contains('cd-p') || c.classList.contains('mk-actions') || c.classList.contains('sd-meta') || c.classList.contains('multi-types') || c.tagName === 'SCRIPT';
+        const SKIP = c => c.classList.contains('psec') || c.classList.contains('cd-add') || c.classList.contains('cd-card') || c.classList.contains('cd-p') || c.classList.contains('mk-actions') || c.classList.contains('run-parts') || c.classList.contains('sd-meta') || c.classList.contains('multi-types') || c.tagName === 'SCRIPT';
         const kids = [...body.children]; let run = [];
         const flush = () => {
           if (!run.length) return;
@@ -15326,7 +15461,7 @@ const SideSections = {
           else if (c.classList.contains('lbl-ctl')) { flush(); this.wrap(el, [c], 'Name on the map'); }
           else if (c.classList.contains('lbl-style')) { flush(); this.wrap(el, [c], 'Name text style'); }
           else if (SKIP(c)) flush();
-          else { if (c.classList.contains('wire-cards') || c.classList.contains('cab-grid') || c.classList.contains('cab-links')) flush(); run.push(c); }
+          else { if (c.classList.contains('dist-box') || c.classList.contains('wire-cards') || c.classList.contains('cab-grid') || c.classList.contains('cab-links')) { if (!(c.classList.contains('wire-cards') && run.length && run[run.length-1].classList.contains('dist-box'))) flush(); } run.push(c); }
         }
         flush();
       }
@@ -15820,7 +15955,17 @@ const HubField = {
     const u = planUnit(plan), step = 100 * u;
     const bg = Layout.is(plan) ? Layout.svg(plan, { interactive: false })
       : plan.bg.src ? `<image href="${plan.bg.src}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : `<rect width="${W}" height="${H}" fill="url(#xp-grid)"/>`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><style>${EXPORT_CSS}</style><defs><pattern id="xp-grid" width="${step}" height="${step}" patternUnits="userSpaceOnUse"><path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="#dbe2ec" stroke-width="${1.2 * u}"/></pattern></defs><rect width="${W}" height="${H}" fill="#fff"/>${bg}<g>${marks}</g></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><style>${EXPORT_CSS}
+.run-parts{border:1px solid var(--line,#2a3a4d);border-radius:12px;padding:10px 12px;margin:2px 0 10px;background:color-mix(in srgb,var(--accent,#26b5d8) 7%,transparent)}
+.rp-t{display:flex;align-items:center;gap:8px;font-size:13.5px}.rp-t svg{width:16px;height:16px;color:var(--accent,#26b5d8)}
+.rp-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+.rp-chip{border:1px solid var(--line,#2a3a4d);background:transparent;color:inherit;border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.rp-chip.on{background:var(--accent,#26b5d8);border-color:var(--accent,#26b5d8);color:#04222b}
+.wire-part{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#8aa0b4);margin:10px 2px 4px}
+.dist-box{border:1px dashed var(--line,#2a3a4d);border-radius:12px;padding:8px 12px;margin:6px 0 8px}
+.wire-seg{font-weight:700;color:var(--accent,#26b5d8)}
+.wire-dist{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:6px 0 10px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--accent,#26b5d8) 10%,transparent);font-size:13px}.wire-dist b{font-size:15px;color:var(--accent,#26b5d8)}
+</style><defs><pattern id="xp-grid" width="${step}" height="${step}" patternUnits="userSpaceOnUse"><path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="#dbe2ec" stroke-width="${1.2 * u}"/></pattern></defs><rect width="${W}" height="${H}" fill="#fff"/>${bg}<g>${marks}</g></svg>`;
     const target = Device.touch ? 1800 : 2400;
     const blob = await Exporter.rasterize(svg, W, H, target / Math.max(W, H), 'image/jpeg', 0.84);
     return await readFileAsDataURL(blob);
@@ -15974,7 +16119,7 @@ document.addEventListener('keydown', (e) => {
   if (key === 'Enter' && MapView.poly) { MapView.finishPoly(true); return; }
   if (key === 'Backspace' && MapView.poly) { e.preventDefault(); MapView.poly.pts.pop(); if (!MapView.poly.pts.length) MapView.poly = null; MapView.renderTemp(); return; }
   if ((k === 's') && MapView.poly && MapView.poly.pts.length > 1) { e.preventDefault(); MapView.poly.splitMode = !MapView.poly.splitMode; if (MapView.poly.splitMode) Editor.hint('Click a dot on the run to split from that point. Press <kbd>S</kbd> again to cancel.', true); else Editor.hint(TOOL_HINTS.cable); MapView.renderTemp(); Touch.updateBar(); return; }
-  if ((key === 'Delete' || key === 'Backspace') && MapView.selVertex && MapView.sel.size === 1 && MapView.sel.has(MapView.selVertex.id)) {
+  if ((key === 'Delete' || key === 'Backspace') && MapView.selVertex && MapView.one() === MapView.selVertex.id) {
     e.preventDefault(); const sv = MapView.selVertex; if (MapView.removeVertex(sv.id, sv.i)) return;
   }
   if (key === 'Delete' || key === 'Backspace') { e.preventDefault(); Editor.deleteSelection(); return; }
