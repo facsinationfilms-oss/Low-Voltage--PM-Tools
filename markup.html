@@ -16240,6 +16240,14 @@ if (HUB) {
       await App.openProject(project, { dirty: false, fresh: true });
       return true;
     },
+    /* replace the open project with a newer version from the cloud (the person already chose to drop their unsaved edits) */
+    async reloadFrom(text, { jobId = '' } = {}) {
+      const { project } = parseProjectFile(text);
+      if (jobId) project.hub = { ...(project.hub || {}), jobId };
+      if (App.project) { App.dirty = false; if (!(await App.closeProject())) return false; }
+      await App.openProject(project, { dirty: false, fresh: true });
+      return true;
+    },
     /* keep a project in the app without opening it (attached from a file or downloaded) */
     async importText(text, { jobId = '', fileName = '' } = {}) {
       const { project } = parseProjectFile(text);
